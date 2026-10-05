@@ -1135,38 +1135,215 @@
 
         </section>
 
+        
+
+<!-- =================================================
+     CANCIONES
+     ================================================= -->
+
+<section
+  id="canciones"
+  class="section"
+>
+
+  <div class="section-header">
+
+    <div>
+      <h1 class="page-title">
+        Canciones
+      </h1>
+
+      <p class="page-description">
+        Repertorio de la banda y toda la información de cada canción.
+      </p>
+    </div>
+
+    <button
+      class="primary-btn"
+      onclick="toggleSongForm()"
+    >
+      + Nueva canción
+    </button>
+
+  </div>
 
 
-        <!-- =================================================
-             CANCIONES
-             ================================================= -->
+  <!-- FORMULARIO NUEVA CANCIÓN -->
 
-        <section
-          id="canciones"
-          class="section"
+  <div
+    id="songForm"
+    class="form-card"
+    style="display: none;"
+  >
+
+    <h2>
+      Nueva canción
+    </h2>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="songName">
+          Nombre
+        </label>
+
+        <input
+          id="songName"
+          type="text"
+          placeholder="Ej: Él nos ama"
         >
-
-          <h1 class="page-title">
-            Canciones
-          </h1>
-
-          <p class="page-description">
-            Repertorio de la banda y toda la información de cada canción.
-          </p>
+      </div>
 
 
-          <div class="placeholder">
+      <div class="form-group">
+        <label for="songArtist">
+          Artista / autor
+        </label>
 
-            Acá vamos a construir el repertorio.
+        <input
+          id="songArtist"
+          type="text"
+          placeholder="Ej: Christine D'Clario"
+        >
+      </div>
 
-            <br><br>
 
-            Cada canción podrá tener versiones, tonalidad, BPM,
-            género, cantante, calificación, materiales y comentarios.
+      <div class="form-group">
+        <label for="songGenre">
+          Género
+        </label>
 
-          </div>
+        <input
+          id="songGenre"
+          type="text"
+          placeholder="Ej: Balada atmosférica"
+        >
+      </div>
 
-        </section>
+
+      <div class="form-group">
+        <label for="songBpm">
+          BPM
+        </label>
+
+        <input
+          id="songBpm"
+          type="number"
+          min="1"
+          placeholder="Ej: 72"
+        >
+      </div>
+
+
+      <div class="form-group">
+        <label for="songKey">
+          Tonalidad
+        </label>
+
+        <input
+          id="songKey"
+          type="text"
+          placeholder="Ej: G"
+        >
+      </div>
+
+
+      <div class="form-group">
+        <label for="songSinger">
+          Cantante
+        </label>
+
+        <input
+          id="songSinger"
+          type="text"
+          placeholder="Ej: Santiago"
+        >
+      </div>
+
+
+      <div class="form-group">
+        <label for="songVersion">
+          Versión
+        </label>
+
+        <input
+          id="songVersion"
+          type="text"
+          placeholder="Ej: Original, Culto, Campaña..."
+        >
+      </div>
+
+
+      <div class="form-group">
+        <label for="songStatus">
+          Estado
+        </label>
+
+        <select id="songStatus">
+
+          <option value="Activa">
+            Activa
+          </option>
+
+          <option value="En preparación">
+            En preparación
+          </option>
+
+          <option value="Pausada">
+            Pausada
+          </option>
+
+          <option value="Archivada">
+            Archivada
+          </option>
+
+        </select>
+      </div>
+
+    </div>
+
+
+    <div
+      id="songFormMessage"
+      class="form-message"
+    ></div>
+
+
+    <div class="form-actions">
+
+      <button
+        class="secondary-btn"
+        onclick="toggleSongForm()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        class="primary-btn"
+        onclick="createSong()"
+      >
+        Guardar canción
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- LISTADO -->
+
+  <div
+    id="songsList"
+    class="songs-list"
+  >
+
+    <p class="empty-state">
+      Cargando canciones...
+    </p>
+
+  </div>
+
+</section>
 
 
 
