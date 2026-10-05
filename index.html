@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>EnsayoHub</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f5f7;
+      color: #1f2937;
+      min-height: 100vh;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* =========================
+       LOGIN
+    ========================= */
+
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: 18px;
+      padding: 35px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo h1 {
+      font-size: 32px;
+      color: #111827;
+    }
+
+    .logo span {
+      color: #6366f1;
+    }
+
+    .logo p {
+      margin-top: 8px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .auth-card h2 {
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .field input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .primary-btn {
+      width: 100%;
+      border: none;
+      border-radius: 9px;
+      padding: 13px;
+      background: #6366f1;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    .primary-btn:hover {
+      background: #4f46e5;
+    }
+
+    .secondary-btn {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      padding: 12px;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .secondary-btn:hover {
+      background: #f9fafb;
+    }
+
+    .auth-switch {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .link-btn {
+      border: none;
+      background: none;
+      color: #6366f1;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .message.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    /* =========================
+       APP
+    ========================= */
+
+    #app-screen {
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: 64px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 25px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-logo {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .topbar-logo span {
+      color: #6366f1;
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-email {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .logout-btn {
+      border: 1px solid #d1d5db;
+      background: white;
+      padding: 8px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .layout {
+      display: flex;
+      min-height: calc(100vh - 64px);
+    }
+
+    .sidebar {
+      width: 230px;
+      background: #111827;
+      padding: 20px 12px;
+      color: white;
+    }
+
+    .sidebar-title {
+      color: #9ca3af;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 10px 12px;
+      margin-bottom: 5px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #d1d5db;
+      text-align: left;
+      padding: 11px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 3px;
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active {
+      background: #374151;
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      padding: 30px;
+      max-width: 1200px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      color: #6b7280;
+      margin-bottom: 30px;
+    }
+
+    .welcome-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 25px;
+    }
+
+    .welcome-card h2 {
+      margin-bottom: 8px;
+    }
+
+    .welcome-card p {
+      color: #6b7280;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 15px;
+    }
+
+    .feature-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 13px;
+      padding: 20px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 20px rgba(0,0,0,0.06);
+    }
+
+    .feature-icon {
+      font-size: 26px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card h3 {
+      margin-bottom: 5px;
+    }
+
+    .feature-card p {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .empty-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 13px;
+      padding: 40px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media (max-width: 700px) {
+      .sidebar {
+        width: 70px;
+      }
+
+      .sidebar-title {
+        display: none;
+      }
+
+      .nav-btn {
+        font-size: 0;
+        text-align: center;
+      }
+
+      .nav-btn::first-letter {
+        font-size: 20px;
+      }
+
+      .main {
+        padding: 20px;
+      }
+
+      .user-email {
+        display: none;
+      }
+
+      .topbar {
+        padding: 0 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       AUTH SCREEN
+  ========================== -->
+
+  <section id="auth-screen">
+
+    <div class="auth-card">
+
+      <div class="logo">
+        <h1>Ensayo<span>Hub</span></h1>
+        <p>Organizá tu banda y tus ensayos.</p>
+      </div>
+
+      <div id="auth-message" class="message"></div>
+
+      <!-- LOGIN -->
+
+      <div id="login-form">
+
+        <h2>Entrar a EnsayoHub</h2>
+
+        <div class="field">
+          <label for="login-email">Correo electrónico</label>
+          <input
+            id="login-email"
+            type="email"
+            placeholder="tu@email.com"
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="field">
+          <label for="login-password">Contraseña</label>
+          <input
+            id="login-password"
+            type="password"
+            placeholder="Tu contraseña"
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button
+          class="primary-btn"
+          id="login-btn"
+          onclick="login()"
+        >
+          Iniciar sesión
+        </button>
+
+        <div class="auth-switch">
+          ¿No tenés cuenta?
+          <button
+            class="link-btn"
+            onclick="showSignup()"
+          >
+            Crear cuenta
+          </button>
+        </div>
+
+      </div>
+
+
+      <!-- SIGNUP -->
+
+      <div id="signup-form" class="hidden">
+
+        <h2>Crear cuenta</h2>
+
+        <div class="field">
+          <label for="signup-email">Correo electrónico</label>
+          <input
+            id="signup-email"
+            type="email"
+            placeholder="tu@email.com"
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="field">
+          <label for="signup-password">Contraseña</label>
+          <input
+            id="signup-password"
+            type="password"
+            placeholder="Mínimo 6 caracteres"
+            autocomplete="new-password"
+          >
+        </div>
+
+        <div class="field">
+          <label for="signup-password-confirm">
+            Repetir contraseña
+          </label>
+
+          <input
+            id="signup-password-confirm"
+            type="password"
+            placeholder="Repetí tu contraseña"
+            autocomplete="new-password"
+          >
+        </div>
+
+        <button
+          class="primary-btn"
+          onclick="signup()"
+        >
+          Crear cuenta
+        </button>
+
+        <div class="auth-switch">
+          ¿Ya tenés cuenta?
+          <button
+            class="link-btn"
+            onclick="showLogin()"
+          >
+            Iniciar sesión
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       APP
+  ========================== -->
+
+  <section id="app-screen" class="hidden">
+
+    <header class="topbar">
+
+      <div class="topbar-logo">
+        Ensayo<span>Hub</span>
+      </div>
+
+      <div class="user-area">
+
+        <span
+          id="user-email"
+          class="user-email"
+        ></span>
+
+        <button
+          class="logout-btn"
+          onclick="logout()"
+        >
+          Cerrar sesión
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <div class="layout">
+
+      <!-- SIDEBAR -->
+
+      <aside class="sidebar">
+
+        <div class="sidebar-title">
+          Organización
+        </div>
+
+        <button
+          class="nav-btn active"
+          onclick="showSection('inicio', this)"
+        >
+          🏠 Inicio
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('banda', this)"
+        >
+          🎸 Banda
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('canciones', this)"
+        >
+          🎵 Canciones
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('ensayos', this)"
+        >
+          📅 Ensayos
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('materiales', this)"
+        >
+          📁 Materiales
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('problemas', this)"
+        >
+          ⚠️ Problemas
+        </button>
+
+        <div class="sidebar-title">
+          Reuniones
+        </div>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('setlists', this)"
+        >
+          📋 Setlists
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('decisiones', this)"
+        >
+          💬 Decisiones
+        </button>
+
+        <button
+          class="nav-btn"
+          onclick="showSection('propuestas', this)"
+        >
+          💡 Propuestas
+        </button>
+
+      </aside>
+
+
+      <!-- MAIN -->
+
+      <main class="main">
+
+        <!-- INICIO -->
+
+        <div
+          id="section-inicio"
+          class="section active"
+        >
+
+          <h1 class="page-title">
+            Inicio
+          </h1>
+
+          <p class="page-description">
+            Todo lo que tu banda necesita para organizarse.
+          </p>
+
+          <div class="welcome-card">
+
+            <h2>
+              Bienvenido a EnsayoHub 👋
+            </h2>
+
+            <p>
+              Tu cuenta está conectada correctamente con Supabase.
+            </p>
+
+          </div>
+
+          <div class="cards">
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('banda')"
+            >
+              <div class="feature-icon">🎸</div>
+              <h3>Mi banda</h3>
+              <p>
+                Integrantes, roles y organización de la banda.
+              </p>
+            </div>
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('canciones')"
+            >
+              <div class="feature-icon">🎵</div>
+              <h3>Canciones</h3>
+              <p>
+                Repertorio y canciones que están preparando.
+              </p>
+            </div>
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('ensayos')"
+            >
+              <div class="feature-icon">📅</div>
+              <h3>Ensayos</h3>
+              <p>
+                Organización y seguimiento de los ensayos.
+              </p>
+            </div>
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('problemas')"
+            >
+              <div class="feature-icon">⚠️</div>
+              <h3>Problemas</h3>
+              <p>
+                Problemas que necesitan resolverse.
+              </p>
+            </div>
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('setlists')"
+            >
+              <div class="feature-icon">📋</div>
+              <h3>Setlists</h3>
+              <p>
+                Prepará el orden de canciones para cada reunión.
+              </p>
+            </div>
+
+            <div
+              class="feature-card"
+              onclick="showSectionById('propuestas')"
+            >
+              <div class="feature-icon">💡</div>
+              <h3>Propuestas</h3>
+              <p>
+                Ideas y propuestas para que la banda vote.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- BANDA -->
+
+        <div
+          id="section-banda"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Mi banda
+          </h1>
+
+          <p class="page-description">
+            Integrantes, roles y organización.
+          </p>
+
+          <div class="empty-card">
+            🎸 La sección de banda se construirá acá.
+          </div>
+
+        </div>
+
+
+        <!-- CANCIONES -->
+
+        <div
+          id="section-canciones"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Canciones
+          </h1>
+
+          <p class="page-description">
+            Repertorio de la banda.
+          </p>
+
+          <div class="empty-card">
+            🎵 Todavía no hay canciones cargadas.
+          </div>
+
+        </div>
+
+
+        <!-- ENSAYOS -->
+
+        <div
+          id="section-ensayos"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Ensayos
+          </h1>
+
+          <p class="page-description">
+            Próximos ensayos y planificación.
+          </p>
+
+          <div class="empty-card">
+            📅 Todavía no hay ensayos registrados.
+          </div>
+
+        </div>
+
+
+        <!-- MATERIALES -->
+
+        <div
+          id="section-materiales"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Materiales
+          </h1>
+
+          <p class="page-description">
+            Archivos y recursos de la banda.
+          </p>
+
+          <div class="empty-card">
+            📁 Todavía no hay materiales cargados.
+          </div>
+
+        </div>
+
+
+        <!-- PROBLEMAS -->
+
+        <div
+          id="section-problemas"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Problemas
+          </h1>
+
+          <p class="page-description">
+            Cosas que necesitan atención.
+          </p>
+
+          <div class="empty-card">
+            ⚠️ Todavía no hay problemas registrados.
+          </div>
+
+        </div>
+
+
+        <!-- SETLISTS -->
+
+        <div
+          id="section-setlists"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Setlists
+          </h1>
+
+          <p class="page-description">
+            Orden de canciones para cada reunión.
+          </p>
+
+          <div class="empty-card">
+            📋 Todavía no hay setlists creados.
+          </div>
+
+        </div>
+
+
+        <!-- DECISIONES -->
+
+        <div
+          id="section-decisiones"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Decisiones
+          </h1>
+
+          <p class="page-description">
+            Decisiones tomadas por la banda.
+          </p>
+
+          <div class="empty-card">
+            💬 Todavía no hay decisiones registradas.
+          </div>
+
+        </div>
+
+
+        <!-- PROPUESTAS -->
+
+        <div
+          id="section-propuestas"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Propuestas
+          </h1>
+
+          <p class="page-description">
+            Ideas que la banda puede discutir y votar.
+          </p>
+
+          <div class="empty-card">
+            💡 Todavía no hay propuestas.
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </section>
+
+
+  <script>
+
+    /* ==================================================
+       SUPABASE
+    ================================================== */
+
+    const SUPABASE_URL =
+      'https://evuwcikuxptrgzdzejov.supabase.co';
+
+    const SUPABASE_PUBLISHABLE_KEY =
+      'sb_publishable_ERDp1BzfCrzk3QBQf6rKSQ_FGogulnV';
+
+    const { createClient } = supabase;
+
+    const db = createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+    /* ==================================================
+       ELEMENTOS
+    ================================================== */
+
+    const authScreen =
+      document.getElementById('auth-screen');
+
+    const appScreen =
+      document.getElementById('app-screen');
+
+    const loginForm =
+      document.getElementById('login-form');
+
+    const signupForm =
+      document.getElementById('signup-form');
+
+    const authMessage =
+      document.getElementById('auth-message');
+
+    const userEmail =
+      document.getElementById('user-email');
+
+
+    /* ==================================================
+       MENSAJES
+    ================================================== */
+
+    function showMessage(message, type = 'error') {
+
+      authMessage.textContent = message;
+
+      authMessage.className =
+        'message ' + type;
+
+    }
+
+
+    function clearMessage() {
+
+      authMessage.textContent = '';
+
+      authMessage.className =
+        'message';
+
+    }
+
+
+    /* ==================================================
+       CAMBIAR LOGIN / REGISTRO
+    ================================================== */
+
+    function showSignup() {
+
+      clearMessage();
+
+      loginForm.classList.add('hidden');
+
+      signupForm.classList.remove('hidden');
+
+    }
+
+
+    function showLogin() {
+
+      clearMessage();
+
+      signupForm.classList.add('hidden');
+
+      loginForm.classList.remove('hidden');
+
+    }
+
+
+    /* ==================================================
+       LOGIN
+    ================================================== */
+
+    async function login() {
+
+      clearMessage();
+
+      const email =
+        document.getElementById('login-email')
+          .value
+          .trim();
+
+      const password =
+        document.getElementById('login-password')
+          .value;
+
+      if (!email || !password) {
+
+        showMessage(
+          'Completá el correo y la contraseña.'
+        );
+
+        return;
+      }
+
+      const button =
+        document.getElementById('login-btn');
+
+      button.disabled = true;
+
+      button.textContent =
+        'Ingresando...';
+
+      try {
+
+        const { data, error } =
+          await db.auth.signInWithPassword({
+            email,
+            password
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data.user) {
+
+          showApp(data.user);
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          translateAuthError(error.message)
+        );
+
+      } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+          'Iniciar sesión';
+
+      }
+
+    }
+
+
+    /* ==================================================
+       REGISTRO
+    ================================================== */
+
+    async function signup() {
+
+      clearMessage();
+
+      const email =
+        document.getElementById('signup-email')
+          .value
+          .trim();
+
+      const password =
+        document.getElementById('signup-password')
+          .value;
+
+      const confirmPassword =
+        document.getElementById('signup-password-confirm')
+          .value;
+
+
+      if (!email || !password || !confirmPassword) {
+
+        showMessage(
+          'Completá todos los campos.'
+        );
+
+        return;
+      }
+
+
+      if (password.length < 6) {
+
+        showMessage(
+          'La contraseña debe tener al menos 6 caracteres.'
+        );
+
+        return;
+      }
+
+
+      if (password !== confirmPassword) {
+
+        showMessage(
+          'Las contraseñas no coinciden.'
+        );
+
+        return;
+      }
+
+
+      try {
+
+        const { data, error } =
+          await db.auth.signUp({
+            email,
+            password
+          });
+
+        if (error) {
+          throw error;
+        }
+
+
+        /*
+          Si Supabase requiere confirmación
+          por email, data.session será null.
+        */
+
+        if (!data.session) {
+
+          showMessage(
+            'Cuenta creada. Revisá tu correo para confirmar la cuenta.',
+            'success'
+          );
+
+          return;
+        }
+
+
+        if (data.user) {
+
+          showApp(data.user);
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+        showMessage(
+          translateAuthError(error.message)
+        );
+
+      }
+
+    }
+
+
+    /* ==================================================
+       LOGOUT
+    ================================================== */
+
+    async function logout() {
+
+      const { error } =
+        await db.auth.signOut();
+
+      if (error) {
+
+        console.error(error);
+
+        return;
+      }
+
+      showAuth();
+
+    }
+
+
+    /* ==================================================
+       MOSTRAR APP
+    ================================================== */
+
+    function showApp(user) {
+
+      authScreen.classList.add('hidden');
+
+      appScreen.classList.remove('hidden');
+
+      if (user && user.email) {
+
+        userEmail.textContent =
+          user.email;
+
+      }
+
+    }
+
+
+    /* ==================================================
+       MOSTRAR AUTH
+    ================================================== */
+
+    function showAuth() {
+
+      appScreen.classList.add('hidden');
+
+      authScreen.classList.remove('hidden');
+
+      userEmail.textContent = '';
+
+      showLogin();
+
+    }
+
+
+    /* ==================================================
+       SESIÓN ACTUAL
+    ================================================== */
+
+    async function checkSession() {
+
+      try {
+
+        const { data, error } =
+          await db.auth.getSession();
+
+        if (error) {
+
+          console.error(error);
+
+          showAuth();
+
+          return;
+        }
+
+
+        if (data.session) {
+
+          showApp(
+            data.session.user
+          );
+
+        } else {
+
+          showAuth();
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+        showAuth();
+
+      }
+
+    }
+
+
+    /* ==================================================
+       CAMBIOS DE AUTENTICACIÓN
+    ================================================== */
+
+    db.auth.onAuthStateChange(
+      (event, session) => {
+
+        if (session) {
+
+          showApp(session.user);
+
+        } else {
+
+          showAuth();
+
+        }
+
+      }
+    );
+
+
+    /* ==================================================
+       NAVEGACIÓN
+    ================================================== */
+
+    function showSection(sectionName, button) {
+
+      const sections =
+        document.querySelectorAll('.section');
+
+      sections.forEach(section => {
+
+        section.classList.remove('active');
+
+      });
+
+
+      const target =
+        document.getElementById(
+          'section-' + sectionName
+        );
+
+      if (target) {
+
+        target.classList.add('active');
+
+      }
+
+
+      const buttons =
+        document.querySelectorAll('.nav-btn');
+
+      buttons.forEach(btn => {
+
+        btn.classList.remove('active');
+
+      });
+
+
+      if (button) {
+
+        button.classList.add('active');
+
+      }
+
+    }
+
+
+    function showSectionById(sectionName) {
+
+      const buttons =
+        document.querySelectorAll('.nav-btn');
+
+      let matchingButton = null;
+
+      buttons.forEach(button => {
+
+        const onclick =
+          button.getAttribute('onclick') || '';
+
+        if (
+          onclick.includes(
+            "'" + sectionName + "'"
+          )
+        ) {
+
+          matchingButton = button;
+
+        }
+
+      });
+
+
+      showSection(
+        sectionName,
+        matchingButton
+      );
+
+    }
+
+
+    /* ==================================================
+       ERRORES DE SUPABASE
+    ================================================== */
+
+    function translateAuthError(message) {
+
+      if (!message) {
+
+        return 'Ocurrió un error. Intentá nuevamente.';
+
+      }
+
+
+      const text =
+        message.toLowerCase();
+
+
+      if (
+        text.includes('invalid login credentials')
+      ) {
+
+        return 'Correo o contraseña incorrectos.';
+
+      }
+
+
+      if (
+        text.includes('email not confirmed')
+      ) {
+
+        return 'Primero tenés que confirmar tu correo electrónico.';
+
+      }
+
+
+      if (
+        text.includes('user already registered')
+      ) {
+
+        return 'Ya existe una cuenta con ese correo.';
+
+      }
+
+
+      if (
+        text.includes('password should be at least')
+      ) {
+
+        return 'La contraseña es demasiado corta.';
+
+      }
+
+
+      if (
+        text.includes('rate limit')
+      ) {
+
+        return 'Demasiados intentos. Esperá un momento y probá nuevamente.';
+
+      }
+
+
+      return message;
+
+    }
+
+
+    /* ==================================================
+       INICIO
+    ================================================== */
+
+    checkSession();
+
+  </script>
+
+</body>
+</html>
