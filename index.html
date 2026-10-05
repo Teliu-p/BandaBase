@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>BandaBase</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,8 +22,8 @@
 
     button,
     input,
-    select,
-    textarea {
+    textarea,
+    select {
       font: inherit;
     }
 
@@ -143,17 +144,24 @@
       min-height: 100vh;
     }
 
+    /* =========================
+       BARRA SUPERIOR
+       ========================= */
+
     .topbar {
-      height: 64px;
+      min-height: 64px;
       background: white;
       border-bottom: 1px solid #e5e5e5;
+
       display: flex;
       align-items: center;
       justify-content: space-between;
+
       padding: 0 24px;
+
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
     }
 
     .topbar-left {
@@ -165,6 +173,7 @@
     .topbar .logo {
       margin: 0;
       font-size: 24px;
+      white-space: nowrap;
     }
 
     .user-area {
@@ -182,48 +191,75 @@
       cursor: pointer;
     }
 
-    .layout {
-      display: flex;
-      min-height: calc(100vh - 64px);
+    .logout-btn:hover {
+      background: #f7f7f7;
     }
 
-    .sidebar {
-      width: 230px;
+    /* =========================
+       NAVEGACIÓN
+       ========================= */
+
+    .main-nav {
       background: white;
-      border-right: 1px solid #e5e5e5;
-      padding: 20px 12px;
-      flex-shrink: 0;
-    }
+      border-bottom: 1px solid #e5e5e5;
 
-    .nav-title {
-      font-size: 12px;
-      color: #999;
-      font-weight: 700;
-      margin: 10px 12px;
-      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+
+      gap: 4px;
+      padding: 8px 20px;
+
+      overflow-x: auto;
+
+      position: sticky;
+      top: 64px;
+      z-index: 19;
     }
 
     .nav-btn {
-      width: 100%;
-      text-align: left;
+      width: auto;
+      text-align: center;
+
       border: 0;
       background: transparent;
-      padding: 11px 12px;
+
+      padding: 10px 14px;
+
       border-radius: 8px;
+
       cursor: pointer;
+
       color: #444;
-      margin-bottom: 3px;
+
+      white-space: nowrap;
     }
 
-    .nav-btn:hover,
-    .nav-btn.active {
+    .nav-btn:hover {
       background: #f0efff;
       color: #5a52df;
     }
 
+    .nav-btn.active {
+      background: #f0efff;
+      color: #5a52df;
+      font-weight: 600;
+    }
+
+    /* =========================
+       CONTENIDO
+       ========================= */
+
+    .layout {
+      display: block;
+      min-height: calc(100vh - 112px);
+    }
+
     .main {
-      flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+
       padding: 30px;
+
       min-width: 0;
     }
 
@@ -246,16 +282,26 @@
       margin-bottom: 28px;
     }
 
+    /* =========================
+       TARJETAS
+       ========================= */
+
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+      grid-template-columns:
+        repeat(auto-fit, minmax(220px, 1fr));
+
       gap: 18px;
     }
 
     .card {
       background: white;
+
       border: 1px solid #e8e8e8;
+
       border-radius: 12px;
+
       padding: 20px;
     }
 
@@ -263,11 +309,125 @@
       margin-top: 0;
     }
 
+    .card p {
+      color: #666;
+      line-height: 1.5;
+    }
+
     .placeholder {
       background: white;
+
       border: 1px dashed #ccc;
+
       border-radius: 12px;
+
       padding: 30px;
+
+      color: #777;
+
+      line-height: 1.6;
+    }
+
+    /* =========================
+       BANDA
+       ========================= */
+
+    .member-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(auto-fit, minmax(240px, 1fr));
+
+      gap: 18px;
+    }
+
+    .member-card {
+      background: white;
+
+      border: 1px solid #e8e8e8;
+
+      border-radius: 12px;
+
+      padding: 20px;
+    }
+
+    .member-name {
+      font-size: 19px;
+      font-weight: 700;
+
+      margin-bottom: 12px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 7px;
+    }
+
+    .tag {
+      display: inline-block;
+
+      padding: 5px 9px;
+
+      border-radius: 999px;
+
+      background: #f0efff;
+      color: #5a52df;
+
+      font-size: 13px;
+    }
+
+    /* =========================
+       SECCIONES DE PREPARACIÓN
+       ========================= */
+
+    .columns {
+      display: grid;
+
+      grid-template-columns:
+        repeat(auto-fit, minmax(260px, 1fr));
+
+      gap: 18px;
+    }
+
+    .column {
+      background: #fafafa;
+
+      border: 1px solid #e8e8e8;
+
+      border-radius: 12px;
+
+      padding: 16px;
+    }
+
+    .column h3 {
+      margin-top: 0;
+    }
+
+    .item {
+      background: white;
+
+      border: 1px solid #e8e8e8;
+
+      border-radius: 9px;
+
+      padding: 14px;
+
+      margin-bottom: 10px;
+    }
+
+    .item:last-child {
+      margin-bottom: 0;
+    }
+
+    .item-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .item-info {
+      font-size: 14px;
       color: #777;
     }
 
@@ -276,53 +436,58 @@
        ========================= */
 
     @media (max-width: 700px) {
+
       .topbar {
         padding: 0 14px;
       }
 
       .topbar .logo {
-        font-size: 20px;
+        font-size: 21px;
       }
 
       .user-area span {
         display: none;
       }
 
-      .layout {
-        flex-direction: column;
-      }
+      .main-nav {
+        top: 64px;
 
-      .sidebar {
-        width: 100%;
-        border-right: 0;
-        border-bottom: 1px solid #e5e5e5;
-        display: flex;
-        overflow-x: auto;
-        padding: 8px;
-      }
+        padding: 7px 10px;
 
-      .nav-title {
-        display: none;
+        gap: 2px;
       }
 
       .nav-btn {
-        width: auto;
-        white-space: nowrap;
-        margin: 0 3px;
+        padding: 9px 11px;
+        font-size: 14px;
       }
 
       .main {
-        padding: 20px;
+        padding: 20px 15px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .member-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .columns {
+        grid-template-columns: 1fr;
       }
     }
+
   </style>
 </head>
 
 <body>
 
-  <!-- =========================
-       LOGIN
-       ========================= -->
+
+  <!-- =====================================================
+       AUTENTICACIÓN
+       ===================================================== -->
 
   <div id="authScreen">
 
@@ -336,6 +501,9 @@
         Organizá tu banda y tus ensayos.
       </div>
 
+
+      <!-- LOGIN -->
+
       <div id="loginForm">
 
         <h2>Entrar a BandaBase</h2>
@@ -343,63 +511,110 @@
         <div id="authMessage" class="auth-message"></div>
 
         <div class="field">
-          <label for="loginEmail">Email</label>
+
+          <label for="loginEmail">
+            Email
+          </label>
+
           <input
             id="loginEmail"
             type="email"
             placeholder="tu@email.com"
           >
+
         </div>
 
+
         <div class="field">
-          <label for="loginPassword">Contraseña</label>
+
+          <label for="loginPassword">
+            Contraseña
+          </label>
+
           <input
             id="loginPassword"
             type="password"
             placeholder="••••••••"
           >
+
         </div>
 
-        <button class="primary-btn" onclick="login()">
+
+        <button
+          class="primary-btn"
+          onclick="login()"
+        >
           Entrar
         </button>
 
-        <button class="secondary-btn" onclick="showSignup()">
+
+        <button
+          class="secondary-btn"
+          onclick="showSignup()"
+        >
           Crear una cuenta
         </button>
 
       </div>
 
 
-      <div id="signupForm" style="display:none;">
+      <!-- REGISTRO -->
+
+      <div
+        id="signupForm"
+        style="display:none;"
+      >
 
         <h2>Crear cuenta</h2>
 
-        <div id="signupMessage" class="auth-message"></div>
+        <div
+          id="signupMessage"
+          class="auth-message"
+        ></div>
+
 
         <div class="field">
-          <label for="signupEmail">Email</label>
+
+          <label for="signupEmail">
+            Email
+          </label>
+
           <input
             id="signupEmail"
             type="email"
             placeholder="tu@email.com"
           >
+
         </div>
 
+
         <div class="field">
-          <label for="signupPassword">Contraseña</label>
+
+          <label for="signupPassword">
+            Contraseña
+          </label>
+
           <input
             id="signupPassword"
             type="password"
             placeholder="••••••••"
           >
+
         </div>
 
-        <button class="primary-btn" onclick="signup()">
+
+        <button
+          class="primary-btn"
+          onclick="signup()"
+        >
           Crear cuenta
         </button>
 
-        <button class="secondary-btn" onclick="showLogin()">
+
+        <button
+          class="secondary-btn"
+          onclick="showLogin()"
+        >
           Ya tengo una cuenta
         </button>
 
@@ -410,11 +625,15 @@
   </div>
 
 
-  <!-- =========================
+
+  <!-- =====================================================
        APP
-       ========================= -->
+       ===================================================== -->
 
   <div id="appScreen">
+
+
+    <!-- BARRA SUPERIOR -->
 
     <header class="topbar">
 
@@ -426,11 +645,15 @@
 
       </div>
 
+
       <div class="user-area">
 
         <span id="userEmail"></span>
 
-        <button class="logout-btn" onclick="logout()">
+        <button
+          class="logout-btn"
+          onclick="logout()"
+        >
           Cerrar sesión
         </button>
 
@@ -439,63 +662,89 @@
     </header>
 
 
+
+    <!-- =================================================
+         NAVEGACIÓN PRINCIPAL
+         ================================================= -->
+
+    <nav class="main-nav">
+
+      <button
+        class="nav-btn active"
+        onclick="showSection('inicio', this)"
+      >
+        Inicio
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('banda', this)"
+      >
+        Banda
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('canciones', this)"
+      >
+        Canciones
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('listas', this)"
+      >
+        Listas
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('ensayos', this)"
+      >
+        Ensayos
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('propuestas', this)"
+      >
+        Propuestas
+      </button>
+
+
+      <button
+        class="nav-btn"
+        onclick="showSection('comentarios', this)"
+      >
+        Comentarios
+      </button>
+
+    </nav>
+
+
+
+    <!-- =================================================
+         CONTENIDO
+         ================================================= -->
+
     <div class="layout">
-
-      <!-- SIDEBAR -->
-
-      <aside class="sidebar">
-
-        <div class="nav-title">
-          Banda
-        </div>
-
-        <button class="nav-btn active" onclick="showSection('inicio', this)">
-          Inicio
-        </button>
-
-        <button class="nav-btn" onclick="showSection('banda', this)">
-          Banda
-        </button>
-
-        <button class="nav-btn" onclick="showSection('canciones', this)">
-          Canciones
-        </button>
-
-        <button class="nav-btn" onclick="showSection('ensayos', this)">
-          Ensayos
-        </button>
-
-        <button class="nav-btn" onclick="showSection('materiales', this)">
-          Materiales
-        </button>
-
-        <button class="nav-btn" onclick="showSection('problemas', this)">
-          Problemas
-        </button>
-
-        <button class="nav-btn" onclick="showSection('setlists', this)">
-          Setlists
-        </button>
-
-        <button class="nav-btn" onclick="showSection('decisiones', this)">
-          Decisiones
-        </button>
-
-        <button class="nav-btn" onclick="showSection('propuestas', this)">
-          Propuestas
-        </button>
-
-      </aside>
-
-
-      <!-- CONTENIDO -->
 
       <main class="main">
 
 
-        <!-- INICIO -->
+        <!-- =================================================
+             INICIO
+             ================================================= -->
 
-        <section id="inicio" class="section active">
+        <section
+          id="inicio"
+          class="section active"
+        >
 
           <h1 class="page-title">
             Bienvenido a BandaBase 👋
@@ -505,188 +754,541 @@
             Todo lo que necesita tu banda, organizado en un solo lugar.
           </p>
 
+
           <div class="cards">
 
-            <div class="card">
-              <h3>🎵 Canciones</h3>
-              <p>
-                Repertorio, versiones, tonalidades y materiales.
-              </p>
-            </div>
 
             <div class="card">
-              <h3>📅 Ensayos</h3>
+
+              <h3>
+                👥 Banda
+              </h3>
+
               <p>
-                Organizá los próximos ensayos y actividades.
+                Integrantes, instrumentos, roles y etiquetas.
               </p>
+
             </div>
 
-            <div class="card">
-              <h3>👥 Banda</h3>
-              <p>
-                Conocé quiénes forman parte de la banda.
-              </p>
-            </div>
 
             <div class="card">
-              <h3>📋 Setlists</h3>
+
+              <h3>
+                🎵 Canciones
+              </h3>
+
               <p>
-                Prepará el repertorio para cada actividad.
+                Repertorio, versiones, tonalidades, BPM y materiales.
               </p>
+
             </div>
+
+
+            <div class="card">
+
+              <h3>
+                📋 Listas
+              </h3>
+
+              <p>
+                Armá las listas para cultos, eventos y participaciones.
+              </p>
+
+            </div>
+
+
+            <div class="card">
+
+              <h3>
+                🥁 Ensayos
+              </h3>
+
+              <p>
+                Organizá los ensayos, lo que se está trabajando y los pendientes.
+              </p>
+
+            </div>
+
+
+            <div class="card">
+
+              <h3>
+                💡 Propuestas
+              </h3>
+
+              <p>
+                Propuestas, opiniones, votaciones y decisiones.
+              </p>
+
+            </div>
+
+
+            <div class="card">
+
+              <h3>
+                💬 Comentarios
+              </h3>
+
+              <p>
+                Un espacio general para comunicarse con la banda.
+              </p>
+
+            </div>
+
 
           </div>
 
         </section>
 
 
-        <!-- BANDA -->
 
-        <section id="banda" class="section">
+        <!-- =================================================
+             BANDA
+             ================================================= -->
+
+        <section
+          id="banda"
+          class="section"
+        >
 
           <h1 class="page-title">
             Banda
           </h1>
 
           <p class="page-description">
-            Integrantes de BandaBase.
+            Integrantes, instrumentos, funciones y etiquetas.
           </p>
 
-          <div class="placeholder">
-            Acá aparecerán los integrantes de la banda.
+
+          <div class="member-grid">
+
+
+            <div class="member-card">
+
+              <div class="member-name">
+                Integrantes
+              </div>
+
+              <p>
+                Acá aparecerán los integrantes de BandaBase.
+              </p>
+
+              <p>
+                Cada persona podrá agregar libremente etiquetas como:
+              </p>
+
+
+              <div class="tags">
+
+                <span class="tag">
+                  1ra voz
+                </span>
+
+                <span class="tag">
+                  Coros
+                </span>
+
+                <span class="tag">
+                  Tenor
+                </span>
+
+                <span class="tag">
+                  Guitarra
+                </span>
+
+              </div>
+
+              <p style="margin-bottom:0; color:#888;">
+                Estas son solamente ejemplos. Las etiquetas no estarán predefinidas.
+              </p>
+
+            </div>
+
+
           </div>
 
         </section>
 
 
-        <!-- CANCIONES -->
 
-        <section id="canciones" class="section">
+        <!-- =================================================
+             CANCIONES
+             ================================================= -->
+
+        <section
+          id="canciones"
+          class="section"
+        >
 
           <h1 class="page-title">
             Canciones
           </h1>
 
           <p class="page-description">
-            Repertorio de la banda.
+            Repertorio de la banda y toda la información de cada canción.
           </p>
 
+
           <div class="placeholder">
-            Acá estará el repertorio, filtros, versiones y detalles de las canciones.
+
+            Acá vamos a construir el repertorio.
+
+            <br><br>
+
+            Cada canción podrá tener versiones, tonalidad, BPM,
+            género, cantante, calificación, materiales y comentarios.
+
           </div>
 
         </section>
 
 
-        <!-- ENSAYOS -->
 
-        <section id="ensayos" class="section">
+        <!-- =================================================
+             LISTAS
+             ================================================= -->
+
+        <section
+          id="listas"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Listas
+          </h1>
+
+          <p class="page-description">
+            Armá las listas para cada culto, evento o participación.
+          </p>
+
+
+          <div class="columns">
+
+
+            <div class="column">
+
+              <h3>
+                Próximas listas
+              </h3>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Culto — Domingo
+                </div>
+
+                <div class="item-info">
+                  Próximamente podremos definir canciones,
+                  orden y participantes.
+                </div>
+
+              </div>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Evento
+                </div>
+
+                <div class="item-info">
+                  Lista pendiente de preparar.
+                </div>
+
+              </div>
+
+
+            </div>
+
+
+            <div class="column">
+
+              <h3>
+                ¿Quiénes participan?
+              </h3>
+
+
+              <div class="placeholder">
+
+                Los integrantes podrán indicar su disponibilidad
+                y después se podrá definir quiénes participan
+                efectivamente.
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             ENSAYOS
+             ================================================= -->
+
+        <section
+          id="ensayos"
+          class="section"
+        >
 
           <h1 class="page-title">
             Ensayos
           </h1>
 
           <p class="page-description">
-            Próximos ensayos y actividades.
+            Organizá los ensayos, lo que se está trabajando y los pendientes.
           </p>
 
-          <div class="placeholder">
-            Acá aparecerán los ensayos, cultos y eventos.
+
+          <div class="columns">
+
+
+            <!-- EN ENSAYO -->
+
+            <div class="column">
+
+              <h3>
+                🎵 En ensayo
+              </h3>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Santo por siempre
+                </div>
+
+                <div class="item-info">
+                  Canción que se está trabajando actualmente.
+                </div>
+
+              </div>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Como en el cielo
+                </div>
+
+                <div class="item-info">
+                  En proceso de ensayo.
+                </div>
+
+              </div>
+
+
+            </div>
+
+
+            <!-- PENDIENTES -->
+
+            <div class="column">
+
+              <h3>
+                📌 Pendientes
+              </h3>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Alaba
+                </div>
+
+                <div class="item-info">
+                  Todavía no está siendo trabajada.
+                </div>
+
+              </div>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Hay libertad
+                </div>
+
+                <div class="item-info">
+                  Pendiente para próximos ensayos.
+                </div>
+
+              </div>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Nada es imposible
+                </div>
+
+                <div class="item-info">
+                  Pendiente.
+                </div>
+
+              </div>
+
+
+            </div>
+
+
+            <!-- PRÓXIMOS ENSAYOS -->
+
+            <div class="column">
+
+              <h3>
+                📅 Próximos ensayos
+              </h3>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Próximo ensayo
+                </div>
+
+                <div class="item-info">
+                  Acá aparecerán fecha, horario y participantes.
+                </div>
+
+              </div>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div
+            class="placeholder"
+            style="margin-top:20px;"
+          >
+
+            Los ensayos también podrán tener materiales,
+            archivos y comentarios propios.
+
           </div>
 
         </section>
 
 
-        <!-- MATERIALES -->
 
-        <section id="materiales" class="section">
+        <!-- =================================================
+             PROPUESTAS
+             ================================================= -->
 
-          <h1 class="page-title">
-            Materiales
-          </h1>
-
-          <p class="page-description">
-            Material de las canciones y versiones.
-          </p>
-
-          <div class="placeholder">
-            Acá aparecerán los materiales disponibles.
-          </div>
-
-        </section>
-
-
-        <!-- PROBLEMAS -->
-
-        <section id="problemas" class="section">
-
-          <h1 class="page-title">
-            Problemas
-          </h1>
-
-          <p class="page-description">
-            Problemas y cuestiones pendientes de resolver.
-          </p>
-
-          <div class="placeholder">
-            Acá aparecerán los problemas registrados.
-          </div>
-
-        </section>
-
-
-        <!-- SETLISTS -->
-
-        <section id="setlists" class="section">
-
-          <h1 class="page-title">
-            Setlists
-          </h1>
-
-          <p class="page-description">
-            Repertorio preparado para cada actividad.
-          </p>
-
-          <div class="placeholder">
-            Acá aparecerán los setlists.
-          </div>
-
-        </section>
-
-
-        <!-- DECISIONES -->
-
-        <section id="decisiones" class="section">
-
-          <h1 class="page-title">
-            Decisiones
-          </h1>
-
-          <p class="page-description">
-            Decisiones tomadas por la banda.
-          </p>
-
-          <div class="placeholder">
-            Acá aparecerá el historial de decisiones.
-          </div>
-
-        </section>
-
-
-        <!-- PROPUESTAS -->
-
-        <section id="propuestas" class="section">
+        <section
+          id="propuestas"
+          class="section"
+        >
 
           <h1 class="page-title">
             Propuestas
           </h1>
 
           <p class="page-description">
-            Propuestas para que la banda pueda debatir y votar.
+            Propuestas, comentarios, votaciones y decisiones de la banda.
           </p>
 
+
+          <div class="columns">
+
+
+            <div class="column">
+
+              <h3>
+                💡 Propuestas abiertas
+              </h3>
+
+
+              <div class="item">
+
+                <div class="item-title">
+                  Ejemplo de propuesta
+                </div>
+
+                <div class="item-info">
+                  Acá podremos discutir y votar una propuesta.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="column">
+
+              <h3>
+                🗳️ Votaciones
+              </h3>
+
+
+              <div class="placeholder">
+
+                Cada integrante podrá votar.
+                La votación podrá cambiarse mientras esté abierta.
+
+              </div>
+
+            </div>
+
+
+            <div class="column">
+
+              <h3>
+                📜 Historial
+              </h3>
+
+
+              <div class="placeholder">
+
+                Las propuestas cerradas y sus resultados
+                quedarán guardados.
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             COMENTARIOS
+             ================================================= -->
+
+        <section
+          id="comentarios"
+          class="section"
+        >
+
+          <h1 class="page-title">
+            Comentarios
+          </h1>
+
+          <p class="page-description">
+            Un espacio general para comunicar ideas, avisos o cualquier cosa para la banda.
+          </p>
+
+
           <div class="placeholder">
-            Acá aparecerán las propuestas.
+
+            Acá aparecerán los comentarios generales de la banda.
+
+            <br><br>
+
+            Más adelante también podremos permitir archivos
+            y comentarios dentro de canciones, listas, ensayos
+            y propuestas.
+
           </div>
 
         </section>
@@ -699,19 +1301,28 @@
   </div>
 
 
+
+  <!-- =====================================================
+       JAVASCRIPT
+       ===================================================== -->
+
   <script>
 
-    /* =========================
+
+    /* =====================================================
        SUPABASE
-       ========================= */
+       ===================================================== */
 
     const SUPABASE_URL =
       'https://evuwcikuxptrgzdzejov.supabase.co';
 
+
     const SUPABASE_PUBLISHABLE_KEY =
       'sb_publishable_ERDp1BzfCrzk3QBQf6rKSQ_FGogulnV';
 
+
     const { createClient } = supabase;
+
 
     const db = createClient(
       SUPABASE_URL,
@@ -719,40 +1330,60 @@
     );
 
 
-    /* =========================
+
+    /* =====================================================
        MENSAJES
-       ========================= */
+       ===================================================== */
 
-    function showMessage(message, type = 'error') {
+    function showMessage(
+      message,
+      type = 'error'
+    ) {
 
-      const box = document.getElementById('authMessage');
+      const box =
+        document.getElementById('authMessage');
+
 
       box.textContent = message;
-      box.className = 'auth-message ' + type;
+
+
+      box.className =
+        'auth-message ' + type;
 
     }
 
 
     function clearMessage() {
 
-      const box = document.getElementById('authMessage');
+      const box =
+        document.getElementById('authMessage');
+
 
       box.textContent = '';
-      box.className = 'auth-message';
+
+
+      box.className =
+        'auth-message';
 
     }
 
 
-    /* =========================
-       CAMBIAR LOGIN / REGISTRO
-       ========================= */
+
+    /* =====================================================
+       LOGIN / REGISTRO
+       ===================================================== */
 
     function showSignup() {
 
       clearMessage();
 
-      document.getElementById('loginForm').style.display = 'none';
-      document.getElementById('signupForm').style.display = 'block';
+
+      document.getElementById('loginForm')
+        .style.display = 'none';
+
+
+      document.getElementById('signupForm')
+        .style.display = 'block';
 
     }
 
@@ -761,45 +1392,74 @@
 
       clearMessage();
 
-      document.getElementById('signupForm').style.display = 'none';
-      document.getElementById('loginForm').style.display = 'block';
+
+      document.getElementById('signupForm')
+        .style.display = 'none';
+
+
+      document.getElementById('loginForm')
+        .style.display = 'block';
 
     }
 
 
-    /* =========================
+
+    /* =====================================================
        LOGIN
-       ========================= */
+       ===================================================== */
 
     async function login() {
 
       clearMessage();
 
+
       const email =
-        document.getElementById('loginEmail').value.trim();
+        document
+          .getElementById('loginEmail')
+          .value
+          .trim();
+
 
       const password =
-        document.getElementById('loginPassword').value;
+        document
+          .getElementById('loginPassword')
+          .value;
+
 
       if (!email || !password) {
 
-        showMessage('Completá email y contraseña.');
+        showMessage(
+          'Completá email y contraseña.'
+        );
 
         return;
       }
 
-      const { data, error } =
+
+      const {
+        data,
+        error
+      } =
         await db.auth.signInWithPassword({
+
           email,
+
           password
+
         });
+
 
       if (error) {
 
-        showMessage(translateAuthError(error.message));
+        showMessage(
+          translateAuthError(
+            error.message
+          )
+        );
 
         return;
       }
+
 
       if (data.user) {
 
@@ -810,66 +1470,98 @@
     }
 
 
-    /* =========================
+
+    /* =====================================================
        REGISTRO
-       ========================= */
+       ===================================================== */
 
     async function signup() {
 
       const message =
-        document.getElementById('signupMessage');
+        document.getElementById(
+          'signupMessage'
+        );
+
 
       message.textContent = '';
-      message.className = 'auth-message';
+
+      message.className =
+        'auth-message';
+
 
       const email =
-        document.getElementById('signupEmail').value.trim();
+        document
+          .getElementById('signupEmail')
+          .value
+          .trim();
+
 
       const password =
-        document.getElementById('signupPassword').value;
+        document
+          .getElementById('signupPassword')
+          .value;
+
 
       if (!email || !password) {
 
         message.textContent =
           'Completá email y contraseña.';
 
+
         message.className =
           'auth-message error';
 
+
         return;
       }
+
 
       if (password.length < 6) {
 
         message.textContent =
           'La contraseña debe tener al menos 6 caracteres.';
 
+
         message.className =
           'auth-message error';
+
 
         return;
       }
 
-      const { data, error } =
+
+      const {
+        data,
+        error
+      } =
         await db.auth.signUp({
+
           email,
+
           password
+
         });
+
 
       if (error) {
 
         message.textContent =
-          translateAuthError(error.message);
+          translateAuthError(
+            error.message
+          );
+
 
         message.className =
           'auth-message error';
 
+
         return;
       }
 
+
       /*
-       * Si Supabase requiere confirmación por email,
-       * todavía no habrá sesión.
+       * Si Supabase requiere confirmación
+       * de email, todavía no hay sesión.
        */
 
       if (!data.session) {
@@ -877,16 +1569,14 @@
         message.textContent =
           'Cuenta creada. Revisá tu email para confirmar la cuenta.';
 
+
         message.className =
           'auth-message success';
+
 
         return;
       }
 
-      /*
-       * Si ya hay sesión, entramos directamente
-       * a BandaBase.
-       */
 
       if (data.user) {
 
@@ -897,56 +1587,78 @@
     }
 
 
-    /* =========================
+
+    /* =====================================================
        MOSTRAR APP
-       ========================= */
+       ===================================================== */
 
     function showApp(user) {
 
-      document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('appScreen').style.display = 'block';
+      document
+        .getElementById('authScreen')
+        .style.display = 'none';
 
-      document.getElementById('userEmail').textContent =
-        user.email || '';
+
+      document
+        .getElementById('appScreen')
+        .style.display = 'block';
+
+
+      document
+        .getElementById('userEmail')
+        .textContent =
+          user.email || '';
 
     }
 
 
-    /* =========================
+
+    /* =====================================================
        MOSTRAR LOGIN
-       ========================= */
+       ===================================================== */
 
     function showAuth() {
 
-      document.getElementById('appScreen').style.display = 'none';
-      document.getElementById('authScreen').style.display = 'flex';
+      document
+        .getElementById('appScreen')
+        .style.display = 'none';
+
+
+      document
+        .getElementById('authScreen')
+        .style.display = 'flex';
 
     }
 
 
-    /* =========================
+
+    /* =====================================================
        CERRAR SESIÓN
-       ========================= */
+       ===================================================== */
 
     async function logout() {
 
       await db.auth.signOut();
+
 
       showAuth();
 
     }
 
 
-    /* =========================
+
+    /* =====================================================
        SESIÓN ACTUAL
-       ========================= */
+       ===================================================== */
 
     async function checkSession() {
 
       const {
         data,
         error
-      } = await db.auth.getSession();
+      } =
+        await db.auth.getSession();
+
 
       if (error) {
 
@@ -957,14 +1669,17 @@
         return;
       }
 
+
       if (data.session) {
 
         /*
-         * Si ya había iniciado sesión anteriormente,
-         * mostramos la app directamente.
+         * Si ya existe una sesión,
+         * mostramos BandaBase directamente.
          */
 
-        showApp(data.session.user);
+        showApp(
+          data.session.user
+        );
 
       } else {
 
@@ -975,16 +1690,19 @@
     }
 
 
-    /* =========================
+
+    /* =====================================================
        CAMBIO DE SESIÓN
-       ========================= */
+       ===================================================== */
 
     db.auth.onAuthStateChange(
       (event, session) => {
 
         if (session) {
 
-          showApp(session.user);
+          showApp(
+            session.user
+          );
 
         } else {
 
@@ -996,84 +1714,134 @@
     );
 
 
-    /* =========================
-       NAVEGACIÓN
-       ========================= */
 
-    function showSection(sectionId, button) {
+    /* =====================================================
+       NAVEGACIÓN
+       ===================================================== */
+
+    function showSection(
+      sectionId,
+      button
+    ) {
+
 
       document
         .querySelectorAll('.section')
         .forEach(section => {
-          section.classList.remove('active');
+
+          section.classList.remove(
+            'active'
+          );
+
         });
+
 
       document
         .querySelectorAll('.nav-btn')
         .forEach(btn => {
-          btn.classList.remove('active');
+
+          btn.classList.remove(
+            'active'
+          );
+
         });
 
+
       const section =
-        document.getElementById(sectionId);
+        document.getElementById(
+          sectionId
+        );
+
 
       if (section) {
 
-        section.classList.add('active');
+        section.classList.add(
+          'active'
+        );
 
       }
 
+
       if (button) {
 
-        button.classList.add('active');
+        button.classList.add(
+          'active'
+        );
 
       }
 
     }
 
 
-    /* =========================
-       ERRORES DE AUTENTICACIÓN
-       ========================= */
 
-    function translateAuthError(message) {
+    /* =====================================================
+       ERRORES DE AUTENTICACIÓN
+       ===================================================== */
+
+    function translateAuthError(
+      message
+    ) {
 
       if (!message) {
+
         return 'Ocurrió un error.';
+
       }
 
+
       if (
-        message.includes('Invalid login credentials')
+        message.includes(
+          'Invalid login credentials'
+        )
       ) {
+
         return 'Email o contraseña incorrectos.';
+
       }
 
+
       if (
-        message.includes('Email not confirmed')
+        message.includes(
+          'Email not confirmed'
+        )
       ) {
+
         return 'Primero tenés que confirmar tu email.';
+
       }
 
+
       if (
-        message.includes('User already registered')
+        message.includes(
+          'User already registered'
+        )
       ) {
+
         return 'Ya existe una cuenta con ese email.';
+
       }
 
+
       if (
-        message.includes('Password should be at least')
+        message.includes(
+          'Password should be at least'
+        )
       ) {
+
         return 'La contraseña es demasiado corta.';
+
       }
+
 
       return message;
 
     }
 
 
-    /* =========================
-       INICIAR
-       ========================= */
+
+    /* =====================================================
+       INICIAR APP
+       ===================================================== */
 
     checkSession();
 
