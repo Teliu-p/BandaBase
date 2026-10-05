@@ -355,7 +355,18 @@
       font-size: 19px;
       font-weight: 700;
 
-      margin-bottom: 12px;
+      margin-bottom: 6px;
+    }
+
+    .member-email {
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .member-empty {
+      color: #777;
+      line-height: 1.5;
     }
 
     .tags {
@@ -378,8 +389,23 @@
       font-size: 13px;
     }
 
+    .band-status {
+      margin-bottom: 20px;
+      color: #777;
+      font-size: 14px;
+    }
+
+    .band-error {
+      background: #ffe9e9;
+      border: 1px solid #f3c4c4;
+      color: #a00000;
+      border-radius: 10px;
+      padding: 14px;
+      line-height: 1.5;
+    }
+
     /* =========================
-       SECCIONES DE PREPARACIÓN
+       SECCIONES
        ========================= */
 
     .columns {
@@ -679,7 +705,7 @@
 
       <button
         class="nav-btn"
-        onclick="showSection('banda', this)"
+        onclick="showSection('banda', this); loadBandMembers()"
       >
         Banda
       </button>
@@ -860,52 +886,18 @@
           </p>
 
 
-          <div class="member-grid">
-
-
-            <div class="member-card">
-
-              <div class="member-name">
-                Integrantes
-              </div>
-
-              <p>
-                Acá aparecerán los integrantes de BandaBase.
-              </p>
-
-              <p>
-                Cada persona podrá agregar libremente etiquetas como:
-              </p>
-
-
-              <div class="tags">
-
-                <span class="tag">
-                  1ra voz
-                </span>
-
-                <span class="tag">
-                  Coros
-                </span>
-
-                <span class="tag">
-                  Tenor
-                </span>
-
-                <span class="tag">
-                  Guitarra
-                </span>
-
-              </div>
-
-              <p style="margin-bottom:0; color:#888;">
-                Estas son solamente ejemplos. Las etiquetas no estarán predefinidas.
-              </p>
-
-            </div>
-
-
+          <div
+            id="bandStatus"
+            class="band-status"
+          >
+            Cargando integrantes...
           </div>
+
+
+          <div
+            id="memberGrid"
+            class="member-grid"
+          ></div>
 
         </section>
 
@@ -1047,8 +1039,6 @@
           <div class="columns">
 
 
-            <!-- EN ENSAYO -->
-
             <div class="column">
 
               <h3>
@@ -1084,8 +1074,6 @@
 
             </div>
 
-
-            <!-- PENDIENTES -->
 
             <div class="column">
 
@@ -1135,8 +1123,6 @@
 
             </div>
 
-
-            <!-- PRÓXIMOS ENSAYOS -->
 
             <div class="column">
 
@@ -1559,11 +1545,6 @@
       }
 
 
-      /*
-       * Si Supabase requiere confirmación
-       * de email, todavía no hay sesión.
-       */
-
       if (!data.session) {
 
         message.textContent =
@@ -1672,11 +1653,6 @@
 
       if (data.session) {
 
-        /*
-         * Si ya existe una sesión,
-         * mostramos BandaBase directamente.
-         */
-
         showApp(
           data.session.user
         );
@@ -1724,7 +1700,6 @@
       button
     ) {
 
-
       document
         .querySelectorAll('.section')
         .forEach(section => {
@@ -1769,6 +1744,282 @@
         );
 
       }
+
+    }
+
+
+
+    /* =====================================================
+       CARGAR INTEGRANTES
+       ===================================================== */
+
+    async function loadBandMembers() {
+
+      const status =
+        document.getElementById(
+          'bandStatus'
+        );
+
+      const grid =
+        document.getElementById(
+          'memberGrid'
+        );
+
+
+      status.textContent =
+        'Cargando integrantes...';
+
+      grid.innerHTML = '';
+
+
+      /*
+       * Primero obtenemos la banda BandaBase.
+       */
+
+      const {
+        data: band,
+        error: bandError
+      } =
+        await db
+          .from('bands')
+          .select('id, name')
+          .eq('name', 'BandaBase')
+          .limit(1)
+          .maybeSingle();
+
+
+      if (bandError) {
+
+        console.error(
+          'Error buscando BandaBase:',
+          bandError
+        );
+
+        status.innerHTML =
+          '<div class="band-error">' +
+          'No se pudo cargar BandaBase: ' +
+          escapeHtml(bandError.message) +
+          '</div>';
+
+        return;
+      }
+
+
+      if (!band) {
+
+        status.textContent =
+          'No se encontró la banda BandaBase.';
+
+        return;
+      }
+
+
+      /*
+       * Ahora obtenemos los integrantes activos.
+       */
+
+      const {
+        data: members,
+        error: membersError
+      } =
+        await db
+          .from('band_members')
+          .select(
+            'user_id, display_name, tags, active'
+          )
+          .eq('band_id', band.id)
+          .eq('active', true)
+          .order('created_at', {
+            ascending: true
+          });
+
+
+      if (membersError) {
+
+        console.error(
+          'Error cargando integrantes:',
+          membersError
+        );
+
+        status.innerHTML =
+          '<div class="band-error">' +
+          'No se pudieron cargar los integrantes: ' +
+          escapeHtml(membersError.message) +
+          '</div>';
+
+        return;
+      }
+
+
+      if (!members || members.length === 0) {
+
+        status.textContent =
+          'Todavía no hay integrantes registrados.';
+
+        return;
+      }
+
+
+      /*
+       * Obtenemos los perfiles correspondientes.
+       */
+
+      const userIds =
+        members.map(
+          member => member.user_id
+        );
+
+
+      const {
+        data: profiles,
+        error: profilesError
+      } =
+        await db
+          .from('profiles')
+          .select(
+            'user_id, full_name'
+          )
+          .in(
+            'user_id',
+            userIds
+          );
+
+
+      if (profilesError) {
+
+        console.error(
+          'Error cargando perfiles:',
+          profilesError
+        );
+
+        status.innerHTML =
+          '<div class="band-error">' +
+          'No se pudieron cargar los perfiles: ' +
+          escapeHtml(profilesError.message) +
+          '</div>';
+
+        return;
+      }
+
+
+      const profileMap = {};
+
+
+      (profiles || []).forEach(
+        profile => {
+
+          profileMap[
+            profile.user_id
+          ] = profile;
+
+        }
+      );
+
+
+      /*
+       * Dibujamos las tarjetas.
+       */
+
+      members.forEach(
+        member => {
+
+          const profile =
+            profileMap[
+              member.user_id
+            ];
+
+
+          const name =
+            member.display_name ||
+            (profile && profile.full_name) ||
+            'Integrante';
+
+
+          const tags =
+            Array.isArray(member.tags)
+              ? member.tags
+              : [];
+
+
+          const card =
+            document.createElement(
+              'div'
+            );
+
+
+          card.className =
+            'member-card';
+
+
+          let tagsHtml = '';
+
+
+          if (tags.length > 0) {
+
+            tagsHtml =
+              '<div class="tags">' +
+              tags
+                .map(
+                  tag =>
+                    '<span class="tag">' +
+                    escapeHtml(tag) +
+                    '</span>'
+                )
+                .join('') +
+              '</div>';
+
+          } else {
+
+            tagsHtml =
+              '<div class="member-empty">' +
+              'Todavía no tiene etiquetas.' +
+              '</div>';
+
+          }
+
+
+          card.innerHTML =
+
+            '<div class="member-name">' +
+            escapeHtml(name) +
+            '</div>' +
+
+            '<div class="member-email">' +
+            'Integrante de BandaBase' +
+            '</div>' +
+
+            tagsHtml;
+
+
+          grid.appendChild(
+            card
+          );
+
+        }
+      );
+
+
+      status.textContent =
+        members.length === 1
+          ? '1 integrante'
+          : members.length + ' integrantes';
+
+    }
+
+
+
+    /* =====================================================
+       SEGURIDAD PARA MOSTRAR TEXTO
+       ===================================================== */
+
+    function escapeHtml(value) {
+
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
 
     }
 
