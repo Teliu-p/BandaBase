@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>BandaBase</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,21 +14,22 @@
 
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f6f8;
       color: #222;
     }
 
     button,
     input,
-    textarea,
     select {
       font: inherit;
     }
 
-    /* =========================
-       AUTENTICACIÓN
-       ========================= */
+    .hidden {
+      display: none !important;
+    }
+
+    /* AUTH */
 
     #authScreen {
       min-height: 100vh;
@@ -37,231 +37,126 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: #f5f5f5;
     }
 
-    .auth-card {
+    .auth-box {
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
       background: white;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 
-    .logo {
-      font-size: 28px;
-      font-weight: 700;
+    .auth-box h1 {
+      margin-top: 0;
       margin-bottom: 8px;
     }
 
-    .logo span {
-      color: #6c63ff;
-    }
-
-    .tagline {
-      color: #777;
-      margin-bottom: 28px;
-    }
-
-    .auth-card h2 {
+    .auth-box p {
+      color: #666;
       margin-top: 0;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
     }
 
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .field input,
-    .field select {
+    .auth-box input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid #ccc;
       border-radius: 8px;
-      outline: none;
-      background: white;
+      margin-bottom: 12px;
     }
 
-    .field input:focus,
-    .field select:focus {
-      border-color: #6c63ff;
-    }
-
-    .primary-btn {
+    .auth-box button {
       width: 100%;
+      padding: 12px;
       border: 0;
       border-radius: 8px;
-      padding: 12px;
-      background: #6c63ff;
+      background: #222;
       color: white;
       cursor: pointer;
-      font-weight: 600;
     }
 
-    .primary-btn:hover {
-      opacity: 0.92;
+    .auth-box button:hover {
+      background: #000;
     }
 
-    .secondary-btn {
-      border: 0;
-      background: transparent;
-      color: #6c63ff;
-      cursor: pointer;
-      padding: 10px 0;
-    }
-
-    .auth-message {
-      margin-bottom: 16px;
-      padding: 10px;
-      border-radius: 8px;
-      display: none;
+    #authMessage {
+      margin-top: 15px;
+      color: #b00020;
       font-size: 14px;
     }
 
-    .auth-message.error {
-      display: block;
-      background: #ffe9e9;
-      color: #a00000;
-    }
+    /* APP */
 
-    .auth-message.success {
-      display: block;
-      background: #e9f8ed;
-      color: #176b2c;
-    }
-
-    /* =========================
-       APP
-       ========================= */
-
-    #appScreen {
-      display: none;
+    #app {
       min-height: 100vh;
     }
 
-    /* =========================
-       BARRA SUPERIOR
-       ========================= */
-
-    .topbar {
-      min-height: 64px;
+    header {
+      height: 64px;
       background: white;
-      border-bottom: 1px solid #e5e5e5;
-
+      border-bottom: 1px solid #ddd;
       display: flex;
       align-items: center;
       justify-content: space-between;
-
       padding: 0 24px;
-
       position: sticky;
       top: 0;
       z-index: 20;
     }
 
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 20px;
+    .logo {
+      font-size: 21px;
+      font-weight: bold;
     }
 
-    .topbar .logo {
-      margin: 0;
-      font-size: 24px;
-      white-space: nowrap;
-    }
-
-    .user-area {
-      display: flex;
-      align-items: center;
-      gap: 16px;
+    #userEmail {
+      color: #777;
       font-size: 14px;
+      margin-right: 12px;
     }
 
-    .logout-btn {
-      border: 1px solid #ddd;
+    #logoutBtn {
+      border: 1px solid #ccc;
       background: white;
-      padding: 8px 12px;
       border-radius: 7px;
+      padding: 7px 12px;
       cursor: pointer;
     }
 
-    .logout-btn:hover {
-      background: #f7f7f7;
-    }
-
-    /* =========================
-       NAVEGACIÓN
-       ========================= */
-
-    .main-nav {
+    nav {
       background: white;
-      border-bottom: 1px solid #e5e5e5;
-
+      border-bottom: 1px solid #ddd;
       display: flex;
-      align-items: center;
-
-      gap: 4px;
-      padding: 8px 20px;
-
+      padding: 0 24px;
       overflow-x: auto;
-
-      position: sticky;
-      top: 64px;
-      z-index: 19;
     }
 
-    .nav-btn {
-      width: auto;
-      text-align: center;
-
+    nav button {
       border: 0;
       background: transparent;
-
-      padding: 10px 14px;
-
-      border-radius: 8px;
-
+      padding: 15px 16px;
       cursor: pointer;
-
-      color: #444;
-
+      color: #666;
+      border-bottom: 3px solid transparent;
       white-space: nowrap;
     }
 
-    .nav-btn:hover {
-      background: #f0efff;
-      color: #5a52df;
+    nav button:hover {
+      color: #111;
     }
 
-    .nav-btn.active {
-      background: #f0efff;
-      color: #5a52df;
-      font-weight: 600;
+    nav button.active {
+      color: #111;
+      border-bottom-color: #111;
+      font-weight: bold;
     }
 
-    /* =========================
-       CONTENIDO
-       ========================= */
-
-    .layout {
-      display: block;
-      min-height: calc(100vh - 112px);
-    }
-
-    .main {
-      max-width: 1400px;
+    main {
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 30px;
-      min-width: 0;
+      padding: 28px 24px 50px;
     }
 
     .section {
@@ -272,468 +167,260 @@
       display: block;
     }
 
-    .page-title {
-      margin-top: 0;
-      margin-bottom: 8px;
+    .section-title {
+      margin-bottom: 20px;
     }
 
-    .page-description {
+    .section-title h2 {
+      margin: 0 0 5px;
+    }
+
+    .section-title p {
+      margin: 0;
       color: #777;
-      margin-top: 0;
-      margin-bottom: 28px;
     }
 
-    /* =========================
-       TARJETAS
-       ========================= */
+    /* BANDA */
 
-    .cards {
+    .band-layout {
       display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
     }
 
-    .card {
+    .panel {
       background: white;
-      border: 1px solid #e8e8e8;
+      border: 1px solid #ddd;
       border-radius: 12px;
       padding: 20px;
     }
 
-    .card h3 {
+    .panel h3 {
       margin-top: 0;
     }
 
-    .card p {
-      color: #666;
-      line-height: 1.5;
+    .profile-form {
+      display: grid;
+      gap: 12px;
     }
 
-    .placeholder {
-      background: white;
-      border: 1px dashed #ccc;
-      border-radius: 12px;
-      padding: 30px;
-      color: #777;
-      line-height: 1.6;
+    .profile-form label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
     }
 
-    /* =========================
-       BANDA
-       ========================= */
-
-    .band-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 20px;
+    .profile-form input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
     }
 
-    .band-header .page-description {
-      margin-bottom: 0;
-    }
-
-    .edit-profile-btn {
-      border: 1px solid #6c63ff;
-      background: white;
-      color: #5a52df;
-      padding: 9px 14px;
-      border-radius: 8px;
+    .profile-form button {
+      margin-top: 5px;
+      padding: 10px;
+      border: 0;
+      border-radius: 7px;
+      background: #222;
+      color: white;
       cursor: pointer;
-      font-weight: 600;
-      white-space: nowrap;
     }
 
-    .edit-profile-btn:hover {
-      background: #f0efff;
+    #profileMessage {
+      font-size: 14px;
+      color: #555;
     }
 
-    .profile-editor {
-      display: none;
+    .member-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .member-card {
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      padding: 13px;
+    }
+
+    .member-name {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .member-info {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .member-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag {
+      background: #eee;
+      border-radius: 20px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    /* CANCIONES */
+
+    .songs-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .songs-toolbar select {
+      padding: 9px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
       background: white;
-      border: 1px solid #e8e8e8;
+      min-width: 150px;
+      cursor: pointer;
+    }
+
+    .song-form-panel {
+      background: white;
+      border: 1px solid #ddd;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 24px;
     }
 
-    .profile-editor.active {
-      display: block;
-    }
-
-    .profile-editor h2 {
+    .song-form-panel h3 {
       margin-top: 0;
-      margin-bottom: 18px;
-      font-size: 20px;
     }
 
-    .profile-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    .save-profile-btn {
-      border: 0;
-      background: #6c63ff;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .cancel-profile-btn {
-      border: 1px solid #ddd;
-      background: white;
-      color: #444;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .profile-message {
-      margin-top: 12px;
-      font-size: 14px;
-    }
-
-    .profile-message.error {
-      color: #a00000;
-    }
-
-    .profile-message.success {
-      color: #176b2c;
-    }
-
-    .member-grid {
+    .song-form {
       display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(240px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
 
-    .member-card {
-      background: white;
-      border: 1px solid #e8e8e8;
-      border-radius: 12px;
-      padding: 20px;
+    .song-form .full {
+      grid-column: 1 / -1;
     }
 
-    .member-name {
-      font-size: 19px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .member-instrument {
-      font-size: 15px;
-      font-weight: 600;
-      color: #5a52df;
+    .song-form label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
       margin-bottom: 5px;
     }
 
-    .member-role {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 14px;
-    }
-
-    .member-empty {
-      color: #777;
-      line-height: 1.5;
-    }
-
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 999px;
-      background: #f0efff;
-      color: #5a52df;
-      font-size: 13px;
-    }
-
-    .band-status {
-      margin-bottom: 20px;
-      color: #777;
-      font-size: 14px;
-    }
-
-    .band-error {
-      background: #ffe9e9;
-      border: 1px solid #f3c4c4;
-      color: #a00000;
-      border-radius: 10px;
-      padding: 14px;
-      line-height: 1.5;
-    }
-
-    /* =========================
-       CANCIONES
-       ========================= */
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-
-    .section-header .page-description {
-      margin-bottom: 0;
-    }
-
-    .song-new-btn {
-      width: auto;
-      white-space: nowrap;
-    }
-
-    .songs-filters {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-
-    .songs-filters select {
-      padding: 10px 12px;
-      border: 1px solid #d7d7d7;
-      border-radius: 8px;
-      background: white;
-      font-size: 14px;
-      cursor: pointer;
-      min-width: 150px;
-    }
-
-    .form-card {
-      background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .form-card h2 {
-      margin-top: 0;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group label {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .form-group input,
-    .form-group select {
+    .song-form input,
+    .song-form select {
       width: 100%;
-      box-sizing: border-box;
-      padding: 10px 12px;
-      border: 1px solid #d7d7d7;
-      border-radius: 8px;
-      font-size: 14px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
       background: white;
-      outline: none;
     }
 
-    .form-group input:focus,
-    .form-group select:focus {
-      border-color: #6c63ff;
+    .song-form button {
+      padding: 11px;
+      border: 0;
+      border-radius: 7px;
+      background: #222;
+      color: white;
+      cursor: pointer;
     }
 
-    .form-message {
-      margin-top: 15px;
+    #songMessage {
+      margin-top: 12px;
       font-size: 14px;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .form-actions .primary-btn,
-    .form-actions .secondary-btn {
-      width: auto;
+      color: #555;
     }
 
     .songs-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 10px;
     }
 
     .song-card {
       background: white;
-      border: 1px solid #e5e5e5;
+      border: 1px solid #ddd;
       border-radius: 10px;
-      padding: 16px;
+      padding: 15px 17px;
       cursor: pointer;
-      transition: 0.15s;
+      transition: box-shadow 0.15s;
     }
 
     .song-card:hover {
-      border-color: #bdbdbd;
-      transform: translateY(-1px);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.08);
     }
 
-    .song-title {
+    .song-name {
       font-size: 17px;
-      font-weight: 600;
-      margin: 0;
+      font-weight: bold;
     }
 
     .song-artist {
       margin-top: 4px;
+      color: #777;
       font-size: 14px;
-      color: #777;
     }
 
-    .empty-state {
-      color: #777;
-      text-align: center;
-      padding: 30px 10px;
-    }
-
-    /* =========================
-       SECCIONES
-       ========================= */
-
-    .columns {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(260px, 1fr));
-      gap: 18px;
-    }
-
-    .column {
-      background: #fafafa;
-      border: 1px solid #e8e8e8;
-      border-radius: 12px;
-      padding: 16px;
-    }
-
-    .column h3 {
-      margin-top: 0;
-    }
-
-    .item {
+    .empty-message {
       background: white;
-      border: 1px solid #e8e8e8;
-      border-radius: 9px;
-      padding: 14px;
-      margin-bottom: 10px;
-    }
-
-    .item:last-child {
-      margin-bottom: 0;
-    }
-
-    .item-title {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .item-info {
-      font-size: 14px;
+      border: 1px dashed #ccc;
+      border-radius: 10px;
+      padding: 25px;
+      text-align: center;
       color: #777;
     }
 
-    /* =========================
-       MOBILE
-       ========================= */
+    /* PLACEHOLDERS */
 
-    @media (max-width: 700px) {
+    .placeholder {
+      background: white;
+      border: 1px dashed #ccc;
+      border-radius: 12px;
+      padding: 35px;
+      text-align: center;
+      color: #777;
+    }
 
-      .topbar {
-        padding: 0 14px;
+    @media (max-width: 800px) {
+      .band-layout {
+        grid-template-columns: 1fr;
       }
 
-      .topbar .logo {
-        font-size: 21px;
+      .song-form {
+        grid-template-columns: 1fr;
       }
 
-      .user-area span {
+      .song-form .full {
+        grid-column: auto;
+      }
+
+      header {
+        padding: 0 15px;
+      }
+
+      #userEmail {
         display: none;
       }
 
-      .main-nav {
-        top: 64px;
-        padding: 7px 10px;
-        gap: 2px;
+      main {
+        padding: 20px 15px 40px;
       }
 
-      .nav-btn {
-        padding: 9px 11px;
-        font-size: 14px;
+      nav {
+        padding: 0 10px;
       }
 
-      .main {
-        padding: 20px 15px;
-      }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-
-      .member-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .columns {
-        grid-template-columns: 1fr;
-      }
-
-      .band-header,
-      .section-header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .edit-profile-btn,
-      .song-new-btn {
-        width: 100%;
-      }
-
-      .profile-actions {
-        flex-direction: column;
-      }
-
-      .save-profile-btn,
-      .cancel-profile-btn {
-        width: 100%;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .songs-filters {
-        flex-direction: column;
-      }
-
-      .songs-filters select {
-        width: 100%;
+      nav button {
+        padding-left: 11px;
+        padding-right: 11px;
       }
     }
   </style>
@@ -741,177 +428,69 @@
 
 <body>
 
-  <!-- =====================================================
-       AUTENTICACIÓN
-       ===================================================== -->
+  <!-- =========================
+       LOGIN
+  ========================== -->
 
   <div id="authScreen">
 
-    <div class="auth-card">
+    <div class="auth-box">
 
-      <div class="logo">
-        Banda<span>Base</span>
-      </div>
+      <h1>BandaBase</h1>
 
-      <div class="tagline">
-        Organizá tu banda y tus ensayos.
-      </div>
+      <p>Ingresá para continuar.</p>
 
-      <!-- LOGIN -->
-
-      <div id="loginForm">
-
-        <h2>Entrar a BandaBase</h2>
-
-        <div id="authMessage" class="auth-message"></div>
-
-        <div class="field">
-
-          <label for="loginEmail">
-            Email
-          </label>
-
-          <input
-            id="loginEmail"
-            type="email"
-            placeholder="tu@email.com"
-          >
-
-        </div>
-
-        <div class="field">
-
-          <label for="loginPassword">
-            Contraseña
-          </label>
-
-          <input
-            id="loginPassword"
-            type="password"
-            placeholder="••••••••"
-          >
-
-        </div>
-
-        <button
-          class="primary-btn"
-          onclick="login()"
-        >
-          Entrar
-        </button>
-
-        <button
-          class="secondary-btn"
-          onclick="showSignup()"
-        >
-          Crear una cuenta
-        </button>
-
-      </div>
-
-      <!-- REGISTRO -->
-
-      <div
-        id="signupForm"
-        style="display:none;"
+      <input
+        type="email"
+        id="email"
+        placeholder="tu@email.com"
       >
 
-        <h2>Crear cuenta</h2>
+      <input
+        type="password"
+        id="password"
+        placeholder="••••••••"
+      >
 
-        <div
-          id="signupMessage"
-          class="auth-message"
-        ></div>
+      <button id="loginBtn">
+        Ingresar
+      </button>
 
-        <div class="field">
-
-          <label for="signupEmail">
-            Email
-          </label>
-
-          <input
-            id="signupEmail"
-            type="email"
-            placeholder="tu@email.com"
-          >
-
-        </div>
-
-        <div class="field">
-
-          <label for="signupPassword">
-            Contraseña
-          </label>
-
-          <input
-            id="signupPassword"
-            type="password"
-            placeholder="••••••••"
-          >
-
-        </div>
-
-        <button
-          class="primary-btn"
-          onclick="signup()"
-        >
-          Crear cuenta
-        </button>
-
-        <button
-          class="secondary-btn"
-          onclick="showLogin()"
-        >
-          Ya tengo una cuenta
-        </button>
-
-      </div>
+      <div id="authMessage"></div>
 
     </div>
 
   </div>
 
-  <!-- =====================================================
+
+  <!-- =========================
        APP
-       ===================================================== -->
+  ========================== -->
 
-  <div id="appScreen">
+  <div id="app" class="hidden">
 
-    <!-- BARRA SUPERIOR -->
+    <header>
 
-    <header class="topbar">
-
-      <div class="topbar-left">
-
-        <div class="logo">
-          Banda<span>Base</span>
-        </div>
-
+      <div class="logo">
+        BandaBase
       </div>
 
-      <div class="user-area">
-
+      <div>
         <span id="userEmail"></span>
 
-        <button
-          class="logout-btn"
-          onclick="logout()"
-        >
-          Cerrar sesión
+        <button id="logoutBtn">
+          Salir
         </button>
-
       </div>
 
     </header>
 
-    <!-- =================================================
-         NAVEGACIÓN PRINCIPAL
-         ================================================= -->
 
-    <nav class="main-nav">
+    <nav>
 
       <button
         class="nav-btn active"
+        data-section="inicio"
         onclick="showSection('inicio', this)"
       >
         Inicio
@@ -919,20 +498,23 @@
 
       <button
         class="nav-btn"
-        onclick="showSection('banda', this); loadBandMembers()"
+        data-section="banda"
+        onclick="showSection('banda', this)"
       >
         Banda
       </button>
 
       <button
         class="nav-btn"
-        onclick="showSection('canciones', this); loadSongs()"
+        data-section="canciones"
+        onclick="showSection('canciones', this); loadSongs();"
       >
         Canciones
       </button>
 
       <button
         class="nav-btn"
+        data-section="listas"
         onclick="showSection('listas', this)"
       >
         Listas
@@ -940,6 +522,7 @@
 
       <button
         class="nav-btn"
+        data-section="ensayos"
         onclick="showSection('ensayos', this)"
       >
         Ensayos
@@ -947,6 +530,7 @@
 
       <button
         class="nav-btn"
+        data-section="propuestas"
         onclick="showSection('propuestas', this)"
       >
         Propuestas
@@ -954,6 +538,7 @@
 
       <button
         class="nav-btn"
+        data-section="comentarios"
         onclick="showSection('comentarios', this)"
       >
         Comentarios
@@ -961,847 +546,533 @@
 
     </nav>
 
-    <!-- =================================================
-         CONTENIDO
-         ================================================= -->
 
-    <div class="layout">
+    <main>
 
-      <main class="main">
+      <!-- =========================
+           INICIO
+      ========================== -->
 
-        <!-- =================================================
-             INICIO
-             ================================================= -->
+      <section
+        id="inicio"
+        class="section active"
+      >
 
-        <section
-          id="inicio"
-          class="section active"
-        >
+        <div class="section-title">
 
-          <h1 class="page-title">
-            Bienvenido a BandaBase 👋
-          </h1>
+          <h2>Inicio</h2>
 
-          <p class="page-description">
-            Todo lo que necesita tu banda, organizado en un solo lugar.
+          <p>
+            Bienvenido a BandaBase.
           </p>
 
-          <div class="cards">
+        </div>
 
-            <div class="card">
+        <div class="placeholder">
+          Acá irá el panel principal de la banda.
+        </div>
 
-              <h3>
-                👥 Banda
-              </h3>
+      </section>
 
-              <p>
-                Integrantes, instrumentos, roles y etiquetas.
-              </p>
 
-            </div>
+      <!-- =========================
+           BANDA
+      ========================== -->
 
-            <div class="card">
+      <section
+        id="banda"
+        class="section"
+      >
 
-              <h3>
-                🎵 Canciones
-              </h3>
+        <div class="section-title">
 
-              <p>
-                Repertorio, versiones, tonalidades, BPM y materiales.
-              </p>
+          <h2>Banda</h2>
 
-            </div>
+          <p>
+            Integrantes y datos personales.
+          </p>
 
-            <div class="card">
+        </div>
 
-              <h3>
-                📋 Listas
-              </h3>
 
-              <p>
-                Armá las listas para cultos, eventos y participaciones.
-              </p>
+        <div class="band-layout">
 
-            </div>
 
-            <div class="card">
+          <!-- PERFIL -->
 
-              <h3>
-                🥁 Ensayos
-              </h3>
+          <div class="panel">
 
-              <p>
-                Organizá los ensayos, lo que se está trabajando y los pendientes.
-              </p>
+            <h3>Mi perfil</h3>
 
-            </div>
-
-            <div class="card">
-
-              <h3>
-                💡 Propuestas
-              </h3>
-
-              <p>
-                Propuestas, opiniones, votaciones y decisiones.
-              </p>
-
-            </div>
-
-            <div class="card">
-
-              <h3>
-                💬 Comentarios
-              </h3>
-
-              <p>
-                Un espacio general para comunicarse con la banda.
-              </p>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        <!-- =================================================
-             BANDA
-             ================================================= -->
-
-        <section
-          id="banda"
-          class="section"
-        >
-
-          <div class="band-header">
-
-            <div>
-
-              <h1 class="page-title">
-                Banda
-              </h1>
-
-              <p class="page-description">
-                Integrantes, instrumentos, funciones y etiquetas.
-              </p>
-
-            </div>
-
-            <button
-              class="edit-profile-btn"
-              onclick="toggleProfileEditor()"
+            <form
+              id="profileForm"
+              class="profile-form"
             >
-              Editar mi perfil
-            </button>
 
-          </div>
+              <div>
 
-          <!-- EDITOR DE PERFIL -->
-
-          <div
-            id="profileEditor"
-            class="profile-editor"
-          >
-
-            <h2>
-              Mi perfil
-            </h2>
-
-            <div class="field">
-
-              <label for="profileName">
-                Nombre
-              </label>
-
-              <input
-                id="profileName"
-                type="text"
-              >
-
-            </div>
-
-            <div class="field">
-
-              <label for="profileInstrument">
-                Instrumento
-              </label>
-
-              <input
-                id="profileInstrument"
-                type="text"
-              >
-
-            </div>
-
-            <div class="field">
-
-              <label for="profileRole">
-                Función
-              </label>
-
-              <input
-                id="profileRole"
-                type="text"
-              >
-
-            </div>
-
-            <div class="field">
-
-              <label for="profileTags">
-                Etiquetas
-              </label>
-
-              <input
-                id="profileTags"
-                type="text"
-              >
-
-              <div
-                style="margin-top:6px; color:#777; font-size:13px;"
-              >
-                Separalas con comas.
-              </div>
-
-            </div>
-
-            <div class="profile-actions">
-
-              <button
-                class="save-profile-btn"
-                onclick="saveMyProfile()"
-              >
-                Guardar cambios
-              </button>
-
-              <button
-                class="cancel-profile-btn"
-                onclick="toggleProfileEditor(false)"
-              >
-                Cancelar
-              </button>
-
-            </div>
-
-            <div
-              id="profileMessage"
-              class="profile-message"
-            ></div>
-
-          </div>
-
-          <div
-            id="bandStatus"
-            class="band-status"
-          >
-            Cargando integrantes...
-          </div>
-
-          <div
-            id="memberGrid"
-            class="member-grid"
-          ></div>
-
-        </section>
-
-        <!-- =================================================
-             CANCIONES
-             ================================================= -->
-
-        <section
-          id="canciones"
-          class="section"
-        >
-
-          <div class="section-header">
-
-            <div>
-
-              <h1 class="page-title">
-                Canciones
-              </h1>
-
-              <p class="page-description">
-                Repertorio de la banda.
-              </p>
-
-            </div>
-
-            <button
-              class="primary-btn song-new-btn"
-              onclick="toggleSongForm()"
-            >
-              + Nueva canción
-            </button>
-
-          </div>
-
-          <!-- FILTROS -->
-
-          <div class="songs-filters">
-
-            <select
-              id="filterVersion"
-              onchange="loadSongs()"
-            >
-              <option value="">
-                Versión
-              </option>
-            </select>
-
-            <select
-              id="filterSinger"
-              onchange="loadSongs()"
-            >
-              <option value="">
-                Cantante
-              </option>
-            </select>
-
-            <select
-              id="filterListStatus"
-              onchange="loadSongs()"
-            >
-              <option value="">
-                Lista / Pendiente
-              </option>
-
-              <option value="Lista">
-                Lista
-              </option>
-
-              <option value="Pendiente">
-                Pendiente
-              </option>
-            </select>
-
-            <select
-              id="filterActiveStatus"
-              onchange="loadSongs()"
-            >
-              <option value="">
-                Activa / Inactiva
-              </option>
-
-              <option value="Activa">
-                Activa
-              </option>
-
-              <option value="Inactiva">
-                Inactiva
-              </option>
-            </select>
-
-          </div>
-
-          <!-- FORMULARIO NUEVA CANCIÓN -->
-
-          <div
-            id="songForm"
-            class="form-card"
-            style="display: none;"
-          >
-
-            <h2>
-              Nueva canción
-            </h2>
-
-            <div class="form-grid">
-
-              <div class="form-group">
-
-                <label for="songName">
+                <label for="fullName">
                   Nombre
                 </label>
 
                 <input
-                  id="songName"
                   type="text"
+                  id="fullName"
                 >
 
               </div>
 
-              <div class="form-group">
 
-                <label for="songArtist">
-                  Artista / autor
+              <div>
+
+                <label for="instrument">
+                  Instrumento
                 </label>
 
                 <input
-                  id="songArtist"
                   type="text"
+                  id="instrument"
                 >
 
               </div>
 
-              <div class="form-group">
 
-                <label for="songGenre">
-                  Género
+              <div>
+
+                <label for="role">
+                  Rol
                 </label>
 
                 <input
-                  id="songGenre"
                   type="text"
+                  id="role"
                 >
 
               </div>
 
-              <div class="form-group">
 
-                <label for="songBpm">
-                  BPM
+              <div>
+
+                <label for="tags">
+                  Etiquetas
                 </label>
 
                 <input
-                  id="songBpm"
-                  type="number"
-                  min="1"
-                >
-
-              </div>
-
-              <div class="form-group">
-
-                <label for="songKey">
-                  Tonalidad
-                </label>
-
-                <input
-                  id="songKey"
                   type="text"
+                  id="tags"
                 >
 
               </div>
 
-              <div class="form-group">
 
-                <label for="songSinger">
-                  Cantante
-                </label>
+              <button type="submit">
+                Guardar perfil
+              </button>
 
-                <input
-                  id="songSinger"
-                  type="text"
-                >
+              <div id="profileMessage"></div>
 
-              </div>
+            </form>
 
-              <div class="form-group">
+          </div>
 
-                <label for="songVersion">
-                  Versión
-                </label>
 
-                <input
-                  id="songVersion"
-                  type="text"
-                >
+          <!-- INTEGRANTES -->
 
-              </div>
+          <div class="panel">
 
-              <div class="form-group">
-
-                <label for="songListStatus">
-                  Estado de lista
-                </label>
-
-                <select id="songListStatus">
-
-                  <option value="Lista">
-                    Lista
-                  </option>
-
-                  <option value="Pendiente">
-                    Pendiente
-                  </option>
-
-                </select>
-
-              </div>
-
-              <div class="form-group">
-
-                <label for="songActiveStatus">
-                  Estado
-                </label>
-
-                <select id="songActiveStatus">
-
-                  <option value="Activa">
-                    Activa
-                  </option>
-
-                  <option value="Inactiva">
-                    Inactiva
-                  </option>
-
-                </select>
-
-              </div>
-
-            </div>
+            <h3>Integrantes</h3>
 
             <div
-              id="songFormMessage"
-              class="form-message"
-            ></div>
-
-            <div class="form-actions">
-
-              <button
-                class="secondary-btn"
-                onclick="toggleSongForm()"
-              >
-                Cancelar
-              </button>
-
-              <button
-                class="primary-btn"
-                onclick="createSong()"
-              >
-                Guardar canción
-              </button>
-
+              id="memberList"
+              class="member-list"
+            >
+              Cargando...
             </div>
 
           </div>
 
-          <!-- LISTADO -->
 
-          <div
-            id="songsList"
-            class="songs-list"
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           CANCIONES
+      ========================== -->
+
+      <section
+        id="canciones"
+        class="section"
+      >
+
+        <div class="section-title">
+
+          <h2>Canciones</h2>
+
+          <p>
+            Canciones de BandaBase.
+          </p>
+
+        </div>
+
+
+        <!-- FILTROS -->
+
+        <div class="songs-toolbar">
+
+          <select id="filterVersion">
+
+            <option value="">
+              Versión
+            </option>
+
+          </select>
+
+
+          <select id="filterSinger">
+
+            <option value="">
+              Cantante
+            </option>
+
+          </select>
+
+
+          <select id="filterListStatus">
+
+            <option value="">
+              Lista / Pendiente
+            </option>
+
+            <option value="Lista">
+              Lista
+            </option>
+
+            <option value="Pendiente">
+              Pendiente
+            </option>
+
+          </select>
+
+
+          <select id="filterActiveStatus">
+
+            <option value="">
+              Activa / Inactiva
+            </option>
+
+            <option value="Activa">
+              Activa
+            </option>
+
+            <option value="Inactiva">
+              Inactiva
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- NUEVA CANCIÓN -->
+
+        <div class="song-form-panel">
+
+          <h3>Nueva canción</h3>
+
+          <form
+            id="songForm"
+            class="song-form"
           >
 
-            <p class="empty-state">
-              Cargando canciones...
-            </p>
+            <div class="full">
 
-          </div>
+              <label for="songName">
+                Nombre
+              </label>
 
-        </section>
+              <input
+                type="text"
+                id="songName"
+                required
+              >
 
-        <!-- =================================================
-             LISTAS
-             ================================================= -->
+            </div>
 
-        <section
-          id="listas"
-          class="section"
+
+            <div>
+
+              <label for="songArtist">
+                Artista
+              </label>
+
+              <input
+                type="text"
+                id="songArtist"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songGenre">
+                Género
+              </label>
+
+              <input
+                type="text"
+                id="songGenre"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songBpm">
+                BPM
+              </label>
+
+              <input
+                type="number"
+                id="songBpm"
+                min="1"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songKey">
+                Tonalidad
+              </label>
+
+              <input
+                type="text"
+                id="songKey"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songSinger">
+                Cantante
+              </label>
+
+              <input
+                type="text"
+                id="songSinger"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songVersion">
+                Versión
+              </label>
+
+              <input
+                type="text"
+                id="songVersion"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songListStatus">
+                Lista / Pendiente
+              </label>
+
+              <select id="songListStatus">
+
+                <option value="Lista">
+                  Lista
+                </option>
+
+                <option value="Pendiente">
+                  Pendiente
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div>
+
+              <label for="songActiveStatus">
+                Activa / Inactiva
+              </label>
+
+              <select id="songActiveStatus">
+
+                <option value="Activa">
+                  Activa
+                </option>
+
+                <option value="Inactiva">
+                  Inactiva
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="full">
+
+              <button type="submit">
+                Agregar canción
+              </button>
+
+            </div>
+
+          </form>
+
+
+          <div id="songMessage"></div>
+
+        </div>
+
+
+        <!-- LISTA -->
+
+        <div
+          id="songsList"
+          class="songs-list"
         >
 
-          <h1 class="page-title">
-            Listas
-          </h1>
+          <div class="empty-message">
+            Cargando canciones...
+          </div>
 
-          <p class="page-description">
-            Armá las listas para cada culto, evento o participación.
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           LISTAS
+      ========================== -->
+
+      <section
+        id="listas"
+        class="section"
+      >
+
+        <div class="section-title">
+
+          <h2>Listas</h2>
+
+          <p>
+            Listas de canciones.
           </p>
 
-          <div class="columns">
+        </div>
 
-            <div class="column">
+        <div class="placeholder">
+          Próximamente.
+        </div>
 
-              <h3>
-                Próximas listas
-              </h3>
+      </section>
 
-              <div class="item">
 
-                <div class="item-title">
-                  Culto — Domingo
-                </div>
+      <!-- =========================
+           ENSAYOS
+      ========================== -->
 
-                <div class="item-info">
-                  Próximamente podremos definir canciones,
-                  orden y participantes.
-                </div>
+      <section
+        id="ensayos"
+        class="section"
+      >
 
-              </div>
+        <div class="section-title">
 
-              <div class="item">
+          <h2>Ensayos</h2>
 
-                <div class="item-title">
-                  Evento
-                </div>
-
-                <div class="item-info">
-                  Lista pendiente de preparar.
-                </div>
-
-              </div>
-
-            </div>
-
-            <div class="column">
-
-              <h3>
-                ¿Quiénes participan?
-              </h3>
-
-              <div class="placeholder">
-
-                Los integrantes podrán indicar su disponibilidad
-                y después se podrá definir quiénes participan
-                efectivamente.
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        <!-- =================================================
-             ENSAYOS
-             ================================================= -->
-
-        <section
-          id="ensayos"
-          class="section"
-        >
-
-          <h1 class="page-title">
-            Ensayos
-          </h1>
-
-          <p class="page-description">
-            Organizá los ensayos, lo que se está trabajando y los pendientes.
+          <p>
+            Organización de ensayos.
           </p>
 
-          <div class="columns">
+        </div>
 
-            <div class="column">
+        <div class="placeholder">
+          Próximamente.
+        </div>
 
-              <h3>
-                🎵 En ensayo
-              </h3>
+      </section>
 
-              <div class="item">
 
-                <div class="item-title">
-                  Santo por siempre
-                </div>
+      <!-- =========================
+           PROPUESTAS
+      ========================== -->
 
-                <div class="item-info">
-                  Canción que se está trabajando actualmente.
-                </div>
+      <section
+        id="propuestas"
+        class="section"
+      >
 
-              </div>
+        <div class="section-title">
 
-              <div class="item">
+          <h2>Propuestas</h2>
 
-                <div class="item-title">
-                  Como en el cielo
-                </div>
-
-                <div class="item-info">
-                  En proceso de ensayo.
-                </div>
-
-              </div>
-
-            </div>
-
-            <div class="column">
-
-              <h3>
-                📌 Pendientes
-              </h3>
-
-              <div class="item">
-
-                <div class="item-title">
-                  Alaba
-                </div>
-
-                <div class="item-info">
-                  Todavía no está siendo trabajada.
-                </div>
-
-              </div>
-
-              <div class="item">
-
-                <div class="item-title">
-                  Hay libertad
-                </div>
-
-                <div class="item-info">
-                  Pendiente para próximos ensayos.
-                </div>
-
-              </div>
-
-              <div class="item">
-
-                <div class="item-title">
-                  Nada es imposible
-                </div>
-
-                <div class="item-info">
-                  Pendiente.
-                </div>
-
-              </div>
-
-            </div>
-
-            <div class="column">
-
-              <h3>
-                📅 Próximos ensayos
-              </h3>
-
-              <div class="item">
-
-                <div class="item-title">
-                  Próximo ensayo
-                </div>
-
-                <div class="item-info">
-                  Acá aparecerán fecha, horario y participantes.
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div
-            class="placeholder"
-            style="margin-top:20px;"
-          >
-
-            Los ensayos también podrán tener materiales,
-            archivos y comentarios propios.
-
-          </div>
-
-        </section>
-
-        <!-- =================================================
-             PROPUESTAS
-             ================================================= -->
-
-        <section
-          id="propuestas"
-          class="section"
-        >
-
-          <h1 class="page-title">
-            Propuestas
-          </h1>
-
-          <p class="page-description">
-            Propuestas, comentarios, votaciones y decisiones de la banda.
+          <p>
+            Propuestas y decisiones de la banda.
           </p>
 
-          <div class="columns">
+        </div>
 
-            <div class="column">
+        <div class="placeholder">
+          Próximamente.
+        </div>
 
-              <h3>
-                💡 Propuestas abiertas
-              </h3>
+      </section>
 
-              <div class="item">
 
-                <div class="item-title">
-                  Ejemplo de propuesta
-                </div>
+      <!-- =========================
+           COMENTARIOS
+      ========================== -->
 
-                <div class="item-info">
-                  Acá podremos discutir y votar una propuesta.
-                </div>
+      <section
+        id="comentarios"
+        class="section"
+      >
 
-              </div>
+        <div class="section-title">
 
-            </div>
+          <h2>Comentarios</h2>
 
-            <div class="column">
-
-              <h3>
-                🗳️ Votaciones
-              </h3>
-
-              <div class="placeholder">
-
-                Cada integrante podrá votar.
-                La votación podrá cambiarse mientras esté abierta.
-
-              </div>
-
-            </div>
-
-            <div class="column">
-
-              <h3>
-                📜 Historial
-              </h3>
-
-              <div class="placeholder">
-
-                Las propuestas cerradas y sus resultados
-                quedarán guardados.
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        <!-- =================================================
-             COMENTARIOS
-             ================================================= -->
-
-        <section
-          id="comentarios"
-          class="section"
-        >
-
-          <h1 class="page-title">
-            Comentarios
-          </h1>
-
-          <p class="page-description">
-            Un espacio general para comunicar ideas, avisos o cualquier cosa para la banda.
+          <p>
+            Comentarios generales.
           </p>
 
-          <div class="placeholder">
+        </div>
 
-            Acá aparecerán los comentarios generales de la banda.
+        <div class="placeholder">
+          Próximamente.
+        </div>
 
-            <br><br>
+      </section>
 
-            Más adelante también podremos permitir archivos
-            y comentarios dentro de canciones, listas, ensayos
-            y propuestas.
-
-          </div>
-
-        </section>
-
-      </main>
-
-    </div>
+    </main>
 
   </div>
 
-  <!-- =====================================================
-       JAVASCRIPT
-       ===================================================== -->
 
   <script>
 
-    /* =====================================================
+    /* =========================================================
        SUPABASE
-       ===================================================== */
+    ========================================================= */
 
     const SUPABASE_URL =
       'https://evuwcikuxptrgzdzejov.supabase.co';
@@ -1809,802 +1080,574 @@
     const SUPABASE_PUBLISHABLE_KEY =
       'sb_publishable_ERDp1BzfCrzk3QBQf6rKSQ_FGogulnV';
 
-    const { createClient } = supabase;
 
-    const db = createClient(
+    const db = window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY
     );
 
 
-    /* =====================================================
-       MENSAJES
-       ===================================================== */
+    /* =========================================================
+       ELEMENTOS
+    ========================================================= */
 
-    function showMessage(
-      message,
-      type = 'error'
-    ) {
+    const authScreen =
+      document.getElementById('authScreen');
 
-      const box =
-        document.getElementById('authMessage');
+    const app =
+      document.getElementById('app');
 
-      box.textContent = message;
+    const authMessage =
+      document.getElementById('authMessage');
 
-      box.className =
-        'auth-message ' + type;
-    }
+    const userEmail =
+      document.getElementById('userEmail');
 
 
-    function clearMessage() {
+    /* =========================================================
+       AUTENTICACIÓN
+    ========================================================= */
 
-      const box =
-        document.getElementById('authMessage');
-
-      box.textContent = '';
-
-      box.className =
-        'auth-message';
-    }
+    document
+      .getElementById('loginBtn')
+      .addEventListener('click', login);
 
 
-    /* =====================================================
-       LOGIN / REGISTRO
-       ===================================================== */
+    document
+      .getElementById('logoutBtn')
+      .addEventListener('click', logout);
 
-    function showSignup() {
-
-      clearMessage();
-
-      document.getElementById('loginForm')
-        .style.display = 'none';
-
-      document.getElementById('signupForm')
-        .style.display = 'block';
-    }
-
-
-    function showLogin() {
-
-      clearMessage();
-
-      document.getElementById('signupForm')
-        .style.display = 'none';
-
-      document.getElementById('loginForm')
-        .style.display = 'block';
-    }
-
-
-    /* =====================================================
-       LOGIN
-       ===================================================== */
 
     async function login() {
 
-      clearMessage();
-
       const email =
         document
-          .getElementById('loginEmail')
+          .getElementById('email')
           .value
           .trim();
 
       const password =
         document
-          .getElementById('loginPassword')
+          .getElementById('password')
           .value;
 
-      if (!email || !password) {
 
-        showMessage(
-          'Completá email y contraseña.'
-        );
+      authMessage.textContent = 'Ingresando...';
 
-        return;
-      }
 
       const {
         data,
         error
-      } =
-        await db.auth.signInWithPassword({
+      } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
 
-          email,
-
-          password
-
-        });
 
       if (error) {
 
-        showMessage(
-          translateAuthError(
-            error.message
-          )
+        console.error(
+          'Error de login:',
+          error
         );
+
+        authMessage.textContent =
+          translateAuthError(error.message);
 
         return;
       }
+
+
+      authMessage.textContent = '';
+
 
       if (data.user) {
 
-        showApp(data.user);
+        await showApp(data.user);
 
       }
 
     }
 
-
-    /* =====================================================
-       REGISTRO
-       ===================================================== */
-
-    async function signup() {
-
-      const message =
-        document.getElementById(
-          'signupMessage'
-        );
-
-      message.textContent = '';
-
-      message.className =
-        'auth-message';
-
-      const email =
-        document
-          .getElementById('signupEmail')
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById('signupPassword')
-          .value;
-
-      if (!email || !password) {
-
-        message.textContent =
-          'Completá email y contraseña.';
-
-        message.className =
-          'auth-message error';
-
-        return;
-      }
-
-      if (password.length < 6) {
-
-        message.textContent =
-          'La contraseña debe tener al menos 6 caracteres.';
-
-        message.className =
-          'auth-message error';
-
-        return;
-      }
-
-      const {
-        data,
-        error
-      } =
-        await db.auth.signUp({
-
-          email,
-
-          password
-
-        });
-
-      if (error) {
-
-        message.textContent =
-          translateAuthError(
-            error.message
-          );
-
-        message.className =
-          'auth-message error';
-
-        return;
-      }
-
-      if (!data.session) {
-
-        message.textContent =
-          'Cuenta creada. Revisá tu email para confirmar la cuenta.';
-
-        message.className =
-          'auth-message success';
-
-        return;
-      }
-
-      if (data.user) {
-
-        showApp(data.user);
-
-      }
-
-    }
-
-
-    /* =====================================================
-       MOSTRAR APP
-       ===================================================== */
-
-    function showApp(user) {
-
-      document
-        .getElementById('authScreen')
-        .style.display = 'none';
-
-      document
-        .getElementById('appScreen')
-        .style.display = 'block';
-
-      document
-        .getElementById('userEmail')
-        .textContent =
-          user.email || '';
-    }
-
-
-    /* =====================================================
-       MOSTRAR LOGIN
-       ===================================================== */
-
-    function showAuth() {
-
-      document
-        .getElementById('appScreen')
-        .style.display = 'none';
-
-      document
-        .getElementById('authScreen')
-        .style.display = 'flex';
-    }
-
-
-    /* =====================================================
-       CERRAR SESIÓN
-       ===================================================== */
 
     async function logout() {
 
       await db.auth.signOut();
 
-      showAuth();
+      app.classList.add('hidden');
+
+      authScreen.classList.remove('hidden');
+
     }
 
 
-    /* =====================================================
-       SESIÓN ACTUAL
-       ===================================================== */
+    function translateAuthError(message) {
+
+      if (
+        message
+          .toLowerCase()
+          .includes('invalid login credentials')
+      ) {
+        return 'Email o contraseña incorrectos.';
+      }
+
+      return message;
+
+    }
+
+
+    /* =========================================================
+       SESIÓN
+    ========================================================= */
 
     async function checkSession() {
 
       const {
         data,
         error
-      } =
-        await db.auth.getSession();
+      } = await db.auth.getSession();
+
 
       if (error) {
 
-        console.error(error);
-
-        showAuth();
+        console.error(
+          'Error obteniendo sesión:',
+          error
+        );
 
         return;
       }
 
+
       if (data.session) {
 
-        showApp(
+        await showApp(
           data.session.user
         );
 
       } else {
 
-        showAuth();
+        authScreen.classList.remove('hidden');
+
+        app.classList.add('hidden');
 
       }
 
     }
 
 
-    /* =====================================================
-       CAMBIO DE SESIÓN
-       ===================================================== */
+    async function showApp(user) {
 
-    db.auth.onAuthStateChange(
-      (event, session) => {
+      authScreen.classList.add('hidden');
 
-        if (session) {
+      app.classList.remove('hidden');
 
-          showApp(
-            session.user
-          );
-
-        } else {
-
-          showAuth();
-
-        }
-
-      }
-    );
+      userEmail.textContent =
+        user.email || '';
 
 
-    /* =====================================================
+      await loadProfile();
+
+      await loadBandMembers();
+
+      await loadSongs();
+
+    }
+
+
+    /* =========================================================
        NAVEGACIÓN
-       ===================================================== */
+    ========================================================= */
 
-    function showSection(
-      sectionId,
-      button
-    ) {
+    function showSection(sectionId, button) {
 
       document
         .querySelectorAll('.section')
         .forEach(section => {
 
-          section.classList.remove(
-            'active'
-          );
+          section.classList.remove('active');
 
         });
+
+
+      const section =
+        document.getElementById(sectionId);
+
+
+      if (section) {
+
+        section.classList.add('active');
+
+      }
+
 
       document
         .querySelectorAll('.nav-btn')
         .forEach(btn => {
 
-          btn.classList.remove(
-            'active'
-          );
+          btn.classList.remove('active');
 
         });
 
-      const section =
-        document.getElementById(
-          sectionId
-        );
-
-      if (section) {
-
-        section.classList.add(
-          'active'
-        );
-
-      }
 
       if (button) {
 
-        button.classList.add(
-          'active'
-        );
+        button.classList.add('active');
 
       }
 
     }
 
 
-    /* =====================================================
-       EDITAR PERFIL
-       ===================================================== */
+    /* =========================================================
+       BANDA
+    ========================================================= */
 
-    function toggleProfileEditor(
-      forceState = null
-    ) {
+    async function getBandId() {
 
-      const editor =
-        document.getElementById(
-          'profileEditor'
+      const {
+        data: band,
+        error
+      } = await db
+        .from('bands')
+        .select('id')
+        .eq('name', 'BandaBase')
+        .limit(1)
+        .maybeSingle();
+
+
+      if (error) {
+
+        console.error(
+          'Error buscando BandaBase:',
+          error
         );
 
-      const shouldOpen =
-        forceState !== null
-          ? forceState
-          : !editor.classList.contains('active');
-
-      if (shouldOpen) {
-
-        editor.classList.add('active');
-
-        loadMyProfile();
-
-      } else {
-
-        editor.classList.remove('active');
-
-        clearProfileMessage();
+        return null;
 
       }
+
+
+      if (!band) {
+
+        console.error(
+          'No se encontró la banda BandaBase.'
+        );
+
+        return null;
+
+      }
+
+
+      return band.id;
 
     }
 
 
-    /* =====================================================
-       CARGAR MI PERFIL
-       ===================================================== */
-
-    async function loadMyProfile() {
-
-      clearProfileMessage();
+    async function loadProfile() {
 
       const {
         data: {
           user
         }
-      } =
-        await db.auth.getUser();
+      } = await db.auth.getUser();
+
 
       if (!user) {
-
         return;
-
       }
+
 
       const {
         data: profile,
         error
-      } =
-        await db
-          .from('profiles')
-          .select(
-            'full_name, instrument, role'
-          )
-          .eq(
-            'user_id',
-            user.id
-          )
-          .maybeSingle();
+      } = await db
+        .from('profiles')
+        .select(
+          'full_name, instrument, role'
+        )
+        .eq(
+          'user_id',
+          user.id
+        )
+        .maybeSingle();
+
 
       if (error) {
 
         console.error(
-          'Error cargando mi perfil:',
+          'Error cargando perfil:',
           error
         );
 
-        showProfileMessage(
-          'No se pudo cargar tu perfil: ' +
-          error.message,
-          'error'
-        );
-
         return;
-
       }
+
+
+      if (!profile) {
+        return;
+      }
+
+
+      document
+        .getElementById('fullName')
+        .value =
+          profile.full_name || '';
+
+
+      document
+        .getElementById('instrument')
+        .value =
+          profile.instrument || '';
+
+
+      document
+        .getElementById('role')
+        .value =
+          profile.role || '';
+
+
+      const bandId =
+        await getBandId();
+
+
+      if (!bandId) {
+        return;
+      }
+
 
       const {
         data: member,
         error: memberError
-      } =
-        await db
-          .from('band_members')
-          .select(
-            'tags'
-          )
-          .eq(
-            'user_id',
-            user.id
-          )
-          .eq(
-            'active',
-            true
-          )
-          .maybeSingle();
+      } = await db
+        .from('band_members')
+        .select('tags')
+        .eq(
+          'band_id',
+          bandId
+        )
+        .eq(
+          'user_id',
+          user.id
+        )
+        .maybeSingle();
+
 
       if (memberError) {
 
         console.error(
-          'Error cargando mis etiquetas:',
+          'Error cargando etiquetas:',
           memberError
         );
 
-        showProfileMessage(
-          'No se pudieron cargar tus etiquetas: ' +
-          memberError.message,
-          'error'
-        );
-
         return;
-
       }
 
-      document.getElementById(
-        'profileName'
-      ).value =
-        profile?.full_name || '';
 
-      document.getElementById(
-        'profileInstrument'
-      ).value =
-        profile?.instrument || '';
-
-      document.getElementById(
-        'profileRole'
-      ).value =
-        profile?.role || '';
-
-      const tags =
-        Array.isArray(member?.tags)
-          ? member.tags
-          : [];
-
-      document.getElementById(
-        'profileTags'
-      ).value =
-        tags.join(', ');
+      document
+        .getElementById('tags')
+        .value =
+          member?.tags
+            ? member.tags.join(', ')
+            : '';
 
     }
 
 
-    /* =====================================================
-       GUARDAR MI PERFIL
-       ===================================================== */
+    document
+      .getElementById('profileForm')
+      .addEventListener(
+        'submit',
+        saveProfile
+      );
 
-    async function saveMyProfile() {
 
-      clearProfileMessage();
+    async function saveProfile(event) {
 
-      const name =
+      event.preventDefault();
+
+
+      const {
+        data: {
+          user
+        }
+      } = await db.auth.getUser();
+
+
+      if (!user) {
+        return;
+      }
+
+
+      const fullName =
         document
-          .getElementById('profileName')
+          .getElementById('fullName')
           .value
           .trim();
+
 
       const instrument =
         document
-          .getElementById('profileInstrument')
+          .getElementById('instrument')
           .value
           .trim();
+
 
       const role =
         document
-          .getElementById('profileRole')
+          .getElementById('role')
           .value
           .trim();
+
 
       const tagsText =
         document
-          .getElementById('profileTags')
+          .getElementById('tags')
           .value
           .trim();
 
-      if (!name) {
-
-        showProfileMessage(
-          'Escribí un nombre para tu perfil.',
-          'error'
-        );
-
-        return;
-
-      }
 
       const tags =
         tagsText
           ? tagsText
               .split(',')
-              .map(
-                tag => tag.trim()
-              )
-              .filter(
-                tag => tag.length > 0
-              )
+              .map(tag => tag.trim())
+              .filter(Boolean)
           : [];
 
-      const {
-        data: {
-          user
-        }
-      } =
-        await db.auth.getUser();
 
-      if (!user) {
-
-        showProfileMessage(
-          'Tu sesión ya no está disponible.',
-          'error'
-        );
-
-        return;
-
-      }
-
-      const {
-        error: profileError
-      } =
+      const profileResult =
         await db
           .from('profiles')
           .update({
-            full_name:
-              name || null,
-
-            instrument:
-              instrument || null,
-
-            role:
-              role || null
+            full_name: fullName || null,
+            instrument: instrument || null,
+            role: role || null
           })
           .eq(
             'user_id',
             user.id
           );
 
-      if (profileError) {
+
+      if (profileResult.error) {
 
         console.error(
           'Error guardando perfil:',
-          profileError
+          profileResult.error
         );
 
-        showProfileMessage(
-          'No se pudo guardar tu perfil: ' +
-          profileError.message,
-          'error'
-        );
+        document
+          .getElementById('profileMessage')
+          .textContent =
+            'No se pudo guardar el perfil: ' +
+            profileResult.error.message;
 
         return;
-
       }
 
-      const {
-        error: tagsError
-      } =
+
+      const bandId =
+        await getBandId();
+
+
+      if (!bandId) {
+
+        document
+          .getElementById('profileMessage')
+          .textContent =
+            'No se encontró BandaBase.';
+
+        return;
+      }
+
+
+      const memberResult =
         await db
           .from('band_members')
           .update({
             tags
           })
           .eq(
-            'user_id',
-            user.id
+            'band_id',
+            bandId
           )
           .eq(
-            'active',
-            true
+            'user_id',
+            user.id
           );
 
-      if (tagsError) {
+
+      if (memberResult.error) {
 
         console.error(
           'Error guardando etiquetas:',
-          tagsError
+          memberResult.error
         );
 
-        showProfileMessage(
-          'El perfil se guardó, pero no se pudieron guardar las etiquetas: ' +
-          tagsError.message,
-          'error'
-        );
+        document
+          .getElementById('profileMessage')
+          .textContent =
+            'Perfil guardado, pero no se pudieron guardar las etiquetas: ' +
+            memberResult.error.message;
 
         return;
-
       }
 
-      showProfileMessage(
-        'Perfil guardado correctamente.',
-        'success'
-      );
+
+      document
+        .getElementById('profileMessage')
+        .textContent =
+          'Perfil guardado correctamente.';
+
 
       await loadBandMembers();
 
     }
 
 
-    /* =====================================================
-       MENSAJES DEL PERFIL
-       ===================================================== */
-
-    function showProfileMessage(
-      message,
-      type
-    ) {
-
-      const box =
-        document.getElementById(
-          'profileMessage'
-        );
-
-      box.textContent =
-        message;
-
-      box.className =
-        'profile-message ' + type;
-
-    }
-
-
-    function clearProfileMessage() {
-
-      const box =
-        document.getElementById(
-          'profileMessage'
-        );
-
-      box.textContent = '';
-
-      box.className =
-        'profile-message';
-
-    }
-
-
-    /* =====================================================
-       CARGAR INTEGRANTES
-       ===================================================== */
-
     async function loadBandMembers() {
 
-      const status =
+      const memberList =
         document.getElementById(
-          'bandStatus'
+          'memberList'
         );
 
-      const grid =
-        document.getElementById(
-          'memberGrid'
-        );
 
-      status.textContent =
-        'Cargando integrantes...';
+      memberList.textContent =
+        'Cargando...';
 
-      grid.innerHTML = '';
 
-      const {
-        data: band,
-        error: bandError
-      } =
-        await db
-          .from('bands')
-          .select('id, name')
-          .eq('name', 'BandaBase')
-          .limit(1)
-          .maybeSingle();
+      const bandId =
+        await getBandId();
 
-      if (bandError) {
 
-        console.error(
-          'Error buscando BandaBase:',
-          bandError
-        );
+      if (!bandId) {
 
-        status.innerHTML =
-          '<div class="band-error">' +
-          'No se pudo cargar BandaBase: ' +
-          escapeHtml(bandError.message) +
-          '</div>';
+        memberList.textContent =
+          'No se encontró BandaBase.';
 
         return;
       }
 
-      if (!band) {
-
-        status.textContent =
-          'No se encontró la banda BandaBase.';
-
-        return;
-      }
 
       const {
         data: members,
         error: membersError
-      } =
-        await db
-          .from('band_members')
-          .select(
-            'user_id, display_name, tags, active'
-          )
-          .eq('band_id', band.id)
-          .eq('active', true)
-          .order('created_at', {
-            ascending: true
-          });
+      } = await db
+        .from('band_members')
+        .select(
+          'user_id, display_name, role, tags, active'
+        )
+        .eq(
+          'band_id',
+          bandId
+        )
+        .eq(
+          'active',
+          true
+        );
+
 
       if (membersError) {
 
@@ -2613,41 +1656,42 @@
           membersError
         );
 
-        status.innerHTML =
-          '<div class="band-error">' +
+        memberList.textContent =
           'No se pudieron cargar los integrantes: ' +
-          escapeHtml(membersError.message) +
-          '</div>';
+          membersError.message;
 
         return;
       }
+
 
       if (!members || members.length === 0) {
 
-        status.textContent =
-          'Todavía no hay integrantes registrados.';
+        memberList.innerHTML =
+          '<div class="empty-message">Todavía no hay integrantes.</div>';
 
         return;
       }
+
 
       const userIds =
         members.map(
           member => member.user_id
         );
 
+
       const {
         data: profiles,
         error: profilesError
-      } =
-        await db
-          .from('profiles')
-          .select(
-            'user_id, full_name, instrument, role'
-          )
-          .in(
-            'user_id',
-            userIds
-          );
+      } = await db
+        .from('profiles')
+        .select(
+          'user_id, full_name, instrument, role'
+        )
+        .in(
+          'user_id',
+          userIds
+        );
+
 
       if (profilesError) {
 
@@ -2656,136 +1700,146 @@
           profilesError
         );
 
-        status.innerHTML =
-          '<div class="band-error">' +
+        memberList.textContent =
           'No se pudieron cargar los perfiles: ' +
-          escapeHtml(profilesError.message) +
-          '</div>';
+          profilesError.message;
 
         return;
       }
 
+
       const profileMap = {};
 
-      (profiles || []).forEach(
-        profile => {
 
+      (profiles || []).forEach(profile => {
+
+        profileMap[
+          profile.user_id
+        ] = profile;
+
+      });
+
+
+      memberList.innerHTML = '';
+
+
+      members.forEach(member => {
+
+        const profile =
           profileMap[
-            profile.user_id
-          ] = profile;
+            member.user_id
+          ] || {};
 
-        }
-      );
 
-      members.forEach(
-        member => {
+        const card =
+          document.createElement('div');
 
-          const profile =
-            profileMap[
-              member.user_id
-            ];
 
-          const name =
-            member.display_name ||
-            (profile && profile.full_name) ||
-            'Integrante';
+        card.className =
+          'member-card';
 
-          const instrument =
-            profile?.instrument || '';
 
-          const role =
-            profile?.role || '';
+        const name =
+          profile.full_name ||
+          member.display_name ||
+          'Integrante';
 
-          const tags =
-            Array.isArray(member.tags)
-              ? member.tags
-              : [];
 
-          const card =
-            document.createElement(
-              'div'
-            );
+        const instrument =
+          profile.instrument ||
+          '';
 
-          card.className =
-            'member-card';
 
-          let instrumentHtml = '';
+        const role =
+          profile.role ||
+          member.role ||
+          '';
 
-          if (instrument) {
 
-            instrumentHtml =
-              '<div class="member-instrument">' +
-              escapeHtml(instrument) +
-              '</div>';
+        const tags =
+          member.tags || [];
 
+
+        card.innerHTML = `
+
+          <div class="member-name">
+            ${escapeHtml(name)}
+          </div>
+
+          <div class="member-info">
+            ${escapeHtml(instrument)}
+            ${instrument && role ? ' · ' : ''}
+            ${escapeHtml(role)}
+          </div>
+
+          ${
+            tags.length
+              ? `
+                <div class="member-tags">
+                  ${tags
+                    .map(
+                      tag =>
+                        `<span class="tag">${escapeHtml(tag)}</span>`
+                    )
+                    .join('')}
+                </div>
+              `
+              : ''
           }
 
-          let roleHtml = '';
+        `;
 
-          if (role) {
 
-            roleHtml =
-              '<div class="member-role">' +
-              escapeHtml(role) +
-              '</div>';
+        memberList.appendChild(card);
 
-          }
-
-          let tagsHtml = '';
-
-          if (tags.length > 0) {
-
-            tagsHtml =
-              '<div class="tags">' +
-              tags
-                .map(
-                  tag =>
-                    '<span class="tag">' +
-                    escapeHtml(tag) +
-                    '</span>'
-                )
-                .join('') +
-              '</div>';
-
-          } else {
-
-            tagsHtml =
-              '<div class="member-empty">' +
-              'Todavía no tiene etiquetas.' +
-              '</div>';
-
-          }
-
-          card.innerHTML =
-
-            '<div class="member-name">' +
-            escapeHtml(name) +
-            '</div>' +
-
-            instrumentHtml +
-
-            roleHtml +
-
-            tagsHtml;
-
-          grid.appendChild(
-            card
-          );
-
-        }
-      );
-
-      status.textContent =
-        members.length === 1
-          ? '1 integrante'
-          : members.length + ' integrantes';
+      });
 
     }
 
 
-    /* =====================================================
+    /* =========================================================
        CANCIONES
-       ===================================================== */
+    ========================================================= */
+
+    document
+      .getElementById('songForm')
+      .addEventListener(
+        'submit',
+        createSong
+      );
+
+
+    document
+      .getElementById('filterVersion')
+      .addEventListener(
+        'change',
+        loadSongs
+      );
+
+
+    document
+      .getElementById('filterSinger')
+      .addEventListener(
+        'change',
+        loadSongs
+      );
+
+
+    document
+      .getElementById('filterListStatus')
+      .addEventListener(
+        'change',
+        loadSongs
+      );
+
+
+    document
+      .getElementById('filterActiveStatus')
+      .addEventListener(
+        'change',
+        loadSongs
+      );
+
 
     async function loadSongs() {
 
@@ -2794,54 +1848,68 @@
           'songsList'
         );
 
-      songsList.innerHTML = `
-        <p class="empty-state">
-          Cargando canciones...
-        </p>
-      `;
 
-      const version =
-        document.getElementById(
-          'filterVersion'
-        ).value;
+      songsList.innerHTML =
+        '<div class="empty-message">Cargando canciones...</div>';
 
-      const singer =
-        document.getElementById(
-          'filterSinger'
-        ).value;
-
-      const listStatus =
-        document.getElementById(
-          'filterListStatus'
-        ).value;
-
-      const activeStatus =
-        document.getElementById(
-          'filterActiveStatus'
-        ).value;
 
       let query =
         db
           .from('songs')
-          .select(`
-            id,
-            name,
-            artist,
-            genre,
-            bpm,
-            song_key,
-            singer,
-            version,
-            list_status,
-            active_status,
-            color
-          `)
+          .select(
+            `
+              id,
+              name,
+              artist,
+              genre,
+              bpm,
+              song_key,
+              singer,
+              version,
+              list_status,
+              active_status,
+              color
+            `
+          )
           .order(
             'name',
             {
               ascending: true
             }
           );
+
+
+      const version =
+        document
+          .getElementById(
+            'filterVersion'
+          )
+          .value;
+
+
+      const singer =
+        document
+          .getElementById(
+            'filterSinger'
+          )
+          .value;
+
+
+      const listStatus =
+        document
+          .getElementById(
+            'filterListStatus'
+          )
+          .value;
+
+
+      const activeStatus =
+        document
+          .getElementById(
+            'filterActiveStatus'
+          )
+          .value;
+
 
       if (version) {
 
@@ -2853,6 +1921,7 @@
 
       }
 
+
       if (singer) {
 
         query =
@@ -2862,6 +1931,7 @@
           );
 
       }
+
 
       if (listStatus) {
 
@@ -2873,6 +1943,7 @@
 
       }
 
+
       if (activeStatus) {
 
         query =
@@ -2883,11 +1954,12 @@
 
       }
 
+
       const {
-        data,
+        data: songs,
         error
-      } =
-        await query;
+      } = await query;
+
 
       if (error) {
 
@@ -2896,187 +1968,199 @@
           error
         );
 
-        songsList.innerHTML = `
-          <p class="empty-state">
-            No se pudieron cargar las canciones.
-          </p>
-        `;
+        songsList.innerHTML =
+          `
+            <div class="empty-message">
+              No se pudieron cargar las canciones:
+              ${escapeHtml(error.message)}
+            </div>
+          `;
 
         return;
       }
 
-      /*
-       * Actualizamos las opciones de
-       * Versión y Cantante.
-       *
-       * Usamos todos los registros para que
-       * los filtros no desaparezcan al
-       * aplicar otro filtro.
-       */
 
-      await updateSongFilters();
+      updateSongFilters();
 
-      if (!data || data.length === 0) {
 
-        songsList.innerHTML = `
-          <p class="empty-state">
-            No hay canciones para mostrar.
-          </p>
-        `;
+      if (!songs || songs.length === 0) {
+
+        songsList.innerHTML =
+          `
+            <div class="empty-message">
+              No hay canciones que coincidan con los filtros.
+            </div>
+          `;
 
         return;
       }
 
-      songsList.innerHTML =
-        data
-          .map(
-            song => {
 
-              const colorStyle =
-                song.color
-                  ? `border-left: 5px solid ${escapeHtml(song.color)};`
-                  : '';
+      songsList.innerHTML = '';
 
-              return `
-                <div
-                  class="song-card"
-                  style="${colorStyle}"
-                  onclick="openSong('${song.id}')"
-                >
 
-                  <div class="song-card-main">
+      songs.forEach(song => {
 
-                    <h3 class="song-title">
-                      ${escapeHtml(
-                        song.name || 'Sin nombre'
-                      )}
-                    </h3>
+        const card =
+          document.createElement('div');
 
-                    ${
-                      song.artist
-                        ? `
-                          <div class="song-artist">
-                            ${escapeHtml(
-                              song.artist
-                            )}
-                          </div>
-                        `
-                        : ''
-                    }
 
-                  </div>
+        card.className =
+          'song-card';
 
+
+        if (song.color) {
+
+          card.style.borderLeft =
+            `5px solid ${song.color}`;
+
+        }
+
+
+        card.addEventListener(
+          'click',
+          () => openSong(song.id)
+        );
+
+
+        card.innerHTML = `
+
+          <div class="song-name">
+            ${escapeHtml(song.name)}
+          </div>
+
+          ${
+            song.artist
+              ? `
+                <div class="song-artist">
+                  ${escapeHtml(song.artist)}
                 </div>
-              `;
+              `
+              : ''
+          }
 
-            }
-          )
-          .join('');
+        `;
+
+
+        songsList.appendChild(card);
+
+      });
 
     }
 
 
-    /* =====================================================
-       FILTROS DE CANCIONES
-       ===================================================== */
-
     async function updateSongFilters() {
-
-      const versionSelect =
-        document.getElementById(
-          'filterVersion'
-        );
-
-      const singerSelect =
-        document.getElementById(
-          'filterSinger'
-        );
-
-      const currentVersion =
-        versionSelect.value;
-
-      const currentSinger =
-        singerSelect.value;
 
       const {
         data: songs,
         error
-      } =
-        await db
-          .from('songs')
-          .select(
-            'version, singer'
-          );
+      } = await db
+        .from('songs')
+        .select(
+          'version, singer'
+        );
+
 
       if (error) {
 
         console.error(
-          'Error cargando filtros:',
+          'Error actualizando filtros:',
           error
         );
 
         return;
       }
 
+
+      const versionSelect =
+        document.getElementById(
+          'filterVersion'
+        );
+
+
+      const singerSelect =
+        document.getElementById(
+          'filterSinger'
+        );
+
+
+      const currentVersion =
+        versionSelect.value;
+
+
+      const currentSinger =
+        singerSelect.value;
+
+
       const versions =
         [
           ...new Set(
             (songs || [])
-              .map(
-                song => song.version
-              )
+              .map(song => song.version)
               .filter(Boolean)
           )
-        ].sort();
+        ]
+        .sort();
+
 
       const singers =
         [
           ...new Set(
             (songs || [])
-              .map(
-                song => song.singer
-              )
+              .map(song => song.singer)
               .filter(Boolean)
           )
-        ].sort();
+        ]
+        .sort();
+
 
       versionSelect.innerHTML =
-        `
-          <option value="">
-            Versión
-          </option>
+        '<option value="">Versión</option>';
 
-          ${
-            versions
-              .map(
-                version => `
-                  <option value="${escapeHtml(version)}">
-                    ${escapeHtml(version)}
-                  </option>
-                `
-              )
-              .join('')
-          }
-        `;
+
+      versions.forEach(version => {
+
+        const option =
+          document.createElement(
+            'option'
+          );
+
+        option.value =
+          version;
+
+        option.textContent =
+          version;
+
+        versionSelect.appendChild(
+          option
+        );
+
+      });
+
 
       singerSelect.innerHTML =
-        `
-          <option value="">
-            Cantante
-          </option>
+        '<option value="">Cantante</option>';
 
-          ${
-            singers
-              .map(
-                singer => `
-                  <option value="${escapeHtml(singer)}">
-                    ${escapeHtml(singer)}
-                  </option>
-                `
-              )
-              .join('')
-          }
-        `;
+
+      singers.forEach(singer => {
+
+        const option =
+          document.createElement(
+            'option'
+          );
+
+        option.value =
+          singer;
+
+        option.textContent =
+          singer;
+
+        singerSelect.appendChild(
+          option
+        );
+
+      });
+
 
       if (
         versions.includes(
@@ -3088,6 +2172,7 @@
           currentVersion;
 
       }
+
 
       if (
         singers.includes(
@@ -3103,132 +2188,93 @@
     }
 
 
-    /* =====================================================
-       FORMULARIO DE CANCIÓN
-       ===================================================== */
+    /* =========================================================
+       CREAR CANCIÓN
+    ========================================================= */
 
-    function toggleSongForm() {
+    async function createSong(event) {
 
-      const form =
+      event.preventDefault();
+
+
+      const message =
         document.getElementById(
-          'songForm'
+          'songMessage'
         );
 
-      if (
-        form.style.display === 'none' ||
-        form.style.display === ''
-      ) {
 
-        form.style.display =
-          'block';
+      message.textContent =
+        'Guardando canción...';
 
-        document
-          .getElementById('songName')
-          .focus();
-
-      } else {
-
-        form.style.display =
-          'none';
-
-        clearSongForm();
-
-      }
-
-    }
-
-
-    function clearSongForm() {
-
-      document.getElementById(
-        'songName'
-      ).value = '';
-
-      document.getElementById(
-        'songArtist'
-      ).value = '';
-
-      document.getElementById(
-        'songGenre'
-      ).value = '';
-
-      document.getElementById(
-        'songBpm'
-      ).value = '';
-
-      document.getElementById(
-        'songKey'
-      ).value = '';
-
-      document.getElementById(
-        'songSinger'
-      ).value = '';
-
-      document.getElementById(
-        'songVersion'
-      ).value = '';
-
-      document.getElementById(
-        'songListStatus'
-      ).value = 'Lista';
-
-      document.getElementById(
-        'songActiveStatus'
-      ).value = 'Activa';
-
-      document.getElementById(
-        'songFormMessage'
-      ).textContent = '';
-
-    }
-
-
-    /* =====================================================
-       CREAR CANCIÓN
-       ===================================================== */
-
-    async function createSong() {
 
       const name =
         document
-          .getElementById('songName')
+          .getElementById(
+            'songName'
+          )
           .value
           .trim();
+
 
       const artist =
         document
-          .getElementById('songArtist')
+          .getElementById(
+            'songArtist'
+          )
           .value
           .trim();
+
 
       const genre =
         document
-          .getElementById('songGenre')
+          .getElementById(
+            'songGenre'
+          )
           .value
           .trim();
+
 
       const bpmValue =
         document
-          .getElementById('songBpm')
-          .value;
+          .getElementById(
+            'songBpm'
+          )
+          .value
+          .trim();
+
+
+      const bpm =
+        bpmValue
+          ? Number(bpmValue)
+          : null;
+
 
       const songKey =
         document
-          .getElementById('songKey')
+          .getElementById(
+            'songKey'
+          )
           .value
           .trim();
+
 
       const singer =
         document
-          .getElementById('songSinger')
+          .getElementById(
+            'songSinger'
+          )
           .value
           .trim();
 
+
       const version =
         document
-          .getElementById('songVersion')
+          .getElementById(
+            'songVersion'
+          )
           .value
           .trim();
+
 
       const listStatus =
         document
@@ -3237,6 +2283,7 @@
           )
           .value;
 
+
       const activeStatus =
         document
           .getElementById(
@@ -3244,10 +2291,6 @@
           )
           .value;
 
-      const message =
-        document.getElementById(
-          'songFormMessage'
-        );
 
       if (!name) {
 
@@ -3257,58 +2300,96 @@
         return;
       }
 
-      const bpm =
-        bpmValue
-          ? Number(bpmValue)
-          : null;
 
-      message.textContent =
-        'Guardando...';
+      /*
+       * IMPORTANTE:
+       * songs.band_id es NOT NULL.
+       * Primero buscamos la banda BandaBase
+       * y luego guardamos la canción usando
+       * ese ID.
+       */
+
+      const {
+        data: band,
+        error: bandError
+      } = await db
+        .from('bands')
+        .select('id')
+        .eq(
+          'name',
+          'BandaBase'
+        )
+        .limit(1)
+        .maybeSingle();
+
+
+      if (bandError) {
+
+        console.error(
+          'Error buscando BandaBase:',
+          bandError
+        );
+
+        message.textContent =
+          'No se pudo encontrar BandaBase: ' +
+          bandError.message;
+
+        return;
+      }
+
+
+      if (!band) {
+
+        message.textContent =
+          'No se encontró la banda BandaBase.';
+
+        return;
+      }
+
+
+      /*
+       * ACÁ ESTÁ EL ARREGLO PRINCIPAL:
+       * enviamos band_id junto con los demás datos.
+       */
 
       const {
         error
-      } =
-        await db
-          .from('songs')
-          .insert({
+      } = await db
+        .from('songs')
+        .insert({
 
-            name:
+          band_id:
+            band.id,
 
-              name,
+          name:
+            name,
 
-            artist:
+          artist:
+            artist || null,
 
-              artist || null,
+          genre:
+            genre || null,
 
-            genre:
+          bpm:
+            bpm,
 
-              genre || null,
+          song_key:
+            songKey || null,
 
-            bpm:
+          singer:
+            singer || null,
 
-              bpm,
+          version:
+            version || null,
 
-            song_key:
+          list_status:
+            listStatus,
 
-              songKey || null,
+          active_status:
+            activeStatus
 
-            singer:
+        });
 
-              singer || null,
-
-            version:
-
-              version || null,
-
-            list_status:
-
-              listStatus,
-
-            active_status:
-
-              activeStatus
-
-          });
 
       if (error) {
 
@@ -3324,24 +2405,43 @@
         return;
       }
 
+
       message.textContent =
         'Canción guardada correctamente.';
 
-      clearSongForm();
 
-      document.getElementById(
-        'songForm'
-      ).style.display =
-        'none';
+      document
+        .getElementById(
+          'songForm'
+        )
+        .reset();
+
+
+      /*
+       * Volvemos a los valores
+       * predeterminados.
+       */
+
+      document
+        .getElementById(
+          'songListStatus'
+        )
+        .value =
+          'Lista';
+
+
+      document
+        .getElementById(
+          'songActiveStatus'
+        )
+        .value =
+          'Activa';
+
 
       await loadSongs();
 
     }
 
-
-    /* =====================================================
-       ABRIR CANCIÓN
-       ===================================================== */
 
     function openSong(songId) {
 
@@ -3352,105 +2452,54 @@
 
       /*
        * Más adelante acá abriremos
-       * el detalle completo de la canción.
+       * el detalle de la canción.
        */
 
     }
 
 
-    /* =====================================================
-       SEGURIDAD PARA MOSTRAR TEXTO
-       ===================================================== */
+    /* =========================================================
+       UTILIDADES
+    ========================================================= */
 
     function escapeHtml(value) {
 
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        return '';
+      }
+
+
       return String(value)
-        .replaceAll(
-          '&',
+        .replace(
+          /&/g,
           '&amp;'
         )
-        .replaceAll(
-          '<',
+        .replace(
+          /</g,
           '&lt;'
         )
-        .replaceAll(
-          '>',
+        .replace(
+          />/g,
           '&gt;'
         )
-        .replaceAll(
-          '"',
+        .replace(
+          /"/g,
           '&quot;'
         )
-        .replaceAll(
-          "'",
+        .replace(
+          /'/g,
           '&#039;'
         );
 
     }
 
 
-    /* =====================================================
-       ERRORES DE AUTENTICACIÓN
-       ===================================================== */
-
-    function translateAuthError(
-      message
-    ) {
-
-      if (!message) {
-
-        return 'Ocurrió un error.';
-
-      }
-
-      if (
-        message.includes(
-          'Invalid login credentials'
-        )
-      ) {
-
-        return 'Email o contraseña incorrectos.';
-
-      }
-
-      if (
-        message.includes(
-          'Email not confirmed'
-        )
-      ) {
-
-        return 'Primero tenés que confirmar tu email.';
-
-      }
-
-      if (
-        message.includes(
-          'User already registered'
-        )
-      ) {
-
-        return 'Ya existe una cuenta con ese email.';
-
-      }
-
-      if (
-        message.includes(
-          'Password should be at least'
-        )
-      ) {
-
-        return 'La contraseña es demasiado corta.';
-
-      }
-
-      return message;
-
-    }
-
-
-    /* =====================================================
-       INICIAR APP
-       ===================================================== */
+    /* =========================================================
+       INICIAR
+    ========================================================= */
 
     checkSession();
 
