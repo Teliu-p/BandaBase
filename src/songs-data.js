@@ -56,3 +56,98 @@ async function getSongById(
     .single();
 
 }
+
+
+async function createSong(
+  supabaseClient,
+  songData
+) {
+
+  const {
+    band_id,
+    name,
+    artist,
+    genre,
+    bpm,
+    duration,
+    meter,
+    color,
+    list_status,
+    active_status,
+    singer,
+    song_key
+  } =
+    songData;
+
+  return await supabaseClient
+    .from("songs")
+    .insert({
+      band_id,
+      name,
+      artist,
+      genre,
+      bpm,
+      duration,
+      meter,
+      color,
+      list_status,
+      active_status,
+      singer,
+      song_key
+    })
+    .select()
+    .single();
+
+}
+
+
+async function updateSong(
+  supabaseClient,
+  songId,
+  songData
+) {
+
+  const {
+    name,
+    artist,
+    genre,
+    bpm,
+    duration,
+    meter,
+    color,
+    list_status,
+    active_status,
+    singer,
+    song_key,
+    original_bpm,
+    original_key,
+    original_duration,
+    original_meter
+  } =
+    songData;
+
+  return await supabaseClient
+    .from("songs")
+    .update({
+      name,
+      artist,
+      genre,
+      bpm,
+      duration,
+      meter,
+      color,
+      list_status,
+      active_status,
+      singer,
+      song_key,
+      original_bpm,
+      original_key,
+      original_duration,
+      original_meter
+    })
+    .eq(
+      "id",
+      songId
+    );
+
+}
