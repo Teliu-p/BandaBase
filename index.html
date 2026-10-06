@@ -2027,6 +2027,7 @@ let allSongs = [];
 let songSingersMap = {};
 
 let currentSong = null;
+let navigationInitialized = false;
 
 let selectedNewSongColor = null;
 let selectedDetailSongColor = null;
@@ -2456,8 +2457,9 @@ logoutBtn.addEventListener(
 );
 
 
-supabaseClient.auth.onAuthStateChange(
-  async function(event, session) {
+async function handleAuthSession(session) {
+
+  try {
 
     if (session?.user) {
 
@@ -2490,26 +2492,6 @@ supabaseClient.auth.onAuthStateChange(
 
     }
 
-  }
-);
-
-
-/* ============================================================
-   INICIALIZACIÓN
-============================================================ */
-
-async function initializeApp() {
-
-  try {
-
-    await loadCurrentBand();
-    await loadCurrentProfile();
-    await loadSongs();
-
-    setupNavigation();
-
-    showSection("inicio");
-
   } catch (error) {
 
     console.error(error);
@@ -2521,6 +2503,32 @@ async function initializeApp() {
     );
 
   }
+
+}
+
+
+supabaseClient.auth.onAuthStateChange(
+  function(event, session) {
+
+    void handleAuthSession(session);
+
+  }
+);
+
+
+/* ============================================================
+   INICIALIZACIÓN
+============================================================ */
+
+async function initializeApp() {
+
+  await loadCurrentBand();
+  await loadCurrentProfile();
+  await loadSongs();
+
+  setupNavigation();
+
+  showSection("inicio");
 
 }
 
@@ -4668,6 +4676,10 @@ document.getElementById(
 
 function setupNavigation() {
 
+  if (navigationInitialized) {
+    return;
+  }
+
   document
     .querySelectorAll(
       ".nav-btn"
@@ -4689,6 +4701,8 @@ function setupNavigation() {
       );
 
     });
+
+  navigationInitialized = true;
 
 }
 
@@ -4776,51 +4790,25 @@ function showSection(
 
 (async function() {
 
-  const {
-    data: {
-      session
-    }
-  } =
-    await supabaseClient.auth.getSession();
+  try {
 
+    const {
+      data: {
+        session
+      }
+    } =
+      await supabaseClient.auth.getSession();
 
-  if (session?.user) {
+    await handleAuthSession(session);
 
-    currentUser =
-      session.user;
+  } catch (error) {
 
-    loginScreen.classList.add(
-      "hidden"
-    );
+    console.error(error);
 
-    app.classList.remove(
-      "hidden"
-    );
-
-    try {
-
-      await initializeApp();
-
-    } catch (error) {
-
-      console.error(error);
-
-      showNotice(
-        error.message ||
-        "No se pudo cargar BandaBase.",
-        "error"
-      );
-
-    }
-
-  } else {
-
-    loginScreen.classList.remove(
-      "hidden"
-    );
-
-    app.classList.add(
-      "hidden"
+    showNotice(
+      error.message ||
+      "No se pudo cargar BandaBase.",
+      "error"
     );
 
   }
