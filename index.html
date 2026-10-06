@@ -428,9 +428,7 @@
 
 <body>
 
-  <!-- =========================
-       LOGIN
-  ========================== -->
+  <!-- LOGIN -->
 
   <div id="authScreen">
 
@@ -463,9 +461,7 @@
   </div>
 
 
-  <!-- =========================
-       APP
-  ========================== -->
+  <!-- APP -->
 
   <div id="app" class="hidden">
 
@@ -549,9 +545,7 @@
 
     <main>
 
-      <!-- =========================
-           INICIO
-      ========================== -->
+      <!-- INICIO -->
 
       <section
         id="inicio"
@@ -575,9 +569,7 @@
       </section>
 
 
-      <!-- =========================
-           BANDA
-      ========================== -->
+      <!-- BANDA -->
 
       <section
         id="banda"
@@ -596,9 +588,6 @@
 
 
         <div class="band-layout">
-
-
-          <!-- PERFIL -->
 
           <div class="panel">
 
@@ -676,8 +665,6 @@
           </div>
 
 
-          <!-- INTEGRANTES -->
-
           <div class="panel">
 
             <h3>Integrantes</h3>
@@ -691,15 +678,12 @@
 
           </div>
 
-
         </div>
 
       </section>
 
 
-      <!-- =========================
-           CANCIONES
-      ========================== -->
+      <!-- CANCIONES -->
 
       <section
         id="canciones"
@@ -858,76 +842,6 @@
             </div>
 
 
-            <div>
-
-              <label for="songSinger">
-                Cantante
-              </label>
-
-              <input
-                type="text"
-                id="songSinger"
-              >
-
-            </div>
-
-
-            <div>
-
-              <label for="songVersion">
-                Versión
-              </label>
-
-              <input
-                type="text"
-                id="songVersion"
-              >
-
-            </div>
-
-
-            <div>
-
-              <label for="songListStatus">
-                Lista / Pendiente
-              </label>
-
-              <select id="songListStatus">
-
-                <option value="Lista">
-                  Lista
-                </option>
-
-                <option value="Pendiente">
-                  Pendiente
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div>
-
-              <label for="songActiveStatus">
-                Activa / Inactiva
-              </label>
-
-              <select id="songActiveStatus">
-
-                <option value="Activa">
-                  Activa
-                </option>
-
-                <option value="Inactiva">
-                  Inactiva
-                </option>
-
-              </select>
-
-            </div>
-
-
             <div class="full">
 
               <button type="submit">
@@ -944,7 +858,7 @@
         </div>
 
 
-        <!-- LISTA -->
+        <!-- LISTA DE CANCIONES -->
 
         <div
           id="songsList"
@@ -960,9 +874,7 @@
       </section>
 
 
-      <!-- =========================
-           LISTAS
-      ========================== -->
+      <!-- LISTAS -->
 
       <section
         id="listas"
@@ -986,9 +898,7 @@
       </section>
 
 
-      <!-- =========================
-           ENSAYOS
-      ========================== -->
+      <!-- ENSAYOS -->
 
       <section
         id="ensayos"
@@ -1012,9 +922,7 @@
       </section>
 
 
-      <!-- =========================
-           PROPUESTAS
-      ========================== -->
+      <!-- PROPUESTAS -->
 
       <section
         id="propuestas"
@@ -1038,9 +946,7 @@
       </section>
 
 
-      <!-- =========================
-           COMENTARIOS
-      ========================== -->
+      <!-- COMENTARIOS -->
 
       <section
         id="comentarios"
@@ -1132,7 +1038,8 @@
           .value;
 
 
-      authMessage.textContent = 'Ingresando...';
+      authMessage.textContent =
+        'Ingresando...';
 
 
       const {
@@ -2258,40 +2165,6 @@
           .trim();
 
 
-      const singer =
-        document
-          .getElementById(
-            'songSinger'
-          )
-          .value
-          .trim();
-
-
-      const version =
-        document
-          .getElementById(
-            'songVersion'
-          )
-          .value
-          .trim();
-
-
-      const listStatus =
-        document
-          .getElementById(
-            'songListStatus'
-          )
-          .value;
-
-
-      const activeStatus =
-        document
-          .getElementById(
-            'songActiveStatus'
-          )
-          .value;
-
-
       if (!name) {
 
         message.textContent =
@@ -2302,11 +2175,8 @@
 
 
       /*
-       * IMPORTANTE:
-       * songs.band_id es NOT NULL.
-       * Primero buscamos la banda BandaBase
-       * y luego guardamos la canción usando
-       * ese ID.
+       * Buscamos BandaBase para obtener
+       * el band_id necesario para songs.
        */
 
       const {
@@ -2348,8 +2218,14 @@
 
 
       /*
-       * ACÁ ESTÁ EL ARREGLO PRINCIPAL:
-       * enviamos band_id junto con los demás datos.
+       * Los campos version, singer,
+       * list_status y active_status
+       * no se cargan desde este formulario.
+       *
+       * Version y singer quedan NULL.
+       * list_status y active_status
+       * utilizan los valores DEFAULT
+       * definidos en Supabase.
        */
 
       const {
@@ -2374,19 +2250,7 @@
             bpm,
 
           song_key:
-            songKey || null,
-
-          singer:
-            singer || null,
-
-          version:
-            version || null,
-
-          list_status:
-            listStatus,
-
-          active_status:
-            activeStatus
+            songKey || null
 
         });
 
@@ -2415,27 +2279,6 @@
           'songForm'
         )
         .reset();
-
-
-      /*
-       * Volvemos a los valores
-       * predeterminados.
-       */
-
-      document
-        .getElementById(
-          'songListStatus'
-        )
-        .value =
-          'Lista';
-
-
-      document
-        .getElementById(
-          'songActiveStatus'
-        )
-        .value =
-          'Activa';
 
 
       await loadSongs();
