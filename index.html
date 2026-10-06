@@ -2925,6 +2925,225 @@
 
     checkSession();
 
+    async function loadSongs() {
+  const songsList = document.getElementById("songsList");
+
+  songsList.innerHTML = `
+    <p class="empty-state">
+      Cargando canciones...
+    </p>
+  `;
+
+  const { data, error } = await supabase
+    .from("songs")
+    .select(`
+      id,
+      name,
+      artist,
+      genre,
+      bpm,
+      song_key,
+      singer,
+      version,
+      status
+    `)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Error cargando canciones:", error);
+
+    songsList.innerHTML = `
+      <p class="empty-state">
+        No se pudieron cargar las canciones.
+      </p>
+    `;
+
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    songsList.innerHTML = `
+      <div class="empty-state">
+        Todavía no hay canciones.
+      </div>
+    `;
+
+    return;
+  }
+
+  songsList.innerHTML = data.map(song => `
+    <div class="song-card">
+
+      <div class="song-card-main">
+
+        <h3 class="song-title">
+          ${escapeHtml(song.name || "Sin nombre")}
+        </h3>
+
+        ${
+          song.artist
+            ? `<div class="song-artist">
+                ${escapeHtml(song.artist)}
+              </div>`
+            : ""
+        }
+
+      </div>
+
+
+      <div class="song-card-info">
+
+        ${
+          song.genre
+            ? `<span>
+                ${escapeHtml(song.genre)}
+              </span>`
+            : ""
+        }
+
+        ${
+          song.bpm
+            ? `<span>
+                ${song.bpm} BPM
+              </span>`
+            : ""
+        }
+
+        ${
+          song.song_key
+            ? `<span>
+                Tonalidad: ${escapeHtml(song.song_key)}
+              </span>`
+            : ""
+        }
+
+        ${
+          song.singer
+            ? `<span>
+                Voz: ${escapeHtml(song.singer)}
+              </span>`
+            : ""
+        }
+
+        ${
+          song.version
+            ? `<span>
+                ${escapeHtml(song.version)}
+              </span>`
+            : ""
+        }
+
+        ${
+          song.status
+            ? `<span>
+                ${escapeHtml(song.status)}
+              </span>`
+            : ""
+        }
+
+      </div>
+
+    </div>
+  `).join("");
+}
+
+
+function toggleSongForm() {
+
+  const form = document.getElementById("songForm");
+
+  if (form.style.display === "none" || form.style.display === "") {
+
+    form.style.display = "block";
+
+    document.getElementById("songName").focus();
+
+  } else {
+
+    form.style.display = "none";
+
+    clearSongForm();
+
+  }
+}
+
+
+function clearSongForm() {
+
+  document.getElementById("songName").value = "";
+  document.getElementById("songArtist").value = "";
+  document.getElementById("songGenre").value = "";
+  document.getElementById("songBpm").value = "";
+  document.getElementById("songKey").value = "";
+  document.getElementById("songSinger").value = "";
+  document.getElementById("songVersion").value = "";
+  document.getElementById("songStatus").value = "Activa";
+
+  document.getElementById("songFormMessage").textContent = "";
+}
+
+
+async function createSong() {
+
+  const name = document.getElementById("songName").value.trim();
+  const artist = document.getElementById("songArtist").value.trim();
+  const genre = document.getElementById("songGenre").value.trim();
+  const bpmValue = document.getElementById("songBpm").value;
+  const songKey = document.getElementById("songKey").value.trim();
+  const singer = document.getElementById("songSinger").value.trim();
+  const version = document.getElementById("songVersion").value.trim();
+  const status = document.getElementById("songStatus").value;
+
+  const message = document.getElementById("songFormMessage");
+
+  if (!name) {
+
+    message.textContent = "La canción necesita un nombre.";
+
+    return;
+  }
+
+  message.textContent = "Guardando...";
+
+  const bpm = bpmValue
+    ? Number(bpmValue)
+    : null;
+
+
+  const { error } = await supabase
+    .from("songs")
+    .insert({
+      name: name,
+      artist: artist || null,
+      genre: genre || null,
+      bpm: bpm,
+      song_key: songKey || null,
+      singer: singer || null,
+      version: version || null,
+      status: status
+    });
+
+
+  if (error) {
+
+    console.error("Error creando canción:", error);
+
+    message.textContent =
+      "No se pudo guardar la canción: " + error.message;
+
+    return;
+  }
+
+
+  message.textContent = "Canción guardada correctamente.";
+
+  clearSongForm();
+
+  document.getElementById("songForm").style.display = "none";
+
+  await loadSongs();
+}
+
   </script>
 
 </body>
