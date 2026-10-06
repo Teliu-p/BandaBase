@@ -8,6 +8,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/utils.js"></script>
+  <script src="src/songs-data.js"></script>
 
   <style>
     :root {
@@ -2754,37 +2755,10 @@ async function loadSongs() {
     data: songs,
     error
   } =
-    await supabaseClient
-      .from("songs")
-      .select(`
-        id,
-        band_id,
-        name,
-        artist,
-        genre,
-        bpm,
-        song_key,
-        singer,
-        list_status,
-        active_status,
-        color,
-        duration,
-        meter,
-        original_bpm,
-        original_key,
-        original_duration,
-        original_meter
-      `)
-      .eq(
-        "band_id",
-        currentBand.id
-      )
-      .order(
-        "name",
-        {
-          ascending: true
-        }
-      );
+    await getSongsByBand(
+      supabaseClient,
+      currentBand.id
+    );
 
   if (error) {
     throw error;
@@ -3860,32 +3834,10 @@ async function openSong(
       data,
       error
     } =
-      await supabaseClient
-        .from("songs")
-        .select(`
-          id,
-          band_id,
-          name,
-          artist,
-          genre,
-          bpm,
-          song_key,
-          singer,
-          list_status,
-          active_status,
-          color,
-          duration,
-          meter,
-          original_bpm,
-          original_key,
-          original_duration,
-          original_meter
-        `)
-        .eq(
-          "id",
-          songId
-        )
-        .single();
+      await getSongById(
+        supabaseClient,
+        songId
+      );
 
     if (error) {
       showNotice(
