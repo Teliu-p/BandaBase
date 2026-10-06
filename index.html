@@ -12,6 +12,7 @@
   <script src="src/songs-singers.js"></script>
   <script src="src/songs-view.js"></script>
   <script src="src/songs-filters.js"></script>
+  <script src="src/songs-forms.js"></script>
 
   <style>
     :root {
@@ -2996,7 +2997,12 @@ function showCreateSong() {
   );
 
 
-  resetNewSingerRows();
+  resetNewSingerRows(
+    document.getElementById(
+      "newSingersContainer"
+    ),
+    escapeHtml
+  );
 
   document.getElementById(
     "newSongName"
@@ -3050,84 +3056,6 @@ document.getElementById(
    CANTANTES - NUEVA CANCIÓN
 ============================================================ */
 
-function createSingerRow(
-  container,
-  singer = "",
-  key = ""
-) {
-
-  const row =
-    document.createElement(
-      "div"
-    );
-
-  row.className =
-    "singer-row";
-
-
-  row.innerHTML = `
-
-    <input
-      type="text"
-      class="singer-name"
-      placeholder="Cantante"
-      value="${escapeHtml(singer)}"
-    >
-
-    <input
-      type="text"
-      class="singer-key"
-      placeholder="Tonalidad"
-      value="${escapeHtml(key)}"
-    >
-
-    <button
-      type="button"
-      class="btn btn-subtle remove-singer"
-    >
-      ×
-    </button>
-
-  `;
-
-
-  row
-    .querySelector(
-      ".remove-singer"
-    )
-    .addEventListener(
-      "click",
-      function() {
-
-        row.remove();
-
-      }
-    );
-
-
-  container.appendChild(
-    row
-  );
-
-}
-
-
-function resetNewSingerRows() {
-
-  const container =
-    document.getElementById(
-      "newSingersContainer"
-    );
-
-  container.innerHTML = "";
-
-  createSingerRow(
-    container
-  );
-
-}
-
-
 document.getElementById(
   "addNewSingerBtn"
 ).addEventListener(
@@ -3137,88 +3065,14 @@ document.getElementById(
     createSingerRow(
       document.getElementById(
         "newSingersContainer"
-      )
+      ),
+      "",
+      "",
+      escapeHtml
     );
 
   }
 );
-
-
-function getSingerRows(
-  containerId
-) {
-
-  const container =
-    document.getElementById(
-      containerId
-    );
-
-  const rows =
-    Array.from(
-      container.querySelectorAll(
-        ".singer-row"
-      )
-    );
-
-
-  const result = [];
-
-  const seen =
-    new Set();
-
-
-  rows.forEach(row => {
-
-    const singer =
-      row
-        .querySelector(
-          ".singer-name"
-        )
-        .value
-        .trim();
-
-    const key =
-      row
-        .querySelector(
-          ".singer-key"
-        )
-        .value
-        .trim();
-
-
-    if (!singer) {
-      return;
-    }
-
-
-    const normalized =
-      normalizeText(
-        singer
-      );
-
-    if (
-      seen.has(normalized)
-    ) {
-      return;
-    }
-
-    seen.add(
-      normalized
-    );
-
-
-    result.push({
-      singer,
-      song_key:
-        key || null
-    });
-
-  });
-
-
-  return result;
-
-}
 
 
 /* ============================================================
@@ -3244,10 +3098,24 @@ document.getElementById(
     }
 
 
-    const name =
-      document.getElementById(
-        "newSongName"
-      ).value.trim();
+    const {
+      name,
+      artist,
+      genre,
+      bpm,
+      duration,
+      meter,
+      color,
+      listStatus,
+      activeStatus,
+      singers
+    } =
+      readCreateSongForm(
+        document,
+        selectedNewSongColor,
+        parseDuration,
+        normalizeText
+      );
 
     if (!name) {
 
@@ -3258,57 +3126,6 @@ document.getElementById(
 
       return;
     }
-
-
-    const artist =
-      document.getElementById(
-        "newSongArtist"
-      ).value.trim();
-
-    const genre =
-      document.getElementById(
-        "newSongGenre"
-      ).value.trim();
-
-    const bpmValue =
-      document.getElementById(
-        "newSongBpm"
-      ).value;
-
-    const bpm =
-      bpmValue
-        ? Number(bpmValue)
-        : null;
-
-    const duration =
-      parseDuration(
-        document.getElementById(
-          "newSongDuration"
-        ).value
-      );
-
-    const meter =
-      document.getElementById(
-        "newSongMeter"
-      ).value ||
-      null;
-
-    const listStatus =
-      document.getElementById(
-        "newSongListStatus"
-      ).value;
-
-    const activeStatus =
-      document.getElementById(
-        "newSongActiveStatus"
-      ).value;
-
-
-    const singers =
-      getSingerRows(
-        "newSingersContainer"
-      );
-
 
     /*
       Compatibilidad con el sistema antiguo:
@@ -3352,8 +3169,7 @@ document.getElementById(
 
           meter,
 
-          color:
-            selectedNewSongColor,
+          color,
 
           list_status:
             listStatus,
@@ -3601,7 +3417,11 @@ async function openSong(
 
 
   renderDetailSingers(
-    singers
+    document.getElementById(
+      "detailSingersContainer"
+    ),
+    singers,
+    escapeHtml
   );
 
 
@@ -3616,41 +3436,6 @@ async function openSong(
    DETALLE - CANTANTES
 ============================================================ */
 
-function renderDetailSingers(
-  singers
-) {
-
-  const container =
-    document.getElementById(
-      "detailSingersContainer"
-    );
-
-  container.innerHTML = "";
-
-
-  if (!singers.length) {
-
-    createSingerRow(
-      container
-    );
-
-    return;
-  }
-
-
-  singers.forEach(item => {
-
-    createSingerRow(
-      container,
-      item.singer,
-      item.song_key
-    );
-
-  });
-
-}
-
-
 document.getElementById(
   "addDetailSingerBtn"
 ).addEventListener(
@@ -3660,7 +3445,10 @@ document.getElementById(
     createSingerRow(
       document.getElementById(
         "detailSingersContainer"
-      )
+      ),
+      "",
+      "",
+      escapeHtml
     );
 
   }
@@ -3684,11 +3472,28 @@ document.getElementById(
     }
 
 
-    const name =
-      document.getElementById(
-        "detailName"
-      ).value.trim();
-
+    const {
+      name,
+      artist,
+      genre,
+      bpm,
+      duration,
+      meter,
+      color,
+      listStatus,
+      activeStatus,
+      singers,
+      originalBpm,
+      originalKey,
+      originalDuration,
+      originalMeter
+    } =
+      readSongDetailForm(
+        document,
+        selectedDetailSongColor,
+        parseDuration,
+        normalizeText
+      );
 
     if (!name) {
 
@@ -3701,56 +3506,6 @@ document.getElementById(
     }
 
 
-    const artist =
-      document.getElementById(
-        "detailArtist"
-      ).value.trim();
-
-    const genre =
-      document.getElementById(
-        "detailGenre"
-      ).value.trim();
-
-    const bpmValue =
-      document.getElementById(
-        "detailBpm"
-      ).value;
-
-    const bpm =
-      bpmValue
-        ? Number(bpmValue)
-        : null;
-
-    const duration =
-      parseDuration(
-        document.getElementById(
-          "detailDuration"
-        ).value
-      );
-
-    const meter =
-      document.getElementById(
-        "detailMeter"
-      ).value ||
-      null;
-
-    const listStatus =
-      document.getElementById(
-        "detailListStatus"
-      ).value;
-
-    const activeStatus =
-      document.getElementById(
-        "detailActiveStatus"
-      ).value;
-
-
-    const singers =
-      getSingerRows(
-        "detailSingersContainer"
-      );
-
-
     const legacySinger =
       singers.length === 1
         ? singers[0].singer
@@ -3760,35 +3515,6 @@ document.getElementById(
       singers.length === 1
         ? singers[0].song_key
         : null;
-
-
-    const originalBpmValue =
-      document.getElementById(
-        "originalBpm"
-      ).value;
-
-    const originalBpm =
-      originalBpmValue
-        ? Number(originalBpmValue)
-        : null;
-
-    const originalKey =
-      document.getElementById(
-        "originalKey"
-      ).value.trim();
-
-    const originalDuration =
-      parseDuration(
-        document.getElementById(
-          "originalDuration"
-        ).value
-      );
-
-    const originalMeter =
-      document.getElementById(
-        "originalMeter"
-      ).value.trim();
-
 
     const {
       error: updateError
@@ -3811,8 +3537,7 @@ document.getElementById(
 
           meter,
 
-          color:
-            selectedDetailSongColor,
+          color,
 
           list_status:
             listStatus,
