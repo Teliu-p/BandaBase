@@ -3145,47 +3145,47 @@ document.getElementById(
         : null;
 
 
+    const songData = {
+      band_id:
+        currentBand.id,
+
+      name,
+
+      artist:
+        artist || null,
+
+      genre:
+        genre || null,
+
+      bpm,
+
+      duration,
+
+      meter,
+
+      color,
+
+      list_status:
+        listStatus,
+
+      active_status:
+        activeStatus,
+
+      singer:
+        legacySinger,
+
+      song_key:
+        legacyKey
+    };
+
     const {
       data: createdSong,
       error: songError
     } =
-      await supabaseClient
-        .from("songs")
-        .insert({
-          band_id:
-            currentBand.id,
-
-          name,
-
-          artist:
-            artist || null,
-
-          genre:
-            genre || null,
-
-          bpm,
-
-          duration,
-
-          meter,
-
-          color,
-
-          list_status:
-            listStatus,
-
-          active_status:
-            activeStatus,
-
-          singer:
-            legacySinger,
-
-          song_key:
-            legacyKey
-        })
-        .select()
-        .single();
-
+      await createSong(
+        supabaseClient,
+        songData
+      );
 
     if (songError) {
 
@@ -3204,27 +3204,14 @@ document.getElementById(
 
     if (singers.length) {
 
-      const singerRows =
-        singers.map(item => ({
-          song_id:
-            createdSong.id,
-
-          singer:
-            item.singer,
-
-          song_key:
-            item.song_key
-        }));
-
-
       const {
         error: singersError
       } =
-        await supabaseClient
-          .from("song_singers")
-          .insert(
-            singerRows
-          );
+        await createSongSingers(
+          supabaseClient,
+          createdSong.id,
+          singers
+        );
 
 
       if (singersError) {
@@ -3242,7 +3229,6 @@ document.getElementById(
       }
 
     }
-
 
     showNotice(
       "Canción creada.",
@@ -3516,59 +3502,56 @@ document.getElementById(
         ? singers[0].song_key
         : null;
 
+    const songData = {
+      name,
+
+      artist:
+        artist || null,
+
+      genre:
+        genre || null,
+
+      bpm,
+
+      duration,
+
+      meter,
+
+      color,
+
+      list_status:
+        listStatus,
+
+      active_status:
+        activeStatus,
+
+      singer:
+        legacySinger,
+
+      song_key:
+        legacyKey,
+
+      original_bpm:
+        originalBpm,
+
+      original_key:
+        originalKey || null,
+
+      original_duration:
+        originalDuration,
+
+      original_meter:
+        originalMeter || null
+    };
+
     const {
       error: updateError
     } =
-      await supabaseClient
-        .from("songs")
-        .update({
-
-          name,
-
-          artist:
-            artist || null,
-
-          genre:
-            genre || null,
-
-          bpm,
-
-          duration,
-
-          meter,
-
-          color,
-
-          list_status:
-            listStatus,
-
-          active_status:
-            activeStatus,
-
-          singer:
-            legacySinger,
-
-          song_key:
-            legacyKey,
-
-          original_bpm:
-            originalBpm,
-
-          original_key:
-            originalKey || null,
-
-          original_duration:
-            originalDuration,
-
-          original_meter:
-            originalMeter || null
-
-        })
-        .eq(
-          "id",
-          currentSong.id
-        );
-
+      await updateSong(
+        supabaseClient,
+        currentSong.id,
+        songData
+      );
 
     if (updateError) {
 
@@ -3593,65 +3576,23 @@ document.getElementById(
     */
 
     const {
-      error: deleteError
+      error: singersError
     } =
-      await supabaseClient
-        .from("song_singers")
-        .delete()
-        .eq(
-          "song_id",
-          currentSong.id
-        );
+      await replaceSongSingers(
+        supabaseClient,
+        currentSong.id,
+        singers
+      );
 
-
-    if (deleteError) {
+    if (singersError) {
 
       showNotice(
-        deleteError.message,
+        singersError.message,
         "error"
       );
 
       return;
     }
-
-
-    if (singers.length) {
-
-      const singerRows =
-        singers.map(item => ({
-          song_id:
-            currentSong.id,
-
-          singer:
-            item.singer,
-
-          song_key:
-            item.song_key
-        }));
-
-
-      const {
-        error: insertSingerError
-      } =
-        await supabaseClient
-          .from("song_singers")
-          .insert(
-            singerRows
-          );
-
-
-      if (insertSingerError) {
-
-        showNotice(
-          insertSingerError.message,
-          "error"
-        );
-
-        return;
-      }
-
-    }
-
 
     showNotice(
       "Canción guardada.",
