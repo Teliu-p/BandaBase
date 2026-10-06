@@ -29,7 +29,9 @@
       display: none !important;
     }
 
-    /* AUTH */
+    /* =========================================================
+       AUTH
+    ========================================================= */
 
     #authScreen {
       min-height: 100vh;
@@ -87,7 +89,9 @@
       font-size: 14px;
     }
 
-    /* APP */
+    /* =========================================================
+       APP
+    ========================================================= */
 
     #app {
       min-height: 100vh;
@@ -180,7 +184,9 @@
       color: #777;
     }
 
-    /* BANDA */
+    /* =========================================================
+       BANDA
+    ========================================================= */
 
     .band-layout {
       display: grid;
@@ -267,7 +273,9 @@
       font-size: 12px;
     }
 
-    /* CANCIONES */
+    /* =========================================================
+       CANCIONES
+    ========================================================= */
 
     .songs-toolbar {
       display: flex;
@@ -282,7 +290,7 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       background: white;
-      min-width: 150px;
+      min-width: 145px;
       cursor: pointer;
     }
 
@@ -372,16 +380,130 @@
       font-size: 14px;
     }
 
-    .empty-message {
-      background: white;
-      border: 1px dashed #ccc;
-      border-radius: 10px;
-      padding: 25px;
-      text-align: center;
+    .song-meta {
+      margin-top: 7px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .song-genre {
+      margin-top: 5px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .song-singers {
+      margin-top: 6px;
+      color: #444;
+      font-size: 13px;
+    }
+
+    .song-statuses {
+      margin-top: 9px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .song-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: #eee;
+      color: #555;
+      font-size: 11px;
+    }
+
+    .song-status.active {
+      background: #e8f5e9;
+      color: #256029;
+    }
+
+    .song-status.inactive {
+      background: #f3f3f3;
       color: #777;
     }
 
-    /* DETALLE DE CANCIÓN */
+    .song-status.pending {
+      background: #fff3cd;
+      color: #765b00;
+    }
+
+    .song-status.ready {
+      background: #e8f5e9;
+      color: #256029;
+    }
+
+    .song-singer-editor {
+      grid-column: 1 / -1;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 14px;
+      background: #fafafa;
+    }
+
+    .song-singer-editor h4 {
+      margin: 0 0 10px;
+    }
+
+    .singer-row {
+      display: grid;
+      grid-template-columns: 1fr 160px auto;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: end;
+    }
+
+    .singer-row input,
+    .singer-row select {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      background: white;
+    }
+
+    .remove-singer-btn,
+    .add-singer-btn {
+      padding: 9px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .remove-singer-btn {
+      border: 1px solid #ccc;
+      background: white;
+    }
+
+    .add-singer-btn {
+      border: 0;
+      background: #222;
+      color: white;
+      margin-top: 3px;
+    }
+
+    .singer-empty {
+      color: #777;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .color-preview {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-preview input[type="color"] {
+      width: 48px;
+      height: 40px;
+      padding: 3px;
+      cursor: pointer;
+    }
+
+    /* =========================================================
+       DETALLE
+    ========================================================= */
 
     #songDetail {
       display: none;
@@ -463,13 +585,86 @@
       background: #f2f2f2;
     }
 
+    .compare-button {
+      background: white !important;
+      color: #222 !important;
+      border: 1px solid #ccc !important;
+    }
+
+    .compare-button:hover {
+      background: #f2f2f2 !important;
+    }
+
     #songDetailMessage {
       grid-column: 1 / -1;
       font-size: 14px;
       color: #555;
     }
 
-    /* PLACEHOLDERS */
+    /* =========================================================
+       COMPARACIÓN ORIGINAL
+    ========================================================= */
+
+    .comparison-panel {
+      grid-column: 1 / -1;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fafafa;
+      margin-top: 2px;
+    }
+
+    .comparison-title {
+      padding: 14px 16px;
+      background: #f1f1f1;
+      border-bottom: 1px solid #ddd;
+      font-weight: bold;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .comparison-column {
+      padding: 16px;
+    }
+
+    .comparison-column + .comparison-column {
+      border-left: 1px solid #ddd;
+    }
+
+    .comparison-column h4 {
+      margin: 0 0 14px;
+    }
+
+    .comparison-item {
+      margin-bottom: 13px;
+    }
+
+    .comparison-label {
+      display: block;
+      color: #777;
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .comparison-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .comparison-column input {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      background: white;
+    }
+
+    /* =========================================================
+       PLACEHOLDERS
+    ========================================================= */
 
     .placeholder {
       background: white;
@@ -479,6 +674,10 @@
       text-align: center;
       color: #777;
     }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
 
     @media (max-width: 800px) {
 
@@ -499,6 +698,19 @@
       .detail-actions,
       #songDetailMessage {
         grid-column: auto;
+      }
+
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-column + .comparison-column {
+        border-left: 0;
+        border-top: 1px solid #ddd;
+      }
+
+      .singer-row {
+        grid-template-columns: 1fr;
       }
 
       header {
@@ -527,7 +739,9 @@
 
 <body>
 
-  <!-- LOGIN -->
+  <!-- =======================================================
+       LOGIN
+  ======================================================== -->
 
   <div id="authScreen">
 
@@ -540,11 +754,13 @@
       <input
         type="email"
         id="email"
+        placeholder="Email"
       >
 
       <input
         type="password"
         id="password"
+        placeholder="Contraseña"
       >
 
       <button id="loginBtn">
@@ -558,7 +774,9 @@
   </div>
 
 
-  <!-- APP -->
+  <!-- =======================================================
+       APP
+  ======================================================== -->
 
   <div id="app" class="hidden">
 
@@ -644,7 +862,9 @@
 
     <main>
 
-      <!-- INICIO -->
+      <!-- =====================================================
+           INICIO
+      ====================================================== -->
 
       <section
         id="inicio"
@@ -652,13 +872,11 @@
       >
 
         <div class="section-title">
-
           <h2>Inicio</h2>
 
           <p>
             Bienvenido a BandaBase.
           </p>
-
         </div>
 
         <div class="placeholder">
@@ -668,7 +886,9 @@
       </section>
 
 
-      <!-- BANDA -->
+      <!-- =====================================================
+           BANDA
+      ====================================================== -->
 
       <section
         id="banda"
@@ -748,6 +968,7 @@
                 <input
                   type="text"
                   id="tags"
+                  placeholder="Ej: guitarra, voz"
                 >
 
               </div>
@@ -782,12 +1003,16 @@
       </section>
 
 
-      <!-- CANCIONES -->
+      <!-- =====================================================
+           CANCIONES
+      ====================================================== -->
 
       <section
         id="canciones"
         class="section"
       >
+
+        <!-- NAVEGADOR -->
 
         <div id="songsBrowser">
 
@@ -806,21 +1031,31 @@
 
           <div class="songs-toolbar">
 
-            <select id="filterVersion">
-
+            <select id="filterColor">
               <option value="">
-                Versión
+                Colores
               </option>
+            </select>
 
+
+            <select id="filterGenre">
+              <option value="">
+                Géneros
+              </option>
+            </select>
+
+
+            <select id="filterArtist">
+              <option value="">
+                Artista
+              </option>
             </select>
 
 
             <select id="filterSinger">
-
               <option value="">
-                Cantante
+                Cantantes
               </option>
-
             </select>
 
 
@@ -916,20 +1151,6 @@
 
               <div>
 
-                <label for="songKey">
-                  Tonalidad
-                </label>
-
-                <input
-                  type="text"
-                  id="songKey"
-                >
-
-              </div>
-
-
-              <div>
-
                 <label for="songBpm">
                   BPM
                 </label>
@@ -952,6 +1173,7 @@
                 <input
                   type="text"
                   id="songDuration"
+                  placeholder="Ej: 4:32"
                 >
 
               </div>
@@ -966,7 +1188,48 @@
                 <input
                   type="text"
                   id="songMeter"
+                  placeholder="Ej: 4/4"
                 >
+
+              </div>
+
+
+              <div>
+
+                <label for="songColor">
+                  Color
+                </label>
+
+                <div class="color-preview">
+
+                  <input
+                    type="color"
+                    id="songColor"
+                    value="#cccccc"
+                  >
+
+                </div>
+
+              </div>
+
+
+              <div class="song-singer-editor">
+
+                <h4>
+                  Cantantes y tonalidades
+                </h4>
+
+                <div
+                  id="newSongSingers"
+                ></div>
+
+                <button
+                  type="button"
+                  class="add-singer-btn"
+                  id="addNewSingerBtn"
+                >
+                  + Agregar cantante
+                </button>
 
               </div>
 
@@ -1003,7 +1266,9 @@
         </div>
 
 
-        <!-- DETALLE DE CANCIÓN -->
+        <!-- =================================================
+             DETALLE
+        ================================================== -->
 
         <div id="songDetail">
 
@@ -1076,20 +1341,6 @@
 
               <div>
 
-                <label for="detailKey">
-                  Tonalidad
-                </label>
-
-                <input
-                  type="text"
-                  id="detailKey"
-                >
-
-              </div>
-
-
-              <div>
-
                 <label for="detailBpm">
                   BPM
                 </label>
@@ -1112,6 +1363,7 @@
                 <input
                   type="text"
                   id="detailDuration"
+                  placeholder="Ej: 4:32"
                 >
 
               </div>
@@ -1126,6 +1378,7 @@
                 <input
                   type="text"
                   id="detailMeter"
+                  placeholder="Ej: 4/4"
                 >
 
               </div>
@@ -1133,28 +1386,19 @@
 
               <div>
 
-                <label for="detailVersion">
-                  Versión
+                <label for="detailColor">
+                  Color
                 </label>
 
-                <input
-                  type="text"
-                  id="detailVersion"
-                >
+                <div class="color-preview">
 
-              </div>
+                  <input
+                    type="color"
+                    id="detailColor"
+                    value="#cccccc"
+                  >
 
-
-              <div>
-
-                <label for="detailSinger">
-                  Cantante
-                </label>
-
-                <input
-                  type="text"
-                  id="detailSinger"
-                >
+                </div>
 
               </div>
 
@@ -1201,11 +1445,202 @@
               </div>
 
 
+              <div class="song-singer-editor">
+
+                <h4>
+                  Cantantes y tonalidades
+                </h4>
+
+                <div
+                  id="detailSongSingers"
+                ></div>
+
+                <button
+                  type="button"
+                  class="add-singer-btn"
+                  id="addDetailSingerBtn"
+                >
+                  + Agregar cantante
+                </button>
+
+              </div>
+
+
+              <!-- COMPARACIÓN -->
+
+              <div
+                id="comparisonPanel"
+                class="comparison-panel hidden"
+              >
+
+                <div class="comparison-title">
+                  Comparación: Culto / Original
+                </div>
+
+
+                <div class="comparison-grid">
+
+                  <div class="comparison-column">
+
+                    <h4>
+                      Culto
+                    </h4>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        BPM
+                      </span>
+
+                      <div
+                        class="comparison-value"
+                        id="compareCultoBpm"
+                      >
+                        —
+                      </div>
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Tonalidad
+                      </span>
+
+                      <div
+                        class="comparison-value"
+                        id="compareCultoKey"
+                      >
+                        —
+                      </div>
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Duración
+                      </span>
+
+                      <div
+                        class="comparison-value"
+                        id="compareCultoDuration"
+                      >
+                        —
+                      </div>
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Métrica
+                      </span>
+
+                      <div
+                        class="comparison-value"
+                        id="compareCultoMeter"
+                      >
+                        —
+                      </div>
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="comparison-column">
+
+                    <h4>
+                      Original
+                    </h4>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        BPM
+                      </span>
+
+                      <input
+                        type="number"
+                        id="originalBpm"
+                        min="1"
+                      >
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Tonalidad
+                      </span>
+
+                      <input
+                        type="text"
+                        id="originalKey"
+                      >
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Duración
+                      </span>
+
+                      <input
+                        type="text"
+                        id="originalDuration"
+                        placeholder="Ej: 4:32"
+                      >
+
+                    </div>
+
+
+                    <div class="comparison-item">
+
+                      <span class="comparison-label">
+                        Métrica
+                      </span>
+
+                      <input
+                        type="text"
+                        id="originalMeter"
+                      >
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
               <div class="detail-actions">
 
-                <button type="submit">
+                <button
+                  type="submit"
+                >
                   Guardar cambios
                 </button>
+
+
+                <button
+                  type="button"
+                  class="secondary compare-button"
+                  id="toggleComparisonBtn"
+                >
+                  Comparar con original
+                </button>
+
 
                 <button
                   type="button"
@@ -1229,7 +1664,9 @@
       </section>
 
 
-      <!-- LISTAS -->
+      <!-- =====================================================
+           LISTAS
+      ====================================================== -->
 
       <section
         id="listas"
@@ -1253,7 +1690,9 @@
       </section>
 
 
-      <!-- ENSAYOS -->
+      <!-- =====================================================
+           ENSAYOS
+      ====================================================== -->
 
       <section
         id="ensayos"
@@ -1277,7 +1716,9 @@
       </section>
 
 
-      <!-- PROPUESTAS -->
+      <!-- =====================================================
+           PROPUESTAS
+      ====================================================== -->
 
       <section
         id="propuestas"
@@ -1301,7 +1742,9 @@
       </section>
 
 
-      <!-- COMENTARIOS -->
+      <!-- =====================================================
+           COMENTARIOS
+      ====================================================== -->
 
       <section
         id="comentarios"
@@ -1354,24 +1797,20 @@
     ========================================================= */
 
     const authScreen =
-      document.getElementById(
-        'authScreen'
-      );
+      document.getElementById('authScreen');
 
     const app =
-      document.getElementById(
-        'app'
-      );
+      document.getElementById('app');
 
     const authMessage =
-      document.getElementById(
-        'authMessage'
-      );
+      document.getElementById('authMessage');
 
     const userEmail =
-      document.getElementById(
-        'userEmail'
-      );
+      document.getElementById('userEmail');
+
+
+    let currentSongId = null;
+    let currentSong = null;
 
 
     /* =========================================================
@@ -1380,18 +1819,12 @@
 
     document
       .getElementById('loginBtn')
-      .addEventListener(
-        'click',
-        login
-      );
+      .addEventListener('click', login);
 
 
     document
       .getElementById('logoutBtn')
-      .addEventListener(
-        'click',
-        logout
-      );
+      .addEventListener('click', logout);
 
 
     async function login() {
@@ -1401,7 +1834,6 @@
           .getElementById('email')
           .value
           .trim();
-
 
       const password =
         document
@@ -1443,11 +1875,7 @@
 
 
       if (data.user) {
-
-        await showApp(
-          data.user
-        );
-
+        await showApp(data.user);
       }
 
     }
@@ -1457,27 +1885,19 @@
 
       await db.auth.signOut();
 
-      app.classList.add(
-        'hidden'
-      );
+      app.classList.add('hidden');
 
-      authScreen.classList.remove(
-        'hidden'
-      );
+      authScreen.classList.remove('hidden');
 
     }
 
 
-    function translateAuthError(
-      message
-    ) {
+    function translateAuthError(message) {
 
       if (
         message
           .toLowerCase()
-          .includes(
-            'invalid login credentials'
-          )
+          .includes('invalid login credentials')
       ) {
 
         return 'Email o contraseña incorrectos.';
@@ -1522,13 +1942,9 @@
 
       } else {
 
-        authScreen.classList.remove(
-          'hidden'
-        );
+        authScreen.classList.remove('hidden');
 
-        app.classList.add(
-          'hidden'
-        );
+        app.classList.add('hidden');
 
       }
 
@@ -1537,13 +1953,9 @@
 
     async function showApp(user) {
 
-      authScreen.classList.add(
-        'hidden'
-      );
+      authScreen.classList.add('hidden');
 
-      app.classList.remove(
-        'hidden'
-      );
+      app.classList.remove('hidden');
 
 
       userEmail.textContent =
@@ -1572,24 +1984,18 @@
         .querySelectorAll('.section')
         .forEach(section => {
 
-          section.classList.remove(
-            'active'
-          );
+          section.classList.remove('active');
 
         });
 
 
       const section =
-        document.getElementById(
-          sectionId
-        );
+        document.getElementById(sectionId);
 
 
       if (section) {
 
-        section.classList.add(
-          'active'
-        );
+        section.classList.add('active');
 
       }
 
@@ -1598,28 +2004,18 @@
         .querySelectorAll('.nav-btn')
         .forEach(btn => {
 
-          btn.classList.remove(
-            'active'
-          );
+          btn.classList.remove('active');
 
         });
 
 
       if (button) {
-
-        button.classList.add(
-          'active'
-        );
-
+        button.classList.add('active');
       }
 
 
-      if (
-        sectionId === 'canciones'
-      ) {
-
+      if (sectionId === 'canciones') {
         showSongsBrowser();
-
       }
 
     }
@@ -1638,10 +2034,7 @@
         await db
           .from('bands')
           .select('id')
-          .eq(
-            'name',
-            'BandaBase'
-          )
+          .eq('name', 'BandaBase')
           .limit(1)
           .maybeSingle();
 
@@ -1654,7 +2047,6 @@
         );
 
         return null;
-
       }
 
 
@@ -1665,7 +2057,6 @@
         );
 
         return null;
-
       }
 
 
@@ -1698,10 +2089,7 @@
           .select(
             'full_name, instrument, role'
           )
-          .eq(
-            'user_id',
-            user.id
-          )
+          .eq('user_id', user.id)
           .maybeSingle();
 
 
@@ -1716,33 +2104,18 @@
       }
 
 
-      if (!profile) {
-        return;
-      }
+      if (profile) {
 
-
-      document
-        .getElementById(
-          'fullName'
-        )
-        .value =
+        document.getElementById('fullName').value =
           profile.full_name || '';
 
-
-      document
-        .getElementById(
-          'instrument'
-        )
-        .value =
+        document.getElementById('instrument').value =
           profile.instrument || '';
 
-
-      document
-        .getElementById(
-          'role'
-        )
-        .value =
+        document.getElementById('role').value =
           profile.role || '';
+
+      }
 
 
       const bandId =
@@ -1761,14 +2134,8 @@
         await db
           .from('band_members')
           .select('tags')
-          .eq(
-            'band_id',
-            bandId
-          )
-          .eq(
-            'user_id',
-            user.id
-          )
+          .eq('band_id', bandId)
+          .eq('user_id', user.id)
           .maybeSingle();
 
 
@@ -1783,31 +2150,23 @@
       }
 
 
-      document
-        .getElementById(
-          'tags'
-        )
-        .value =
-          member?.tags
-            ? member.tags.join(', ')
-            : '';
+      document.getElementById('tags').value =
+        member?.tags
+          ? member.tags.join(', ')
+          : '';
 
     }
 
 
     document
-      .getElementById(
-        'profileForm'
-      )
+      .getElementById('profileForm')
       .addEventListener(
         'submit',
         saveProfile
       );
 
 
-    async function saveProfile(
-      event
-    ) {
+    async function saveProfile(event) {
 
       event.preventDefault();
 
@@ -1827,36 +2186,28 @@
 
       const fullName =
         document
-          .getElementById(
-            'fullName'
-          )
+          .getElementById('fullName')
           .value
           .trim();
 
 
       const instrument =
         document
-          .getElementById(
-            'instrument'
-          )
+          .getElementById('instrument')
           .value
           .trim();
 
 
       const role =
         document
-          .getElementById(
-            'role'
-          )
+          .getElementById('role')
           .value
           .trim();
 
 
       const tagsText =
         document
-          .getElementById(
-            'tags'
-          )
+          .getElementById('tags')
           .value
           .trim();
 
@@ -1865,9 +2216,7 @@
         tagsText
           ? tagsText
               .split(',')
-              .map(
-                tag => tag.trim()
-              )
+              .map(tag => tag.trim())
               .filter(Boolean)
           : [];
 
@@ -1885,15 +2234,10 @@
             role:
               role || null
           })
-          .eq(
-            'user_id',
-            user.id
-          );
+          .eq('user_id', user.id);
 
 
-      if (
-        profileResult.error
-      ) {
+      if (profileResult.error) {
 
         console.error(
           'Error guardando perfil:',
@@ -1901,9 +2245,7 @@
         );
 
         document
-          .getElementById(
-            'profileMessage'
-          )
+          .getElementById('profileMessage')
           .textContent =
             'No se pudo guardar el perfil: ' +
             profileResult.error.message;
@@ -1919,9 +2261,7 @@
       if (!bandId) {
 
         document
-          .getElementById(
-            'profileMessage'
-          )
+          .getElementById('profileMessage')
           .textContent =
             'No se encontró BandaBase.';
 
@@ -1932,32 +2272,15 @@
       const memberResult =
         await db
           .from('band_members')
-          .update({
-            tags
-          })
-          .eq(
-            'band_id',
-            bandId
-          )
-          .eq(
-            'user_id',
-            user.id
-          );
+          .update({ tags })
+          .eq('band_id', bandId)
+          .eq('user_id', user.id);
 
 
-      if (
-        memberResult.error
-      ) {
-
-        console.error(
-          'Error guardando etiquetas:',
-          memberResult.error
-        );
+      if (memberResult.error) {
 
         document
-          .getElementById(
-            'profileMessage'
-          )
+          .getElementById('profileMessage')
           .textContent =
             'Perfil guardado, pero no se pudieron guardar las etiquetas: ' +
             memberResult.error.message;
@@ -1967,9 +2290,7 @@
 
 
       document
-        .getElementById(
-          'profileMessage'
-        )
+        .getElementById('profileMessage')
         .textContent =
           'Perfil guardado correctamente.';
 
@@ -1982,9 +2303,7 @@
     async function loadBandMembers() {
 
       const memberList =
-        document.getElementById(
-          'memberList'
-        );
+        document.getElementById('memberList');
 
 
       memberList.textContent =
@@ -2013,22 +2332,11 @@
           .select(
             'user_id, display_name, role, tags, active'
           )
-          .eq(
-            'band_id',
-            bandId
-          )
-          .eq(
-            'active',
-            true
-          );
+          .eq('band_id', bandId)
+          .eq('active', true);
 
 
       if (membersError) {
-
-        console.error(
-          'Error cargando integrantes:',
-          membersError
-        );
 
         memberList.textContent =
           'No se pudieron cargar los integrantes: ' +
@@ -2069,18 +2377,10 @@
           .select(
             'user_id, full_name, instrument, role'
           )
-          .in(
-            'user_id',
-            userIds
-          );
+          .in('user_id', userIds);
 
 
       if (profilesError) {
-
-        console.error(
-          'Error cargando perfiles:',
-          profilesError
-        );
 
         memberList.textContent =
           'No se pudieron cargar los perfiles: ' +
@@ -2093,165 +2393,164 @@
       const profileMap = {};
 
 
-      (profiles || []).forEach(
-        profile => {
+      (profiles || []).forEach(profile => {
 
-          profileMap[
-            profile.user_id
-          ] = profile;
+        profileMap[
+          profile.user_id
+        ] = profile;
 
-        }
-      );
+      });
 
 
       memberList.innerHTML = '';
 
 
-      members.forEach(
-        member => {
+      members.forEach(member => {
 
-          const profile =
-            profileMap[
-              member.user_id
-            ] || {};
-
-
-          const card =
-            document.createElement(
-              'div'
-            );
+        const profile =
+          profileMap[
+            member.user_id
+          ] || {};
 
 
-          card.className =
-            'member-card';
+        const card =
+          document.createElement('div');
 
 
-          const name =
-            profile.full_name ||
-            member.display_name ||
-            'Integrante';
+        card.className =
+          'member-card';
 
 
-          const instrument =
-            profile.instrument ||
-            '';
+        const name =
+          profile.full_name ||
+          member.display_name ||
+          'Integrante';
 
 
-          const role =
-            profile.role ||
-            member.role ||
-            '';
+        const instrument =
+          profile.instrument || '';
 
 
-          const tags =
-            member.tags || [];
+        const role =
+          profile.role ||
+          member.role ||
+          '';
 
 
-          card.innerHTML =
-            `
+        const tags =
+          member.tags || [];
 
-              <div class="member-name">
-                ${escapeHtml(name)}
-              </div>
 
-              <div class="member-info">
-                ${escapeHtml(instrument)}
-                ${
-                  instrument && role
-                    ? ' · '
-                    : ''
-                }
-                ${escapeHtml(role)}
-              </div>
+        card.innerHTML =
+          `
 
+            <div class="member-name">
+              ${escapeHtml(name)}
+            </div>
+
+            <div class="member-info">
+              ${escapeHtml(instrument)}
               ${
-                tags.length
-                  ? `
-                    <div class="member-tags">
-                      ${tags
-                        .map(
-                          tag =>
-                            `<span class="tag">${escapeHtml(tag)}</span>`
-                        )
-                        .join('')}
-                    </div>
-                  `
+                instrument && role
+                  ? ' · '
                   : ''
               }
+              ${escapeHtml(role)}
+            </div>
 
-            `;
+            ${
+              tags.length
+                ? `
+                  <div class="member-tags">
+                    ${tags
+                      .map(
+                        tag =>
+                          `<span class="tag">${escapeHtml(tag)}</span>`
+                      )
+                      .join('')}
+                  </div>
+                `
+                : ''
+            }
+
+          `;
 
 
-          memberList.appendChild(
-            card
-          );
+        memberList.appendChild(card);
 
-        }
-      );
+      });
 
     }
 
 
     /* =========================================================
-       CANCIONES
+       CANCIONES — EVENTOS
     ========================================================= */
 
     document
-      .getElementById(
-        'songForm'
-      )
+      .getElementById('songForm')
       .addEventListener(
         'submit',
         createSong
       );
 
 
+    [
+      'filterColor',
+      'filterGenre',
+      'filterArtist',
+      'filterSinger',
+      'filterListStatus',
+      'filterActiveStatus'
+    ]
+      .forEach(id => {
+
+        document
+          .getElementById(id)
+          .addEventListener(
+            'change',
+            loadSongs
+          );
+
+      });
+
+
     document
-      .getElementById(
-        'filterVersion'
-      )
+      .getElementById('addNewSingerBtn')
       .addEventListener(
-        'change',
-        loadSongs
+        'click',
+        () => addSingerRow(
+          'newSongSingers'
+        )
       );
 
 
     document
-      .getElementById(
-        'filterSinger'
-      )
+      .getElementById('addDetailSingerBtn')
       .addEventListener(
-        'change',
-        loadSongs
+        'click',
+        () => addSingerRow(
+          'detailSongSingers'
+        )
       );
 
 
     document
-      .getElementById(
-        'filterListStatus'
-      )
+      .getElementById('toggleComparisonBtn')
       .addEventListener(
-        'change',
-        loadSongs
+        'click',
+        toggleComparison
       );
 
 
-    document
-      .getElementById(
-        'filterActiveStatus'
-      )
-      .addEventListener(
-        'change',
-        loadSongs
-      );
-
+    /* =========================================================
+       CARGAR CANCIONES
+    ========================================================= */
 
     async function loadSongs() {
 
       const songsList =
-        document.getElementById(
-          'songsList'
-        );
+        document.getElementById('songsList');
 
 
       songsList.innerHTML =
@@ -2262,8 +2561,11 @@
         `;
 
 
-      let query =
-        db
+      const {
+        data: songs,
+        error
+      } =
+        await db
           .from('songs')
           .select(
             `
@@ -2272,14 +2574,21 @@
               artist,
               genre,
               bpm,
-              song_key,
               singer,
-              version,
+              song_key,
               list_status,
               active_status,
               color,
               duration,
-              meter
+              meter,
+              original_bpm,
+              original_key,
+              original_duration,
+              original_meter,
+              song_singers (
+                singer,
+                song_key
+              )
             `
           )
           .order(
@@ -2288,88 +2597,6 @@
               ascending: true
             }
           );
-
-
-      const version =
-        document
-          .getElementById(
-            'filterVersion'
-          )
-          .value;
-
-
-      const singer =
-        document
-          .getElementById(
-            'filterSinger'
-          )
-          .value;
-
-
-      const listStatus =
-        document
-          .getElementById(
-            'filterListStatus'
-          )
-          .value;
-
-
-      const activeStatus =
-        document
-          .getElementById(
-            'filterActiveStatus'
-          )
-          .value;
-
-
-      if (version) {
-
-        query =
-          query.eq(
-            'version',
-            version
-          );
-
-      }
-
-
-      if (singer) {
-
-        query =
-          query.eq(
-            'singer',
-            singer
-          );
-
-      }
-
-
-      if (listStatus) {
-
-        query =
-          query.eq(
-            'list_status',
-            listStatus
-          );
-
-      }
-
-
-      if (activeStatus) {
-
-        query =
-          query.eq(
-            'active_status',
-            activeStatus
-          );
-
-      }
-
-
-      const {
-        data: songs,
-        error
-      } = await query;
 
 
       if (error) {
@@ -2391,14 +2618,23 @@
       }
 
 
+      const allSongs =
+        songs || [];
+
+
       updateSongFilters(
-        songs
+        allSongs
       );
 
 
+      const filteredSongs =
+        applySongFilters(
+          allSongs
+        );
+
+
       if (
-        !songs ||
-        songs.length === 0
+        filteredSongs.length === 0
       ) {
 
         songsList.innerHTML =
@@ -2415,235 +2651,460 @@
       songsList.innerHTML = '';
 
 
-      songs.forEach(
-        song => {
+      filteredSongs.forEach(song => {
 
-          const card =
-            document.createElement(
-              'div'
-            );
+        const card =
+          document.createElement('div');
 
 
-          card.className =
-            'song-card';
+        card.className =
+          'song-card';
 
 
-          if (song.color) {
+        if (song.color) {
 
-            card.style.borderLeft =
-              `5px solid ${song.color}`;
-
-          }
-
-
-          card.addEventListener(
-            'click',
-            () => openSong(song.id)
-          );
-
-
-          card.innerHTML =
-            `
-
-              <div class="song-name">
-                ${escapeHtml(song.name)}
-              </div>
-
-              ${
-                song.artist
-                  ? `
-                    <div class="song-artist">
-                      ${escapeHtml(song.artist)}
-                    </div>
-                  `
-                  : ''
-              }
-
-            `;
-
-
-          songsList.appendChild(
-            card
-          );
+          card.style.borderLeft =
+            `5px solid ${safeCssColor(song.color)}`;
 
         }
+
+
+        card.addEventListener(
+          'click',
+          () => openSong(song.id)
+        );
+
+
+        const singerText =
+          getSingerText(song);
+
+
+        const duration =
+          song.duration !== null &&
+          song.duration !== undefined
+            ? secondsToDuration(
+                song.duration
+              )
+            : '—';
+
+
+        const meter =
+          song.meter || '—';
+
+
+        const bpm =
+          song.bpm !== null &&
+          song.bpm !== undefined
+            ? song.bpm
+            : '—';
+
+
+        card.innerHTML =
+          `
+
+            <div class="song-name">
+              ${escapeHtml(song.name)}
+            </div>
+
+
+            ${
+              song.artist
+                ? `
+                  <div class="song-artist">
+                    ${escapeHtml(song.artist)}
+                  </div>
+                `
+                : ''
+            }
+
+
+            <div class="song-meta">
+              ${escapeHtml(duration)}
+              ·
+              ${escapeHtml(meter)}
+              ·
+              ${escapeHtml(bpm)} BPM
+            </div>
+
+
+            ${
+              song.genre
+                ? `
+                  <div class="song-genre">
+                    ${escapeHtml(song.genre)}
+                  </div>
+                `
+                : ''
+            }
+
+
+            <div class="song-singers">
+              Cantantes:
+              ${escapeHtml(singerText || '—')}
+            </div>
+
+
+            <div class="song-statuses">
+
+              <span
+                class="
+                  song-status
+                  ${
+                    song.list_status === 'Lista'
+                      ? 'ready'
+                      : 'pending'
+                  }
+                "
+              >
+                ${escapeHtml(
+                  song.list_status || 'Lista'
+                )}
+              </span>
+
+
+              <span
+                class="
+                  song-status
+                  ${
+                    song.active_status === 'Activa'
+                      ? 'active'
+                      : 'inactive'
+                  }
+                "
+              >
+                ${escapeHtml(
+                  song.active_status || 'Activa'
+                )}
+              </span>
+
+            </div>
+
+          `;
+
+
+        songsList.appendChild(card);
+
+      });
+
+    }
+
+
+    function applySongFilters(songs) {
+
+      const color =
+        document
+          .getElementById('filterColor')
+          .value;
+
+
+      const genre =
+        document
+          .getElementById('filterGenre')
+          .value;
+
+
+      const artist =
+        document
+          .getElementById('filterArtist')
+          .value;
+
+
+      const singer =
+        document
+          .getElementById('filterSinger')
+          .value;
+
+
+      const listStatus =
+        document
+          .getElementById('filterListStatus')
+          .value;
+
+
+      const activeStatus =
+        document
+          .getElementById('filterActiveStatus')
+          .value;
+
+
+      return songs.filter(song => {
+
+        if (
+          color &&
+          (song.color || '') !== color
+        ) {
+          return false;
+        }
+
+
+        if (
+          genre &&
+          (song.genre || '') !== genre
+        ) {
+          return false;
+        }
+
+
+        if (
+          artist &&
+          (song.artist || '') !== artist
+        ) {
+          return false;
+        }
+
+
+        if (
+          singer &&
+          !getSingerObjects(song)
+            .some(
+              item =>
+                item.singer === singer
+            )
+        ) {
+          return false;
+        }
+
+
+        if (
+          listStatus &&
+          song.list_status !== listStatus
+        ) {
+          return false;
+        }
+
+
+        if (
+          activeStatus &&
+          song.active_status !== activeStatus
+        ) {
+          return false;
+        }
+
+
+        return true;
+
+      });
+
+    }
+
+
+    /* =========================================================
+       FILTROS
+    ========================================================= */
+
+    function updateSongFilters(songs) {
+
+      const selects = {
+
+        color:
+          document.getElementById(
+            'filterColor'
+          ),
+
+        genre:
+          document.getElementById(
+            'filterGenre'
+          ),
+
+        artist:
+          document.getElementById(
+            'filterArtist'
+          ),
+
+        singer:
+          document.getElementById(
+            'filterSinger'
+          )
+
+      };
+
+
+      const currentValues = {
+
+        color:
+          selects.color.value,
+
+        genre:
+          selects.genre.value,
+
+        artist:
+          selects.artist.value,
+
+        singer:
+          selects.singer.value
+
+      };
+
+
+      const colors =
+        uniqueSorted(
+          songs
+            .map(song => song.color)
+            .filter(Boolean)
+        );
+
+
+      const genres =
+        uniqueSorted(
+          songs
+            .map(song => song.genre)
+            .filter(Boolean)
+        );
+
+
+      const artists =
+        uniqueSorted(
+          songs
+            .map(song => song.artist)
+            .filter(Boolean)
+        );
+
+
+      const singers =
+        uniqueSorted(
+          songs
+            .flatMap(song =>
+              getSingerObjects(song)
+                .map(item => item.singer)
+            )
+            .filter(Boolean)
+        );
+
+
+      populateSelect(
+        selects.color,
+        'Colores',
+        colors
+      );
+
+
+      populateSelect(
+        selects.genre,
+        'Géneros',
+        genres
+      );
+
+
+      populateSelect(
+        selects.artist,
+        'Artista',
+        artists
+      );
+
+
+      populateSelect(
+        selects.singer,
+        'Cantantes',
+        singers
+      );
+
+
+      restoreSelectValue(
+        selects.color,
+        currentValues.color
+      );
+
+
+      restoreSelectValue(
+        selects.genre,
+        currentValues.genre
+      );
+
+
+      restoreSelectValue(
+        selects.artist,
+        currentValues.artist
+      );
+
+
+      restoreSelectValue(
+        selects.singer,
+        currentValues.singer
       );
 
     }
 
 
-    async function updateSongFilters(
-      loadedSongs = null
+    function populateSelect(
+      select,
+      placeholder,
+      values
     ) {
 
-      let songs =
-        loadedSongs;
+      select.innerHTML =
+        '';
 
 
-      if (!songs) {
-
-        const {
-          data,
-          error
-        } =
-          await db
-            .from('songs')
-            .select(
-              'version, singer'
-            );
+      const firstOption =
+        document.createElement('option');
 
 
-        if (error) {
+      firstOption.value = '';
 
-          console.error(
-            'Error actualizando filtros:',
-            error
-          );
-
-          return;
-        }
+      firstOption.textContent =
+        placeholder;
 
 
-        songs =
-          data || [];
-
-      }
-
-
-      const versionSelect =
-        document.getElementById(
-          'filterVersion'
-        );
-
-
-      const singerSelect =
-        document.getElementById(
-          'filterSinger'
-        );
-
-
-      const currentVersion =
-        versionSelect.value;
-
-
-      const currentSinger =
-        singerSelect.value;
-
-
-      const versions =
-        [
-          ...new Set(
-            songs
-              .map(
-                song => song.version
-              )
-              .filter(Boolean)
-          )
-        ]
-        .sort();
-
-
-      const singers =
-        [
-          ...new Set(
-            songs
-              .map(
-                song => song.singer
-              )
-              .filter(Boolean)
-          )
-        ]
-        .sort();
-
-
-      versionSelect.innerHTML =
-        `
-          <option value="">
-            Versión
-          </option>
-        `;
-
-
-      versions.forEach(
-        version => {
-
-          const option =
-            document.createElement(
-              'option'
-            );
-
-
-          option.value =
-            version;
-
-
-          option.textContent =
-            version;
-
-
-          versionSelect.appendChild(
-            option
-          );
-
-        }
+      select.appendChild(
+        firstOption
       );
 
 
-      singerSelect.innerHTML =
-        `
-          <option value="">
-            Cantante
-          </option>
-        `;
+      values.forEach(value => {
+
+        const option =
+          document.createElement('option');
 
 
-      singers.forEach(
-        singer => {
-
-          const option =
-            document.createElement(
-              'option'
-            );
+        option.value =
+          value;
 
 
-          option.value =
-            singer;
+        option.textContent =
+          value;
 
 
-          option.textContent =
-            singer;
+        select.appendChild(
+          option
+        );
+
+      });
+
+    }
 
 
-          singerSelect.appendChild(
-            option
-          );
-
-        }
-      );
-
+    function restoreSelectValue(
+      select,
+      value
+    ) {
 
       if (
-        versions.includes(
-          currentVersion
-        )
+        [...select.options]
+          .some(
+            option =>
+              option.value === value
+          )
       ) {
 
-        versionSelect.value =
-          currentVersion;
+        select.value = value;
 
       }
 
+    }
 
-      if (
-        singers.includes(
-          currentSinger
-        )
-      ) {
 
-        singerSelect.value =
-          currentSinger;
+    function uniqueSorted(values) {
 
-      }
+      return [
+        ...new Set(values)
+      ]
+        .sort(
+          (a, b) =>
+            String(a).localeCompare(
+              String(b),
+              'es'
+            )
+        );
 
     }
 
@@ -2653,9 +3114,7 @@
     ========================================================= */
 
     document
-      .getElementById(
-        'songDuration'
-      )
+      .getElementById('songDuration')
       .addEventListener(
         'blur',
         event => {
@@ -2663,12 +3122,15 @@
           const value =
             event.target.value.trim();
 
+
           if (!value) {
             return;
           }
 
+
           const seconds =
             durationToSeconds(value);
+
 
           if (seconds !== null) {
 
@@ -2683,9 +3145,7 @@
       );
 
 
-    async function createSong(
-      event
-    ) {
+    async function createSong(event) {
 
       event.preventDefault();
 
@@ -2702,36 +3162,28 @@
 
       const name =
         document
-          .getElementById(
-            'songName'
-          )
+          .getElementById('songName')
           .value
           .trim();
 
 
       const artist =
         document
-          .getElementById(
-            'songArtist'
-          )
+          .getElementById('songArtist')
           .value
           .trim();
 
 
       const genre =
         document
-          .getElementById(
-            'songGenre'
-          )
+          .getElementById('songGenre')
           .value
           .trim();
 
 
       const bpmValue =
         document
-          .getElementById(
-            'songBpm'
-          )
+          .getElementById('songBpm')
           .value
           .trim();
 
@@ -2742,20 +3194,9 @@
           : null;
 
 
-      const songKey =
-        document
-          .getElementById(
-            'songKey'
-          )
-          .value
-          .trim();
-
-
       const durationText =
         document
-          .getElementById(
-            'songDuration'
-          )
+          .getElementById('songDuration')
           .value
           .trim();
 
@@ -2770,11 +3211,22 @@
 
       const meter =
         document
-          .getElementById(
-            'songMeter'
-          )
+          .getElementById('songMeter')
           .value
           .trim();
+
+
+      const color =
+        document
+          .getElementById('songColor')
+          .value
+          .trim();
+
+
+      const singers =
+        readSingerRows(
+          'newSongSingers'
+        );
 
 
       if (!name) {
@@ -2798,37 +3250,11 @@
       }
 
 
-      const {
-        data: band,
-        error: bandError
-      } =
-        await db
-          .from('bands')
-          .select('id')
-          .eq(
-            'name',
-            'BandaBase'
-          )
-          .limit(1)
-          .maybeSingle();
+      const bandId =
+        await getBandId();
 
 
-      if (bandError) {
-
-        console.error(
-          'Error buscando BandaBase:',
-          bandError
-        );
-
-        message.textContent =
-          'No se pudo encontrar BandaBase: ' +
-          bandError.message;
-
-        return;
-      }
-
-
-      if (!band) {
+      if (!bandId) {
 
         message.textContent =
           'No se encontró la banda BandaBase.';
@@ -2838,6 +3264,7 @@
 
 
       const {
+        data: insertedSong,
         error
       } =
         await db
@@ -2845,7 +3272,7 @@
           .insert({
 
             band_id:
-              band.id,
+              bandId,
 
             name:
               name,
@@ -2859,16 +3286,24 @@
             bpm:
               bpm,
 
-            song_key:
-              songKey || null,
-
             duration:
               duration,
 
             meter:
-              meter || null
+              meter || null,
 
-          });
+            color:
+              color || null,
+
+            list_status:
+              'Lista',
+
+            active_status:
+              'Activa'
+
+          })
+          .select('id')
+          .single();
 
 
       if (error) {
@@ -2886,15 +3321,72 @@
       }
 
 
+      if (
+        singers.length
+      ) {
+
+        const singerRows =
+          singers.map(item => ({
+
+            song_id:
+              insertedSong.id,
+
+            singer:
+              item.singer,
+
+            song_key:
+              item.song_key || null
+
+          }));
+
+
+        const {
+          error: singerError
+        } =
+          await db
+            .from('song_singers')
+            .insert(
+              singerRows
+            );
+
+
+        if (singerError) {
+
+          console.error(
+            'Error guardando cantantes:',
+            singerError
+          );
+
+          message.textContent =
+            'La canción se creó, pero no se pudieron guardar los cantantes: ' +
+            singerError.message;
+
+          await loadSongs();
+
+          return;
+        }
+
+      }
+
+
       message.textContent =
         'Canción guardada correctamente.';
 
 
       document
-        .getElementById(
-          'songForm'
-        )
+        .getElementById('songForm')
         .reset();
+
+
+      document
+        .getElementById('newSongSingers')
+        .innerHTML =
+        '';
+
+
+      addSingerRow(
+        'newSongSingers'
+      );
 
 
       await loadSongs();
@@ -2903,16 +3395,335 @@
 
 
     /* =========================================================
-       DETALLE DE CANCIÓN
+       CANTANTES
     ========================================================= */
 
-    let currentSongId =
-      null;
-
-
-    async function openSong(
-      songId
+    function addSingerRow(
+      containerId,
+      singer = '',
+      songKey = ''
     ) {
+
+      const container =
+        document.getElementById(
+          containerId
+        );
+
+
+      if (
+        container.querySelector(
+          '.singer-empty'
+        )
+      ) {
+
+        container.innerHTML =
+          '';
+
+      }
+
+
+      const row =
+        document.createElement('div');
+
+
+      row.className =
+        'singer-row';
+
+
+      row.innerHTML =
+        `
+
+          <div>
+
+            <label>
+              Cantante
+            </label>
+
+            <input
+              type="text"
+              class="singer-name"
+              value="${escapeHtmlAttribute(singer)}"
+              placeholder="Ej: Juan"
+            >
+
+          </div>
+
+
+          <div>
+
+            <label>
+              Tonalidad
+            </label>
+
+            <input
+              type="text"
+              class="singer-key"
+              value="${escapeHtmlAttribute(songKey)}"
+              placeholder="Ej: G"
+            >
+
+          </div>
+
+
+          <button
+            type="button"
+            class="remove-singer-btn"
+          >
+            Quitar
+          </button>
+
+        `;
+
+
+      row
+        .querySelector(
+          '.remove-singer-btn'
+        )
+        .addEventListener(
+          'click',
+          () => {
+
+            row.remove();
+
+            ensureSingerMessage(
+              container
+            );
+
+          }
+        );
+
+
+      container.appendChild(
+        row
+      );
+
+    }
+
+
+    function ensureSingerMessage(
+      container
+    ) {
+
+      if (
+        !container.querySelector(
+          '.singer-row'
+        )
+      ) {
+
+        container.innerHTML =
+          `
+            <div class="singer-empty">
+              No hay cantantes agregados.
+            </div>
+          `;
+
+      }
+
+    }
+
+
+    function readSingerRows(
+      containerId
+    ) {
+
+      const container =
+        document.getElementById(
+          containerId
+        );
+
+
+      const rows =
+        [
+          ...container.querySelectorAll(
+            '.singer-row'
+          )
+        ];
+
+
+      const result = [];
+
+
+      rows.forEach(row => {
+
+        const singer =
+          row
+            .querySelector(
+              '.singer-name'
+            )
+            .value
+            .trim();
+
+
+        const songKey =
+          row
+            .querySelector(
+              '.singer-key'
+            )
+            .value
+            .trim();
+
+
+        if (!singer) {
+          return;
+        }
+
+
+        if (
+          result.some(
+            item =>
+              item.singer.toLowerCase() ===
+              singer.toLowerCase()
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        result.push({
+
+          singer,
+
+          song_key:
+            songKey
+
+        });
+
+      });
+
+
+      return result;
+
+    }
+
+
+    function renderSingerRows(
+      containerId,
+      singers
+    ) {
+
+      const container =
+        document.getElementById(
+          containerId
+        );
+
+
+      container.innerHTML =
+        '';
+
+
+      if (
+        !singers ||
+        singers.length === 0
+      ) {
+
+        ensureSingerMessage(
+          container
+        );
+
+        return;
+
+      }
+
+
+      singers.forEach(item => {
+
+        addSingerRow(
+          containerId,
+          item.singer || '',
+          item.song_key || ''
+        );
+
+      });
+
+    }
+
+
+    function getSingerObjects(song) {
+
+      if (
+        song.song_singers &&
+        Array.isArray(
+          song.song_singers
+        ) &&
+        song.song_singers.length
+      ) {
+
+        return song.song_singers.map(
+          item => ({
+            singer:
+              item.singer || '',
+
+            song_key:
+              item.song_key || ''
+          })
+        );
+
+      }
+
+
+      /*
+       * Compatibilidad con las canciones
+       * antiguas que todavía tienen singer
+       * y song_key directamente en songs.
+       */
+
+      if (
+        song.singer &&
+        String(song.singer).trim()
+      ) {
+
+        return [
+          {
+            singer:
+              String(song.singer).trim(),
+
+            song_key:
+              song.song_key || ''
+          }
+        ];
+
+      }
+
+
+      return [];
+
+    }
+
+
+    function getSingerText(song) {
+
+      return getSingerObjects(song)
+        .map(item => {
+
+          if (
+            item.song_key
+          ) {
+
+            return (
+              item.singer +
+              ' (' +
+              item.song_key +
+              ')'
+            );
+
+          }
+
+
+          return item.singer;
+
+        })
+        .join(', ');
+
+    }
+
+
+    /* =========================================================
+       DETALLE
+    ========================================================= */
+
+    async function openSong(songId) {
 
       currentSongId =
         songId;
@@ -2961,20 +3772,24 @@
               artist,
               genre,
               bpm,
-              song_key,
               singer,
-              version,
+              song_key,
               list_status,
               active_status,
               color,
               duration,
-              meter
+              meter,
+              original_bpm,
+              original_key,
+              original_duration,
+              original_meter,
+              song_singers (
+                singer,
+                song_key
+              )
             `
           )
-          .eq(
-            'id',
-            songId
-          )
+          .eq('id', songId)
           .maybeSingle();
 
 
@@ -3008,6 +3823,10 @@
 
         return;
       }
+
+
+      currentSong =
+        song;
 
 
       fillSongDetail(
@@ -3055,14 +3874,6 @@
 
       document
         .getElementById(
-          'detailKey'
-        )
-        .value =
-          song.song_key || '';
-
-
-      document
-        .getElementById(
           'detailBpm'
         )
         .value =
@@ -3092,18 +3903,12 @@
 
       document
         .getElementById(
-          'detailVersion'
+          'detailColor'
         )
         .value =
-          song.version || '';
-
-
-      document
-        .getElementById(
-          'detailSinger'
-        )
-        .value =
-          song.singer || '';
+          normalizeColor(
+            song.color
+          );
 
 
       document
@@ -3124,19 +3929,172 @@
           'Activa';
 
 
+      renderSingerRows(
+        'detailSongSingers',
+        getSingerObjects(song)
+      );
+
+
+      document
+        .getElementById(
+          'originalBpm'
+        )
+        .value =
+          song.original_bpm ?? '';
+
+
+      document
+        .getElementById(
+          'originalKey'
+        )
+        .value =
+          song.original_key || '';
+
+
+      document
+        .getElementById(
+          'originalDuration'
+        )
+        .value =
+          song.original_duration !== null &&
+          song.original_duration !== undefined
+            ? secondsToDuration(
+                song.original_duration
+              )
+            : '';
+
+
+      document
+        .getElementById(
+          'originalMeter'
+        )
+        .value =
+          song.original_meter || '';
+
+
+      document
+        .getElementById(
+          'comparisonPanel'
+        )
+        .classList.add(
+          'hidden'
+        );
+
+
+      document
+        .getElementById(
+          'toggleComparisonBtn'
+        )
+        .textContent =
+          'Comparar con original';
+
+
+      updateCultoComparison(
+        song
+      );
+
+
       document
         .getElementById(
           'songDetailMessage'
         )
-        .textContent = '';
+        .textContent =
+          '';
+
+    }
+
+
+    function updateCultoComparison(
+      song
+    ) {
+
+      document
+        .getElementById(
+          'compareCultoBpm'
+        )
+        .textContent =
+          song.bpm !== null &&
+          song.bpm !== undefined
+            ? song.bpm
+            : '—';
+
+
+      document
+        .getElementById(
+          'compareCultoKey'
+        )
+        .textContent =
+          getSingerText(song) || '—';
+
+
+      document
+        .getElementById(
+          'compareCultoDuration'
+        )
+        .textContent =
+          song.duration !== null &&
+          song.duration !== undefined
+            ? secondsToDuration(
+                song.duration
+              )
+            : '—';
+
+
+      document
+        .getElementById(
+          'compareCultoMeter'
+        )
+        .textContent =
+          song.meter || '—';
+
+    }
+
+
+    function toggleComparison() {
+
+      const panel =
+        document.getElementById(
+          'comparisonPanel'
+        );
+
+
+      const button =
+        document.getElementById(
+          'toggleComparisonBtn'
+        );
+
+
+      const hidden =
+        panel.classList.contains(
+          'hidden'
+        );
+
+
+      if (hidden) {
+
+        panel.classList.remove(
+          'hidden'
+        );
+
+        button.textContent =
+          'Ocultar original';
+
+      } else {
+
+        panel.classList.add(
+          'hidden'
+        );
+
+        button.textContent =
+          'Comparar con original';
+
+      }
 
     }
 
 
     document
-      .getElementById(
-        'songDetailForm'
-      )
+      .getElementById('songDetailForm')
       .addEventListener(
         'submit',
         saveSongDetail
@@ -3151,9 +4109,7 @@
 
 
       if (!currentSongId) {
-
         return;
-
       }
 
 
@@ -3169,45 +4125,28 @@
 
       const name =
         document
-          .getElementById(
-            'detailName'
-          )
+          .getElementById('detailName')
           .value
           .trim();
 
 
       const artist =
         document
-          .getElementById(
-            'detailArtist'
-          )
+          .getElementById('detailArtist')
           .value
           .trim();
 
 
       const genre =
         document
-          .getElementById(
-            'detailGenre'
-          )
-          .value
-          .trim();
-
-
-      const songKey =
-        document
-          .getElementById(
-            'detailKey'
-          )
+          .getElementById('detailGenre')
           .value
           .trim();
 
 
       const bpmValue =
         document
-          .getElementById(
-            'detailBpm'
-          )
+          .getElementById('detailBpm')
           .value
           .trim();
 
@@ -3220,9 +4159,7 @@
 
       const durationText =
         document
-          .getElementById(
-            'detailDuration'
-          )
+          .getElementById('detailDuration')
           .value
           .trim();
 
@@ -3237,45 +4174,76 @@
 
       const meter =
         document
-          .getElementById(
-            'detailMeter'
-          )
+          .getElementById('detailMeter')
           .value
           .trim();
 
 
-      const version =
+      const color =
         document
-          .getElementById(
-            'detailVersion'
-          )
-          .value
-          .trim();
-
-
-      const singer =
-        document
-          .getElementById(
-            'detailSinger'
-          )
+          .getElementById('detailColor')
           .value
           .trim();
 
 
       const listStatus =
         document
-          .getElementById(
-            'detailListStatus'
-          )
+          .getElementById('detailListStatus')
           .value;
 
 
       const activeStatus =
         document
-          .getElementById(
-            'detailActiveStatus'
-          )
+          .getElementById('detailActiveStatus')
           .value;
+
+
+      const originalBpmValue =
+        document
+          .getElementById('originalBpm')
+          .value
+          .trim();
+
+
+      const originalBpm =
+        originalBpmValue
+          ? Number(originalBpmValue)
+          : null;
+
+
+      const originalKey =
+        document
+          .getElementById('originalKey')
+          .value
+          .trim();
+
+
+      const originalDurationText =
+        document
+          .getElementById('originalDuration')
+          .value
+          .trim();
+
+
+      const originalDuration =
+        originalDurationText
+          ? durationToSeconds(
+              originalDurationText
+            )
+          : null;
+
+
+      const originalMeter =
+        document
+          .getElementById('originalMeter')
+          .value
+          .trim();
+
+
+      const singers =
+        readSingerRows(
+          'detailSongSingers'
+        );
 
 
       if (!name) {
@@ -3294,6 +4262,18 @@
 
         message.textContent =
           'La duración debe tener el formato minutos:segundos.';
+
+        return;
+      }
+
+
+      if (
+        originalDurationText &&
+        originalDuration === null
+      ) {
+
+        message.textContent =
+          'La duración original debe tener el formato minutos:segundos.';
 
         return;
       }
@@ -3318,26 +4298,32 @@
             bpm:
               bpm,
 
-            song_key:
-              songKey || null,
-
             duration:
               duration,
 
             meter:
               meter || null,
 
-            version:
-              version || null,
-
-            singer:
-              singer || null,
+            color:
+              color || null,
 
             list_status:
               listStatus,
 
             active_status:
-              activeStatus
+              activeStatus,
+
+            original_bpm:
+              originalBpm,
+
+            original_key:
+              originalKey || null,
+
+            original_duration:
+              originalDuration,
+
+            original_meter:
+              originalMeter || null
 
           })
           .eq(
@@ -3361,6 +4347,84 @@
       }
 
 
+      /*
+       * Reemplazamos las relaciones
+       * cantante-tonalidad de esta canción.
+       */
+
+      const {
+        error: deleteSingerError
+      } =
+        await db
+          .from('song_singers')
+          .delete()
+          .eq(
+            'song_id',
+            currentSongId
+          );
+
+
+      if (deleteSingerError) {
+
+        console.error(
+          'Error eliminando relaciones anteriores:',
+          deleteSingerError
+        );
+
+        message.textContent =
+          'La canción se guardó, pero no se pudieron actualizar los cantantes: ' +
+          deleteSingerError.message;
+
+        return;
+      }
+
+
+      if (
+        singers.length
+      ) {
+
+        const singerRows =
+          singers.map(item => ({
+
+            song_id:
+              currentSongId,
+
+            singer:
+              item.singer,
+
+            song_key:
+              item.song_key || null
+
+          }));
+
+
+        const {
+          error: insertSingerError
+        } =
+          await db
+            .from('song_singers')
+            .insert(
+              singerRows
+            );
+
+
+        if (insertSingerError) {
+
+          console.error(
+            'Error insertando cantantes:',
+            insertSingerError
+          );
+
+          message.textContent =
+            'La canción se guardó, pero no se pudieron guardar los cantantes: ' +
+            insertSingerError.message;
+
+          return;
+        }
+
+      }
+
+
       message.textContent =
         'Cambios guardados correctamente.';
 
@@ -3373,26 +4437,66 @@
           name;
 
 
+      /*
+       * Actualizamos la copia local para que
+       * la comparación Culto se actualice
+       * inmediatamente.
+       */
+
+      currentSong = {
+
+        ...currentSong,
+
+        name,
+        artist,
+        genre,
+        bpm,
+        duration,
+        meter,
+        color,
+        list_status:
+          listStatus,
+        active_status:
+          activeStatus,
+        original_bpm:
+          originalBpm,
+        original_key:
+          originalKey,
+        original_duration:
+          originalDuration,
+        original_meter:
+          originalMeter,
+        song_singers:
+          singers
+
+      };
+
+
+      updateCultoComparison(
+        currentSong
+      );
+
+
       await loadSongs();
 
     }
 
 
+    /* =========================================================
+       NAVEGADOR / DETALLE
+    ========================================================= */
+
     function showSongsBrowser() {
 
       document
-        .getElementById(
-          'songsBrowser'
-        )
+        .getElementById('songsBrowser')
         .classList.remove(
           'hidden'
         );
 
 
       document
-        .getElementById(
-          'songDetail'
-        )
+        .getElementById('songDetail')
         .classList.remove(
           'active'
         );
@@ -3401,13 +4505,15 @@
       currentSongId =
         null;
 
+
+      currentSong =
+        null;
+
     }
 
 
     document
-      .getElementById(
-        'backToSongsBtn'
-      )
+      .getElementById('backToSongsBtn')
       .addEventListener(
         'click',
         showSongsBrowser
@@ -3415,9 +4521,7 @@
 
 
     document
-      .getElementById(
-        'detailBackButton'
-      )
+      .getElementById('detailBackButton')
       .addEventListener(
         'click',
         showSongsBrowser
@@ -3450,7 +4554,6 @@
       ) {
 
         return null;
-
       }
 
 
@@ -3468,7 +4571,6 @@
       ) {
 
         return null;
-
       }
 
 
@@ -3479,7 +4581,6 @@
       ) {
 
         return null;
-
       }
 
 
@@ -3505,7 +4606,6 @@
       ) {
 
         return '';
-
       }
 
 
@@ -3533,6 +4633,141 @@
           '0'
         )
       );
+
+    }
+
+
+    /* =========================================================
+       COLORES
+    ========================================================= */
+
+    function normalizeColor(
+      color
+    ) {
+
+      if (
+        !color ||
+        !String(color).trim()
+      ) {
+
+        return '#cccccc';
+
+      }
+
+
+      const value =
+        String(color).trim();
+
+
+      /*
+       * Si ya es un color hexadecimal válido,
+       * lo usamos directamente.
+       */
+
+      if (
+        /^#[0-9a-fA-F]{6}$/.test(
+          value
+        )
+      ) {
+
+        return value;
+
+      }
+
+
+      /*
+       * Compatibilidad con nombres CSS
+       * conocidos.
+       */
+
+      const names = {
+
+        red:
+          '#ff0000',
+
+        rojo:
+          '#ff0000',
+
+        orange:
+          '#ffa500',
+
+        naranja:
+          '#ffa500',
+
+        yellow:
+          '#ffff00',
+
+        amarillo:
+          '#ffff00',
+
+        green:
+          '#008000',
+
+        verde:
+          '#008000',
+
+        blue:
+          '#0000ff',
+
+        azul:
+          '#0000ff',
+
+        purple:
+          '#800080',
+
+        violeta:
+          '#800080',
+
+        pink:
+          '#ffc0cb',
+
+        rosa:
+          '#ffc0cb'
+
+      };
+
+
+      return (
+        names[
+          value.toLowerCase()
+        ] ||
+        '#cccccc'
+      );
+
+    }
+
+
+    function safeCssColor(
+      color
+    ) {
+
+      const value =
+        String(color || '').trim();
+
+
+      if (
+        /^#[0-9a-fA-F]{3,8}$/.test(
+          value
+        )
+      ) {
+
+        return value;
+
+      }
+
+
+      if (
+        /^[a-zA-Z]+$/.test(
+          value
+        )
+      ) {
+
+        return value;
+
+      }
+
+
+      return '#cccccc';
 
     }
 
@@ -3580,9 +4815,31 @@
     }
 
 
+    function escapeHtmlAttribute(
+      value
+    ) {
+
+      return escapeHtml(
+        value
+      );
+
+    }
+
+
     /* =========================================================
        INICIAR
     ========================================================= */
+
+    /*
+     * Dejamos una fila preparada para que
+     * al crear una canción se pueda agregar
+     * directamente un cantante.
+     */
+
+    addSingerRow(
+      'newSongSingers'
+    );
+
 
     checkSession();
 
