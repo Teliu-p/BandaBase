@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/utils.js"></script>
   <script src="src/songs-data.js"></script>
+  <script src="src/songs-singers.js"></script>
 
   <style>
     :root {
@@ -2781,15 +2782,10 @@ async function loadSongs() {
       data: singerRows,
       error: singerError
     } =
-      await supabaseClient
-        .from("song_singers")
-        .select(
-          "id, song_id, singer, song_key"
-        )
-        .in(
-          "song_id",
-          ids
-        );
+      await getSongSingersBySongIds(
+        supabaseClient,
+        ids
+      );
 
     if (singerError) {
       throw singerError;
