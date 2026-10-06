@@ -842,6 +842,36 @@
             </div>
 
 
+            <div>
+
+              <label for="songDuration">
+                Duración
+              </label>
+
+              <input
+                type="text"
+                id="songDuration"
+                placeholder="mm:ss"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="songMeter">
+                Métrica
+              </label>
+
+              <input
+                type="text"
+                id="songMeter"
+                placeholder="4/4"
+              >
+
+            </div>
+
+
             <div class="full">
 
               <button type="submit">
@@ -2165,6 +2195,24 @@
           .trim();
 
 
+      const duration =
+        document
+          .getElementById(
+            'songDuration'
+          )
+          .value
+          .trim();
+
+
+      const meter =
+        document
+          .getElementById(
+            'songMeter'
+          )
+          .value
+          .trim();
+
+
       if (!name) {
 
         message.textContent =
@@ -2173,11 +2221,6 @@
         return;
       }
 
-
-      /*
-       * Buscamos BandaBase para obtener
-       * el band_id necesario para songs.
-       */
 
       const {
         data: band,
@@ -2218,14 +2261,12 @@
 
 
       /*
-       * Los campos version, singer,
-       * list_status y active_status
-       * no se cargan desde este formulario.
+       * Por ahora duration y meter están
+       * preparados en el formulario.
        *
-       * Version y singer quedan NULL.
-       * list_status y active_status
-       * utilizan los valores DEFAULT
-       * definidos en Supabase.
+       * Cuando agreguemos las columnas
+       * correspondientes en Supabase,
+       * también se enviarán acá.
        */
 
       const {
