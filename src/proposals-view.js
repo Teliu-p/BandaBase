@@ -1379,6 +1379,252 @@ document
   );
 
 document
+  .getElementById(
+    "insertProposalFileBtn"
+  )
+  ?.addEventListener(
+    "mousedown",
+    function() {
+      rememberProposalSelection();
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalFileBtn"
+  )
+  ?.addEventListener(
+    "click",
+    function() {
+      const input =
+        document.getElementById(
+          "proposalPendingFile"
+        );
+
+      if (!input) {
+        return;
+      }
+
+      input.value = "";
+      input.click();
+    }
+  );
+
+document
+  .getElementById(
+    "proposalPendingFile"
+  )
+  ?.addEventListener(
+    "change",
+    function() {
+      const file =
+        this.files &&
+        this.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      proposalPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "file",
+        name:
+          file.name,
+        file
+      };
+
+      const node =
+        createProposalInlineAttachment(
+          proposalPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertProposalNodeAtSelection(
+        node
+      );
+
+      this.value = "";
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalLinkBtn"
+  )
+  ?.addEventListener(
+    "mousedown",
+    function() {
+      rememberProposalSelection();
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalLinkBtn"
+  )
+  ?.addEventListener(
+    "click",
+    function() {
+      const name =
+        window.prompt(
+          "Nombre del enlace",
+          "Enlace"
+        );
+
+      if (name === null) {
+        return;
+      }
+
+      const url =
+        window.prompt(
+          "Pegá la URL",
+          "https://"
+        );
+
+      if (url === null) {
+        return;
+      }
+
+      const safeUrl =
+        normalizeProposalLink(
+          url
+        );
+
+      if (!safeUrl) {
+        showNotice(
+          "La URL debe comenzar con http:// o https://.",
+          "error"
+        );
+        return;
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      proposalPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "link",
+        name:
+          name.trim() ||
+          "Enlace",
+        url:
+          safeUrl
+      };
+
+      const node =
+        createProposalInlineAttachment(
+          proposalPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertProposalNodeAtSelection(
+        node
+      );
+    }
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "keydown",
+    function(event) {
+      if (
+        event.key ===
+        "Enter"
+      ) {
+        event.preventDefault();
+        rememberProposalSelection();
+
+        insertProposalNodeAtSelection(
+          document.createTextNode(
+            "\n"
+          )
+        );
+
+        return;
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+        event.preventDefault();
+        rememberProposalSelection();
+
+        insertProposalNodeAtSelection(
+          document.createTextNode(
+            "  "
+          )
+        );
+      }
+    }
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "keyup",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "mouseup",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "focus",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "paste",
+    function(event) {
+      event.preventDefault();
+
+      const text =
+        event.clipboardData?.getData(
+          "text/plain"
+        ) || "";
+
+      rememberProposalSelection();
+
+      insertProposalNodeAtSelection(
+        document.createTextNode(
+          text
+        )
+      );
+    }
+  );
+
+document
   .getElementById("proposalForm")
   ?.addEventListener(
     "submit",
