@@ -951,6 +951,41 @@
       gap: 10px;
     }
 
+    .list-participant-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .list-participant-group {
+      min-width: 0;
+    }
+
+    .list-participant-group h4 {
+      margin: 0 0 9px;
+      font-size: 14px;
+    }
+
+    .list-self-participation {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin: 12px 0 14px;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #f9fafb;
+    }
+
+    .list-participant-managers {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
     .list-check-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -3239,11 +3274,11 @@
 
 
         <div class="list-detail-section" style="margin-top:16px;">
-          <h3>Integrantes y asistencia</h3>
+          <h3>Responsables de confirmación</h3>
           <p class="list-form-help">
-            Marcá quién participa y su estado de asistencia.
+            Solo vos editás la lista. Podés designar a otros integrantes para que confirmen quién termina participando.
           </p>
-          <div id="bandListMembersPicker" class="list-check-grid"></div>
+          <div id="bandListManagersPicker" class="list-check-grid"></div>
         </div>
 
 
