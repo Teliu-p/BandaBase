@@ -85,7 +85,13 @@ function renderSongCards(
           </label>
         `;
 
-        if (typeof onManageSongLists === "function") {
+        if (
+          typeof onManageSongLists === "function" &&
+          (
+            typeof canCurrentUserEditAnyBandList !== "function" ||
+            canCurrentUserEditAnyBandList()
+          )
+        ) {
           statuses += `
             <button
               type="button"
