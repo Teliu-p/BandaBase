@@ -416,18 +416,26 @@ function bindBandListEvents() {
   });
 }
 
-document.getElementById("showListFormBtn").addEventListener("click", () => showBandListForm());
-document.getElementById("cancelBandListBtn").addEventListener("click", hideBandListForm);
-document.getElementById("bandListForm").addEventListener("submit", event => {
-  event.preventDefault();
-  void saveBandList();
-});
-document.getElementById("backToListsBtn").addEventListener("click", () => {
-  currentBandList = null;
-  document.getElementById("listDetail").classList.add("hidden");
-  document.getElementById("listsBrowser").classList.remove("hidden");
-  renderBandLists();
-});
-document.getElementById("editListFromDetailBtn").addEventListener("click", () => {
-  if (currentBandList) showBandListForm(currentBandList);
-});
+let bandListsUiInitialized = false;
+
+function initializeBandListsUI() {
+  if (bandListsUiInitialized) return;
+
+  document.getElementById("showListFormBtn").addEventListener("click", () => showBandListForm());
+  document.getElementById("cancelBandListBtn").addEventListener("click", hideBandListForm);
+  document.getElementById("bandListForm").addEventListener("submit", event => {
+    event.preventDefault();
+    void saveBandList();
+  });
+  document.getElementById("backToListsBtn").addEventListener("click", () => {
+    currentBandList = null;
+    document.getElementById("listDetail").classList.add("hidden");
+    document.getElementById("listsBrowser").classList.remove("hidden");
+    renderBandLists();
+  });
+  document.getElementById("editListFromDetailBtn").addEventListener("click", () => {
+    if (currentBandList) showBandListForm(currentBandList);
+  });
+
+  bandListsUiInitialized = true;
+}
