@@ -1234,6 +1234,7 @@ function renderProposalCard(proposal) {
     <article
       class="proposal-card"
       data-proposal-id="${escapeHtml(proposal.id)}"
+      ${proposal.created_by === currentUser?.id ? `data-context-delete="proposal" data-context-delete-id="${escapeHtml(proposal.id)}"` : ""}
     >
 
       <div class="proposal-card-header">
