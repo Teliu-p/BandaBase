@@ -287,8 +287,14 @@
     "click",
     function(event) {
       if (
-        longPressTriggered
+        menu.contains(
+          event.target
+        )
       ) {
+        return;
+      }
+
+      if (longPressTriggered) {
         event.preventDefault();
         event.stopPropagation();
 
@@ -301,9 +307,6 @@
       if (
         !menu.classList.contains(
           "hidden"
-        ) &&
-        !menu.contains(
-          event.target
         )
       ) {
         closeMenu();
