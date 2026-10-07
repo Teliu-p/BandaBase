@@ -1292,8 +1292,60 @@
       margin-bottom: 18px;
     }
 
-    .comments-form textarea {
+    .comment-composer-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 8px 0;
+    }
+
+    .comment-composer-editor {
       min-height: 110px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 11px;
+      color: var(--text);
+      outline: none;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+      cursor: text;
+    }
+
+    .comment-composer-editor:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+
+    .comment-inline-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      max-width: 100%;
+      margin: 2px 1px;
+      padding: 3px 7px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .comment-inline-attachment .inline-remove {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 2px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .comment-inline-attachment .inline-remove:hover {
+      color: var(--danger);
     }
 
     .comment-list {
@@ -1328,9 +1380,51 @@
     }
 
     .comment-content {
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+
+    .comment-view-text {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .comment-view-text:last-child {
+      margin-bottom: 0;
+    }
+
+    .comment-view-attachment {
+      margin: 8px 0;
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #f9fafb;
+    }
+
+    .comment-attachment-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .comment-attachment-main {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .comment-attachment-type {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 3px;
+      overflow-wrap: anywhere;
+    }
+
+    .comment-audio {
+      width: min(100%, 520px);
+      margin-top: 8px;
     }
 
     .comment-actions {
@@ -1338,6 +1432,32 @@
       gap: 4px;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    .context-delete-menu {
+      position: fixed;
+      z-index: 1000;
+      min-width: 130px;
+      padding: 5px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 16px 35px rgba(0,0,0,.16);
+    }
+
+    .context-delete-menu button {
+      width: 100%;
+      border: 0;
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: transparent;
+      color: var(--danger);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .context-delete-menu button:hover {
+      background: #fef2f2;
     }
 
     /* =========================
@@ -2957,25 +3077,50 @@
             id="commentForm"
             class="comments-form"
           >
-
             <div class="form-group">
-
-              <label for="commentContent">
+              <label for="commentComposerEditor">
                 Comentario
               </label>
 
-              <textarea
-                id="commentContent"
-                maxlength="5000"
-                placeholder="Escribí algo sobre esta canción..."
-                required
-              ></textarea>
+              <div class="list-textarea-help">
+                Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+              </div>
 
+              <div class="comment-composer-toolbar">
+                <button
+                  type="button"
+                  id="insertCommentFileBtn"
+                  class="btn btn-subtle"
+                >
+                  📎 Adjuntar archivo
+                </button>
+
+                <button
+                  type="button"
+                  id="insertCommentLinkBtn"
+                  class="btn btn-subtle"
+                >
+                  🔗 Añadir enlace
+                </button>
+              </div>
+
+              <div
+                id="commentComposerEditor"
+                class="comment-composer-editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+                spellcheck="true"
+              ></div>
+
+              <input
+                id="commentPendingFile"
+                type="file"
+                class="hidden"
+              >
             </div>
 
-
             <div class="form-actions">
-
               <button
                 id="cancelCommentBtn"
                 type="button"
@@ -2991,9 +3136,7 @@
               >
                 Publicar comentario
               </button>
-
             </div>
-
           </form>
 
 
@@ -3179,25 +3322,50 @@
         id="generalCommentForm"
         class="comments-form"
       >
-
         <div class="form-group">
-
-          <label for="generalCommentContent">
+          <label for="generalCommentComposerEditor">
             Comentario
           </label>
 
-          <textarea
-            id="generalCommentContent"
-            maxlength="5000"
-            placeholder="Escribí algo para la banda..."
-            required
-          ></textarea>
+          <div class="list-textarea-help">
+            Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+          </div>
 
+          <div class="comment-composer-toolbar">
+            <button
+              type="button"
+              id="insertGeneralCommentFileBtn"
+              class="btn btn-subtle"
+            >
+              📎 Adjuntar archivo
+            </button>
+
+            <button
+              type="button"
+              id="insertGeneralCommentLinkBtn"
+              class="btn btn-subtle"
+            >
+              🔗 Añadir enlace
+            </button>
+          </div>
+
+          <div
+            id="generalCommentComposerEditor"
+            class="comment-composer-editor"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            spellcheck="true"
+          ></div>
+
+          <input
+            id="generalCommentPendingFile"
+            type="file"
+            class="hidden"
+          >
         </div>
 
-
         <div class="form-actions">
-
           <button
             id="cancelGeneralCommentBtn"
             type="button"
@@ -3213,9 +3381,7 @@
           >
             Publicar comentario
           </button>
-
         </div>
-
       </form>
 
 
@@ -3518,7 +3684,21 @@
 
 <div id="notice"></div>
 
+<div
+  id="contextDeleteMenu"
+  class="context-delete-menu hidden"
+>
+  <button
+    id="contextDeleteAction"
+    type="button"
+  >
+    Eliminar
+  </button>
+</div>
 
+
+<script src="src/comments-view.js"></script>
+<script src="src/context-menu.js"></script>
 <script src="src/proposals-data.js"></script>
 <script src="src/proposals-view.js"></script>
 <script>
@@ -8127,1103 +8307,6 @@ document.getElementById(
     );
 
     renderSongs();
-
-  }
-);
-
-
-/* ============================================================
-   COMENTARIOS GENERALES
-============================================================ */
-
-let generalComments = [];
-let generalEditingCommentId = null;
-let generalCommentProfilesMap = {};
-
-
-function getGeneralCommentAuthorName(
-  comment
-) {
-
-  if (
-    comment.user_id ===
-    currentUser?.id
-  ) {
-
-    const currentName =
-      currentProfile?.full_name ||
-      currentProfile?.display_name;
-
-    if (currentName) {
-      return currentName;
-    }
-
-  }
-
-  const profile =
-    generalCommentProfilesMap[
-      comment.user_id
-    ];
-
-  return (
-    profile?.full_name ||
-    profile?.display_name ||
-    "Usuario"
-  );
-
-}
-
-
-async function loadGeneralComments() {
-
-  const list =
-    document.getElementById(
-      "generalCommentsList"
-    );
-
-  if (!list || !currentBand) {
-    return;
-  }
-
-  list.innerHTML =
-    "Cargando...";
-
-  const {
-    data: comments,
-    error
-  } =
-    await getGeneralCommentsByBandId(
-      supabaseClient,
-      currentBand.id,
-      50
-    );
-
-  if (error) {
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  generalComments =
-    comments || [];
-
-  await loadGeneralCommentProfiles();
-
-  renderGeneralComments();
-
-}
-
-
-async function loadRecentGeneralComments() {
-
-  const list =
-    document.getElementById(
-      "recentCommentsList"
-    );
-
-  if (!list || !currentBand) {
-    return;
-  }
-
-  list.innerHTML =
-    "Cargando...";
-
-  const {
-    data: comments,
-    error
-  } =
-    await getGeneralCommentsByBandId(
-      supabaseClient,
-      currentBand.id,
-      5
-    );
-
-  if (error) {
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  generalComments =
-    comments || [];
-
-  await loadGeneralCommentProfiles();
-
-  renderRecentGeneralComments();
-
-}
-
-
-async function loadGeneralCommentProfiles() {
-
-  generalCommentProfilesMap = {};
-
-  const userIds =
-    Array.from(
-      new Set(
-        generalComments
-          .map(
-            comment =>
-              comment.user_id
-          )
-          .filter(Boolean)
-      )
-    );
-
-  if (!userIds.length) {
-    return;
-  }
-
-  const {
-    data: profiles,
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(
-        "user_id, display_name, full_name"
-      )
-      .in(
-        "user_id",
-        userIds
-      );
-
-  if (error) {
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  (profiles || []).forEach(
-    profile => {
-
-      generalCommentProfilesMap[
-        profile.user_id
-      ] =
-        profile;
-
-    }
-  );
-
-}
-
-
-function renderGeneralCommentCard(
-  comment,
-  showActions = true
-) {
-
-  let html =
-    '<article class="comment-card">';
-
-  html +=
-    '<div class="comment-header">' +
-    '<div>' +
-    '<div class="comment-author">' +
-    escapeHtml(
-      getGeneralCommentAuthorName(
-        comment
-      )
-    ) +
-    '</div>' +
-    '<div class="comment-date">' +
-    escapeHtml(
-      formatCommentDate(
-        comment.created_at
-      )
-    ) +
-    '</div>' +
-    '</div>';
-
-  if (
-    showActions &&
-    comment.user_id ===
-      currentUser?.id
-  ) {
-
-    html +=
-      '<div class="comment-actions">' +
-      '<button type="button" class="btn btn-subtle" data-edit-general-comment="' +
-      escapeHtml(comment.id) +
-      '">Editar</button>' +
-      '<button type="button" class="btn btn-subtle btn-danger" data-delete-general-comment="' +
-      escapeHtml(comment.id) +
-      '">Eliminar</button>' +
-      '</div>';
-
-  }
-
-  html +=
-    '</div>' +
-    '<div class="comment-content">' +
-    escapeHtml(
-      comment.content
-    ) +
-    '</div>' +
-    '</article>';
-
-  return html;
-
-}
-
-
-function renderGeneralComments() {
-
-  const list =
-    document.getElementById(
-      "generalCommentsList"
-    );
-
-  if (!list) {
-    return;
-  }
-
-  if (!generalComments.length) {
-
-    list.innerHTML =
-      '<div class="empty-state">' +
-      'Todavía no hay comentarios generales.<br>' +
-      'Sé el primero en dejar uno.' +
-      '</div>';
-
-    return;
-
-  }
-
-  list.innerHTML =
-    generalComments
-      .map(
-        comment =>
-          renderGeneralCommentCard(
-            comment,
-            true
-          )
-      )
-      .join("");
-
-  bindGeneralCommentEvents();
-
-}
-
-
-function renderRecentGeneralComments() {
-
-  const list =
-    document.getElementById(
-      "recentCommentsList"
-    );
-
-  if (!list) {
-    return;
-  }
-
-  if (!generalComments.length) {
-
-    list.innerHTML =
-      '<div class="empty-state">' +
-      'Todavía no hay comentarios generales.' +
-      '</div>';
-
-    return;
-
-  }
-
-  list.innerHTML =
-    generalComments
-      .map(
-        comment =>
-          renderGeneralCommentCard(
-            comment,
-            false
-          )
-      )
-      .join("");
-
-}
-
-
-function bindGeneralCommentEvents() {
-
-  document
-    .querySelectorAll(
-      "[data-edit-general-comment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          function() {
-
-            const comment =
-              generalComments.find(
-                item =>
-                  item.id ===
-                  button.dataset.editGeneralComment
-              );
-
-            if (!comment) {
-              return;
-            }
-
-            generalEditingCommentId =
-              comment.id;
-
-            document.getElementById(
-              "generalCommentContent"
-            ).value =
-              comment.content || "";
-
-            document.getElementById(
-              "saveGeneralCommentBtn"
-            ).textContent =
-              "Guardar cambios";
-
-            document.getElementById(
-              "cancelGeneralCommentBtn"
-            ).classList.remove(
-              "hidden"
-            );
-
-            document.getElementById(
-              "generalCommentContent"
-            ).focus();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-delete-general-comment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          async function() {
-
-            const comment =
-              generalComments.find(
-                item =>
-                  item.id ===
-                  button.dataset.deleteGeneralComment
-              );
-
-            if (!comment) {
-              return;
-            }
-
-            const confirmed =
-              window.confirm(
-                "¿Eliminar este comentario?"
-              );
-
-            if (!confirmed) {
-              return;
-            }
-
-            const {
-              error
-            } =
-              await deleteComment(
-                supabaseClient,
-                comment.id
-              );
-
-            if (error) {
-
-              showNotice(
-                error.message,
-                "error"
-              );
-
-              return;
-
-            }
-
-            showNotice(
-              "Comentario eliminado.",
-              "success"
-            );
-
-            await loadGeneralComments();
-            await loadRecentGeneralComments();
-
-          }
-        );
-
-      }
-    );
-
-}
-
-
-function resetGeneralCommentForm() {
-
-  generalEditingCommentId =
-    null;
-
-  const form =
-    document.getElementById(
-      "generalCommentForm"
-    );
-
-  if (form) {
-    form.reset();
-  }
-
-  document.getElementById(
-    "cancelGeneralCommentBtn"
-  ).classList.add(
-    "hidden"
-  );
-
-  document.getElementById(
-    "saveGeneralCommentBtn"
-  ).textContent =
-    "Publicar comentario";
-
-}
-
-
-document.getElementById(
-  "cancelGeneralCommentBtn"
-).addEventListener(
-  "click",
-  resetGeneralCommentForm
-);
-
-
-document.getElementById(
-  "generalCommentForm"
-).addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
-
-    if (
-      !currentBand ||
-      !currentUser
-    ) {
-      return;
-    }
-
-    const content =
-      document.getElementById(
-        "generalCommentContent"
-      ).value.trim();
-
-    if (!content) {
-
-      showNotice(
-        "El comentario no puede estar vacío.",
-        "error"
-      );
-
-      return;
-
-    }
-
-    if (generalEditingCommentId) {
-
-      const {
-        error
-      } =
-        await updateComment(
-          supabaseClient,
-          generalEditingCommentId,
-          content
-        );
-
-      if (error) {
-
-        showNotice(
-          error.message,
-          "error"
-        );
-
-        return;
-
-      }
-
-      showNotice(
-        "Comentario actualizado.",
-        "success"
-      );
-
-    } else {
-
-      const {
-        error
-      } =
-        await createComment(
-          supabaseClient,
-          {
-            band_id:
-              currentBand.id,
-            user_id:
-              currentUser.id,
-            content
-          }
-        );
-
-      if (error) {
-
-        showNotice(
-          error.message,
-          "error"
-        );
-
-        return;
-
-      }
-
-      showNotice(
-        "Comentario publicado.",
-        "success"
-      );
-
-    }
-
-    resetGeneralCommentForm();
-    await loadGeneralComments();
-    await loadRecentGeneralComments();
-
-  }
-);
-
-
-/* ============================================================
-   COMENTARIOS DE LA CANCIÓN
-============================================================ */
-
-let currentComments = [];
-let commentProfilesMap = {};
-let editingCommentId = null;
-
-
-function formatCommentDate(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  const date =
-    new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat(
-    "es-AR",
-    {
-      dateStyle: "short",
-      timeStyle: "short"
-    }
-  ).format(date);
-
-}
-
-
-async function loadComments() {
-
-  const commentsList =
-    document.getElementById(
-      "commentsList"
-    );
-
-  if (
-    !currentSong ||
-    !commentsList
-  ) {
-    return;
-  }
-
-  commentsList.innerHTML =
-    "Cargando...";
-
-  const {
-    data: comments,
-    error
-  } =
-    await getCommentsBySongId(
-      supabaseClient,
-      currentSong.id
-    );
-
-  if (error) {
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  currentComments =
-    comments || [];
-
-  commentProfilesMap = {};
-
-  const userIds =
-    Array.from(
-      new Set(
-        currentComments
-          .map(
-            comment =>
-              comment.user_id
-          )
-          .filter(Boolean)
-      )
-    );
-
-  if (userIds.length) {
-
-    const {
-      data: profiles,
-      error: profileError
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select(
-          "user_id, display_name, full_name"
-        )
-        .in(
-          "user_id",
-          userIds
-        );
-
-    if (profileError) {
-
-      showNotice(
-        profileError.message,
-        "error"
-      );
-
-      return;
-
-    }
-
-    (profiles || [])
-      .forEach(
-        profile => {
-
-          commentProfilesMap[
-            profile.user_id
-          ] =
-            profile;
-
-        }
-      );
-
-  }
-
-  renderComments();
-
-}
-
-
-function getCommentAuthorName(
-  comment
-) {
-
-  if (
-    comment.user_id ===
-    currentUser?.id
-  ) {
-
-    const currentName =
-      currentProfile?.full_name ||
-      currentProfile?.display_name;
-
-    if (currentName) {
-      return currentName;
-    }
-
-  }
-
-  const profile =
-    commentProfilesMap[
-      comment.user_id
-    ];
-
-  return (
-    profile?.full_name ||
-    profile?.display_name ||
-    "Usuario"
-  );
-
-}
-
-
-function renderComments() {
-
-  const commentsList =
-    document.getElementById(
-      "commentsList"
-    );
-
-  if (!commentsList) {
-    return;
-  }
-
-  if (!currentComments.length) {
-
-    commentsList.innerHTML =
-      '<div class="empty-state">' +
-      'Todavía no hay comentarios sobre esta canción.<br>' +
-      'Sé el primero en dejar uno.' +
-      '</div>';
-
-    return;
-
-  }
-
-  commentsList.innerHTML =
-    currentComments
-      .map(
-        comment => {
-
-          let html =
-            '<article class="comment-card">';
-
-          html +=
-            '<div class="comment-header">' +
-            '<div>' +
-            '<div class="comment-author">' +
-            escapeHtml(
-              getCommentAuthorName(
-                comment
-              )
-            ) +
-            '</div>' +
-            '<div class="comment-date">' +
-            escapeHtml(
-              formatCommentDate(
-                comment.created_at
-              )
-            ) +
-            '</div>' +
-            '</div>';
-
-          if (
-            comment.user_id ===
-            currentUser?.id
-          ) {
-
-            html +=
-              '<div class="comment-actions">' +
-              '<button type="button" class="btn btn-subtle" data-edit-comment="' +
-              escapeHtml(comment.id) +
-              '">Editar</button>' +
-              '<button type="button" class="btn btn-subtle btn-danger" data-delete-comment="' +
-              escapeHtml(comment.id) +
-              '">Eliminar</button>' +
-              '</div>';
-
-          }
-
-          html +=
-            '</div>';
-
-          html +=
-            '<div class="comment-content">' +
-            escapeHtml(
-              comment.content
-            ) +
-            '</div>';
-
-          html +=
-            '</article>';
-
-          return html;
-
-        }
-      )
-      .join("");
-
-  bindCommentEvents();
-
-}
-
-
-function bindCommentEvents() {
-
-  document
-    .querySelectorAll(
-      "[data-edit-comment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          function() {
-
-            const comment =
-              currentComments.find(
-                item =>
-                  item.id ===
-                  button.dataset.editComment
-              );
-
-            if (!comment) {
-              return;
-            }
-
-            editingCommentId =
-              comment.id;
-
-            document.getElementById(
-              "commentContent"
-            ).value =
-              comment.content || "";
-
-            document.getElementById(
-              "saveCommentBtn"
-            ).textContent =
-              "Guardar cambios";
-
-            document.getElementById(
-              "cancelCommentBtn"
-            ).classList.remove(
-              "hidden"
-            );
-
-            document.getElementById(
-              "commentContent"
-            ).focus();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-delete-comment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          async function() {
-
-            const comment =
-              currentComments.find(
-                item =>
-                  item.id ===
-                  button.dataset.deleteComment
-              );
-
-            if (!comment) {
-              return;
-            }
-
-            const confirmed =
-              window.confirm(
-                "¿Eliminar este comentario?"
-              );
-
-            if (!confirmed) {
-              return;
-            }
-
-            const {
-              error
-            } =
-              await deleteComment(
-                supabaseClient,
-                comment.id
-              );
-
-            if (error) {
-
-              showNotice(
-                error.message,
-                "error"
-              );
-
-              return;
-            }
-
-            showNotice(
-              "Comentario eliminado.",
-              "success"
-            );
-
-            await loadComments();
-
-          }
-        );
-
-      }
-    );
-
-}
-
-
-function resetCommentForm() {
-
-  editingCommentId =
-    null;
-
-  const form =
-    document.getElementById(
-      "commentForm"
-    );
-
-  if (form) {
-    form.reset();
-  }
-
-  document.getElementById(
-    "cancelCommentBtn"
-  ).classList.add(
-    "hidden"
-  );
-
-  document.getElementById(
-    "saveCommentBtn"
-  ).textContent =
-    "Publicar comentario";
-
-}
-
-
-document.getElementById(
-  "cancelCommentBtn"
-).addEventListener(
-  "click",
-  resetCommentForm
-);
-
-
-document.getElementById(
-  "commentForm"
-).addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
-
-    if (
-      !currentBand ||
-      !currentSong ||
-      !currentUser
-    ) {
-      return;
-    }
-
-    const content =
-      document.getElementById(
-        "commentContent"
-      ).value.trim();
-
-    if (!content) {
-
-      showNotice(
-        "El comentario no puede estar vacío.",
-        "error"
-      );
-
-      return;
-
-    }
-
-    if (editingCommentId) {
-
-      const {
-        error
-      } =
-        await updateComment(
-          supabaseClient,
-          editingCommentId,
-          content
-        );
-
-      if (error) {
-
-        showNotice(
-          error.message,
-          "error"
-        );
-
-        return;
-
-      }
-
-      showNotice(
-        "Comentario actualizado.",
-        "success"
-      );
-
-    } else {
-
-      const {
-        error
-      } =
-        await createComment(
-          supabaseClient,
-          {
-            band_id:
-              currentBand.id,
-            song_id:
-              currentSong.id,
-            user_id:
-              currentUser.id,
-            content
-          }
-        );
-
-      if (error) {
-
-        showNotice(
-          error.message,
-          "error"
-        );
-
-        return;
-
-      }
-
-      showNotice(
-        "Comentario publicado.",
-        "success"
-      );
-
-    }
-
-    resetCommentForm();
-
-    await loadComments();
 
   }
 );
