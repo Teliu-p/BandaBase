@@ -7671,15 +7671,14 @@ async function openSongListsDialog(songId) {
     (currentBandLists || [])
       .filter(
         list =>
-          isBandListCreator(
-            list
-          )
+          isBandListCreator(list) ||
+          window.bandabaseIsAdmin?.()
       );
 
   if (!editableLists.length) {
     picker.innerHTML =
       '<div class="empty-state">No tenés listas que puedas editar. ' +
-      'Solo quien creó una lista puede modificar su repertorio.</div>';
+      'Solo quien creó una lista o un Administrador puede modificar su repertorio.</div>';
     return;
   }
 
