@@ -6124,9 +6124,9 @@ async function saveMaterialDraft() {
     if (uploadError) {
 
       showNotice(
-        "El material se guardó, pero no se pudo subir \\"" +
+        "El material se guardó, pero no se pudo subir el archivo: " +
         file.name +
-        "\\": " +
+        ". " +
         uploadError.message,
         "error"
       );
