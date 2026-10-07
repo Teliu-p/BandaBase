@@ -126,10 +126,34 @@ async function refreshBandListData() {
     }
   );
 
+  syncSongsRepertoireFromLists();
+
   return {
     data: currentBandLists,
     error: null
   };
+}
+
+function syncSongsRepertoireFromLists() {
+  if (!Array.isArray(allSongs)) {
+    return;
+  }
+
+  allSongs.forEach(
+    song => {
+      song.in_repertoire =
+        getSongListCount(
+          song.id
+        ) > 0;
+    }
+  );
+
+  if (currentSong) {
+    currentSong.in_repertoire =
+      getSongListCount(
+        currentSong.id
+      ) > 0;
+  }
 }
 
 function isBandListCreator(list) {
