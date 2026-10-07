@@ -159,3 +159,23 @@ async function removeSongFromBandList(
     .eq("item_type", "song")
     .eq("song_id", songId);
 }
+
+async function deleteBandLists(
+  supabaseClient,
+  listIds
+) {
+  const ids = [
+    ...new Set(
+      (listIds || []).filter(Boolean)
+    )
+  ];
+
+  if (!ids.length) {
+    return { error: null };
+  }
+
+  return await supabaseClient
+    .from("band_lists")
+    .delete()
+    .in("id", ids);
+}

@@ -252,3 +252,28 @@ async function deleteProposal(client, proposalId) {
 
   return { error };
 }
+
+async function deleteProposals(
+  client,
+  proposalIds
+) {
+  const ids = [
+    ...new Set(
+      (proposalIds || []).filter(Boolean)
+    )
+  ];
+
+  for (const proposalId of ids) {
+    const { error } =
+      await deleteProposal(
+        client,
+        proposalId
+      );
+
+    if (error) {
+      return { error };
+    }
+  }
+
+  return { error: null };
+}

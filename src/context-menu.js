@@ -1,313 +1,215 @@
-/* Menú contextual general de eliminación: click derecho en desktop y pulsación larga en touch. */
+/* Selección múltiple y borrado contextual para canciones, listas, propuestas y comentarios. */
 
-(function setupDeleteContextMenu() {
-  const menu =
-    document.getElementById(
-      "contextDeleteMenu"
-    );
+(function setupContextDelete() {
+  const menu = document.getElementById("contextDeleteMenu");
+  const action = document.getElementById("contextDeleteAction");
+  const cancel = document.getElementById("contextDeleteCancel");
+  const summary = document.getElementById("contextDeleteSummary");
 
-  const action =
-    document.getElementById(
-      "contextDeleteAction"
-    );
+  if (!menu || !action || !cancel) return;
 
-  if (!menu || !action) {
-    return;
-  }
-
-  let deleteControl = null;
+  const selection = new Map();
+  let menuType = null;
   let longPressTimer = null;
-  let longPressControl = null;
   let longPressTriggered = false;
+  let longPressTarget = null;
 
-  function isDeleteControl(element) {
-    if (!(element instanceof Element)) {
-      return false;
-    }
-
-    if (
-      element.classList.contains(
-        "proposal-delete"
-      )
-    ) {
-      return true;
-    }
-
-    return Array.from(
-      element.attributes || []
-    ).some(
-      attribute =>
-        attribute.name.startsWith(
-          "data-delete-"
-        )
-    );
+  function getContextTarget(target) {
+    if (!(target instanceof Element)) return null;
+    return target.closest("[data-context-delete]");
   }
 
-  function findDeleteControl(target) {
-    if (!(target instanceof Element)) {
-      return null;
-    }
-
-    let node = target;
-
-    for (
-      let level = 0;
-      node && level < 7;
-      level += 1
-    ) {
-      if (isDeleteControl(node)) {
-        return node;
-      }
-
-      const candidate =
-        Array.from(
-          node.querySelectorAll(
-            "button, [role='button']"
-          )
-        ).find(
-          isDeleteControl
-        );
-
-      if (candidate) {
-        return candidate;
-      }
-
-      node = node.parentElement;
-    }
-
-    return null;
+  function clearSelection() {
+    selection.forEach(item => {
+      item.element?.classList.remove(
+        "context-delete-selected"
+      );
+    });
+    selection.clear();
+    menuType = null;
+    closeMenu();
+    updateSelectionUi();
   }
 
   function closeMenu() {
     menu.classList.add("hidden");
-    deleteControl = null;
+
+    menuType =
+      selection.size
+        ? [...selection.values()][0].type
+        : null;
   }
 
-  function openMenu(
-    x,
-    y,
-    control
-  ) {
-    if (
-      !control ||
-      !document.contains(control)
-    ) {
-      return;
+  function updateSelectionUi() {
+    const count = selection.size;
+
+    if (count) {
+      action.textContent =
+        "Eliminar seleccionados (" + count + ")";
+    } else {
+      action.textContent = "Eliminar";
     }
 
-    deleteControl =
-      control;
+    cancel.textContent = count
+      ? "Cancelar selección"
+      : "Cerrar";
 
-    menu.classList.remove(
-      "hidden"
+    if (summary) {
+      summary.textContent =
+        count +
+        (
+          count === 1
+            ? " seleccionado"
+            : " seleccionados"
+        );
+    }
+  }
+
+  function selectTarget(target) {
+    const type = target.dataset.contextDelete;
+    const id = target.dataset.contextDeleteId;
+
+    if (!type || !id) return false;
+
+    if (
+      selection.size &&
+      [...selection.values()][0].type !== type
+    ) {
+      clearSelection();
+    }
+
+    if (!selection.has(id)) {
+      selection.set(id, { type, id, element: target });
+      target.classList.add("context-delete-selected");
+    }
+
+    menuType = type;
+    updateSelectionUi();
+    return true;
+  }
+
+  function unselectTarget(target) {
+    const id = target.dataset.contextDeleteId;
+    const item = selection.get(id);
+
+    if (!item) return false;
+
+    item.element?.classList.remove(
+      "context-delete-selected"
     );
+    selection.delete(id);
+
+    if (!selection.size) {
+      closeMenu();
+    }
+
+    updateSelectionUi();
+    return true;
+  }
+
+  function openMenuAt(x, y, target) {
+    if (!selectTarget(target)) return;
+
+    menu.classList.remove("hidden");
+    updateSelectionUi();
 
     const margin = 8;
-    const rect =
-      menu.getBoundingClientRect();
-
-    const left = Math.min(
-      x,
-      window.innerWidth -
-        rect.width -
-        margin
-    );
-
-    const top = Math.min(
-      y,
-      window.innerHeight -
-        rect.height -
-        margin
-    );
+    const rect = menu.getBoundingClientRect();
 
     menu.style.left =
       Math.max(
         margin,
-        left
+        Math.min(
+          x,
+          window.innerWidth - rect.width - margin
+        )
       ) + "px";
 
     menu.style.top =
       Math.max(
         margin,
-        top
+        Math.min(
+          y,
+          window.innerHeight - rect.height - margin
+        )
       ) + "px";
   }
 
-  action.addEventListener(
-    "click",
-    function(event) {
-      event.preventDefault();
+  action.addEventListener("click", async event => {
+    event.preventDefault();
+    event.stopPropagation();
 
-      const control =
-        deleteControl;
-
+    if (!selection.size) {
       closeMenu();
-
-      if (
-        control &&
-        document.contains(control)
-      ) {
-        control.click();
-      }
+      return;
     }
-  );
 
-  document.addEventListener(
-    "contextmenu",
-    function(event) {
-      const control =
-        findDeleteControl(
-          event.target
-        );
+    const ids = [...selection.keys()];
+    const type = menuType;
 
-      if (!control) {
-        return;
-      }
-
-      event.preventDefault();
-
-      openMenu(
-        event.clientX,
-        event.clientY,
-        control
-      );
-    }
-  );
-
-  document.addEventListener(
-    "pointerdown",
-    function(event) {
-      if (
-        event.pointerType !==
-        "touch"
-      ) {
-        return;
-      }
-
-      const control =
-        findDeleteControl(
-          event.target
-        );
-
-      if (!control) {
-        return;
-      }
-
-      longPressTriggered =
-        false;
-
-      longPressControl =
-        control;
-
-      window.clearTimeout(
-        longPressTimer
+    const result =
+      await window.bandabaseDeleteSelected?.(
+        type,
+        ids
       );
 
-      longPressTimer =
-        window.setTimeout(
-          function() {
-            longPressTriggered =
-              true;
-
-            const rect =
-              longPressControl.getBoundingClientRect();
-
-            openMenu(
-              rect.left +
-                rect.width / 2,
-              rect.bottom + 8,
-              longPressControl
-            );
-          },
-          550
-        );
-    },
-    {
-      passive: true
+    if (result?.cancelled) {
+      return;
     }
-  );
 
-  function cancelLongPress() {
-    window.clearTimeout(
-      longPressTimer
+    clearSelection();
+  });
+
+  cancel.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearSelection();
+  });
+
+  document.addEventListener("contextmenu", event => {
+    const target = getContextTarget(event.target);
+
+    if (!target) return;
+
+    event.preventDefault();
+    openMenuAt(
+      event.clientX,
+      event.clientY,
+      target
     );
-
-    longPressTimer =
-      null;
-    longPressControl =
-      null;
-  }
-
-  document.addEventListener(
-    "pointermove",
-    function(event) {
-      if (
-        event.pointerType ===
-        "touch"
-      ) {
-        cancelLongPress();
-      }
-    },
-    {
-      passive: true
-    }
-  );
-
-  document.addEventListener(
-    "pointerup",
-    function(event) {
-      if (
-        event.pointerType ===
-        "touch"
-      ) {
-        cancelLongPress();
-      }
-    },
-    {
-      passive: true
-    }
-  );
-
-  document.addEventListener(
-    "pointercancel",
-    function(event) {
-      if (
-        event.pointerType ===
-        "touch"
-      ) {
-        cancelLongPress();
-      }
-    },
-    {
-      passive: true
-    }
-  );
+  });
 
   document.addEventListener(
     "click",
-    function(event) {
-      if (
-        menu.contains(
-          event.target
-        )
-      ) {
-        return;
-      }
+    event => {
+      const target = getContextTarget(event.target);
 
-      if (longPressTriggered) {
+      if (
+        selection.size &&
+        target &&
+        target.dataset.contextDelete === menuType
+      ) {
+        if (
+          event.target.closest(
+            "button, input, select, textarea, a"
+          )
+        ) {
+          return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
-
-        longPressTriggered =
-          false;
-
+        if (selection.has(target.dataset.contextDeleteId)) {
+          unselectTarget(target);
+        } else {
+          selectTarget(target);
+        }
         return;
       }
 
       if (
-        !menu.classList.contains(
-          "hidden"
-        )
+        !menu.classList.contains("hidden") &&
+        !menu.contains(event.target)
       ) {
         closeMenu();
       }
@@ -316,26 +218,93 @@
   );
 
   document.addEventListener(
-    "keydown",
-    function(event) {
+    "pointerdown",
+    event => {
+      if (event.pointerType !== "touch") return;
+
+      const target = getContextTarget(event.target);
+      if (!target) return;
+
+      window.clearTimeout(longPressTimer);
+      longPressTarget = target;
+      longPressTriggered = false;
+
+      longPressTimer = window.setTimeout(() => {
+        longPressTriggered = true;
+        const rect =
+          longPressTarget.getBoundingClientRect();
+
+        openMenuAt(
+          rect.left + rect.width / 2,
+          rect.bottom + 8,
+          longPressTarget
+        );
+      }, 550);
+    },
+    { passive: true }
+  );
+
+  function cancelLongPress() {
+    window.clearTimeout(longPressTimer);
+    longPressTimer = null;
+    longPressTarget = null;
+  }
+
+  ["pointerup", "pointercancel"].forEach(eventName => {
+    document.addEventListener(
+      eventName,
+      event => {
+        if (event.pointerType === "touch") {
+          cancelLongPress();
+        }
+      },
+      { passive: true }
+    );
+  });
+
+  document.addEventListener(
+    "pointermove",
+    event => {
+      if (event.pointerType === "touch") {
+        cancelLongPress();
+      }
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    "click",
+    event => {
+      if (!longPressTriggered) return;
+
+      longPressTriggered = false;
+
       if (
-        event.key === "Escape"
+        getContextTarget(event.target)
       ) {
-        closeMenu();
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Escape") {
+        clearSelection();
       }
     }
   );
 
-  window.addEventListener(
-    "resize",
-    closeMenu
-  );
-
+  window.addEventListener("resize", clearSelection);
   window.addEventListener(
     "scroll",
     closeMenu,
-    {
-      passive: true
-    }
+    { passive: true }
   );
+
+  window.bandabaseClearDeleteSelection =
+    clearSelection;
 })();

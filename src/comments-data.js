@@ -351,3 +351,28 @@ async function deleteComment(
     );
 
 }
+
+async function deleteComments(
+  supabaseClient,
+  commentIds
+) {
+  const ids = [
+    ...new Set(
+      (commentIds || []).filter(Boolean)
+    )
+  ];
+
+  for (const commentId of ids) {
+    const { error } =
+      await deleteComment(
+        supabaseClient,
+        commentId
+      );
+
+    if (error) {
+      return { error };
+    }
+  }
+
+  return { error: null };
+}
