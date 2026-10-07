@@ -5,7 +5,9 @@ const BAND_LIST_COLUMNS = `
   status,
   notes,
   created_by,
-  created_at
+  created_at,
+  deleted_at,
+  deleted_by
 `;
 
 const BAND_LIST_ITEM_COLUMNS = `
@@ -30,6 +32,7 @@ async function getBandListsByBandId(
     .from("band_lists")
     .select(BAND_LIST_COLUMNS)
     .eq("band_id", bandId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 }
 
@@ -53,17 +56,22 @@ async function updateBandList(
     .from("band_lists")
     .update(listData)
     .eq("id", listId)
+    .is("deleted_at", null)
     .select(BAND_LIST_COLUMNS)
     .single();
 }
 
 async function deleteBandList(
   supabaseClient,
-  listId
+  listId,
+  deletedBy = currentUser?.id || null
 ) {
   return await supabaseClient
     .from("band_lists")
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy
+    })
     .eq("id", listId);
 }
 
@@ -162,7 +170,8 @@ async function removeSongFromBandList(
 
 async function deleteBandLists(
   supabaseClient,
-  listIds
+  listIds,
+  deletedBy = currentUser?.id || null
 ) {
   const ids = [
     ...new Set(
@@ -176,7 +185,10 @@ async function deleteBandLists(
 
   return await supabaseClient
     .from("band_lists")
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy
+    })
     .in("id", ids);
 }
 
