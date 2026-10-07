@@ -144,8 +144,8 @@ function renderRepertoireSong(song) {
       ? '<div class="member-info">' + escapeHtml(song.artist) + '</div>'
       : "") +
     '<div class="list-song-meta">' + escapeHtml(formatSongInfo(song)) + '</div>' +
-    (song.genre
-      ? '<div class="list-song-genre">' + escapeHtml(song.genre) + '</div>'
+    (formatSongGenres(song.genre)
+      ? '<div class="list-song-genre">' + escapeHtml(formatSongGenres(song.genre)) + '</div>'
       : "") +
     '<div class="list-song-singers">' + formatSongSingers(song) + '</div>' +
   '</div>';
