@@ -114,7 +114,6 @@ async function createSong(
     color,
     status,
     active_status,
-    in_repertoire,
     singer,
     song_key
   } =
@@ -133,7 +132,6 @@ async function createSong(
       color,
       status,
       active_status,
-      in_repertoire,
       singer,
       song_key
     })
