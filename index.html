@@ -1637,84 +1637,6 @@
       margin-top: 12px;
     }
 
-    .home-recent-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .home-recent-panel {
-      min-width: 0;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-    }
-
-    .home-recent-panel-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .home-recent-panel-header h3 {
-      margin: 0;
-      font-size: 16px;
-    }
-
-    .home-recent-panel-header p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .home-preview-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .home-preview-item {
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #f9fafb;
-      overflow-wrap: anywhere;
-    }
-
-    .home-preview-item strong {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .home-preview-meta {
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.4;
-    }
-
-    .home-preview-text {
-      margin-top: 6px;
-      white-space: pre-wrap;
-      line-height: 1.4;
-      overflow-wrap: anywhere;
-    }
-
-    .home-preview-empty {
-      color: var(--muted);
-      font-size: 12px;
-      padding: 12px 2px;
-    }
-
-    @media (max-width: 980px) {
-      .home-recent-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     /* =========================
        BANDA
     ========================= */
@@ -2037,85 +1959,35 @@
 
       </div>
 
-      <div class="home-recent-grid">
 
-        <section class="home-recent-panel">
+      <div class="form-card">
 
-          <div class="home-recent-panel-header">
-            <div>
-              <h3>Listas</h3>
-              <p>Las listas más recientes.</p>
-            </div>
+        <div class="section-header" style="margin-bottom:18px;">
 
-            <button
-              type="button"
-              class="btn btn-subtle"
-              data-home-go-section="listas"
-            >
-              Ver
-            </button>
+          <div>
+
+            <h3 style="margin:0;">
+              Comentarios recientes
+            </h3>
+
+            <p style="margin-top:4px;">
+              Últimos comentarios generales de la banda.
+            </p>
+
           </div>
 
-          <div
-            id="homeRecentLists"
-            class="home-preview-list"
-          ></div>
-
-        </section>
+        </div>
 
 
-        <section class="home-recent-panel">
-
-          <div class="home-recent-panel-header">
-            <div>
-              <h3>Propuestas</h3>
-              <p>Las propuestas más recientes.</p>
-            </div>
-
-            <button
-              type="button"
-              class="btn btn-subtle"
-              data-home-go-section="propuestas"
-            >
-              Ver
-            </button>
-          </div>
-
-          <div
-            id="homeRecentProposals"
-            class="home-preview-list"
-          ></div>
-
-        </section>
-
-
-        <section class="home-recent-panel">
-
-          <div class="home-recent-panel-header">
-            <div>
-              <h3>Comentarios</h3>
-              <p>Los comentarios generales más recientes.</p>
-            </div>
-
-            <button
-              type="button"
-              class="btn btn-subtle"
-              data-home-go-section="comentarios"
-            >
-              Ver
-            </button>
-          </div>
-
-          <div
-            id="homeRecentComments"
-            class="home-preview-list"
-          ></div>
-
-        </section>
+        <div
+          id="recentCommentsList"
+          class="comment-list"
+        ></div>
 
       </div>
 
     </section>
+
 
     <!-- =========================
          BANDA
@@ -2477,8 +2349,9 @@
                 <input
                   id="newSongRepertoire"
                   type="checkbox"
+                  disabled
                 >
-                <span>Añadir al repertorio</span>
+                <span>Se activa automáticamente al agregar la canción a una lista</span>
               </label>
             </div>
 
@@ -4574,13 +4447,7 @@ async function initializeApp() {
   initializeBandListsUI();
   initializeSongListsDialogUI();
   await refreshBandListData();
-
-  if (
-    typeof renderSongs ===
-    "function"
-  ) {
-    renderSongs();
-  }
+  renderSongs();
 
   showSection(
     getSavedSection()
@@ -7707,7 +7574,6 @@ function renderSongs() {
     escapeHtml,
     formatDuration,
     openSong,
-    toggleSongRepertoire,
     openSongListsDialog
   );
 
@@ -7939,7 +7805,6 @@ document.getElementById(
       meter,
       color,
       listStatus,
-      inRepertoire,
       activeStatus,
       singers
     } =
@@ -8000,9 +7865,6 @@ document.getElementById(
 
       status:
         listStatus,
-
-      in_repertoire:
-        inRepertoire,
 
       active_status:
         activeStatus,
@@ -8325,7 +8187,6 @@ document.getElementById(
       meter,
       color,
       listStatus,
-      inRepertoire,
       activeStatus,
       singers,
       originalBpm,
@@ -8380,9 +8241,6 @@ document.getElementById(
 
       status:
         listStatus,
-
-      in_repertoire:
-        inRepertoire,
 
       active_status:
         activeStatus,
@@ -8831,7 +8689,7 @@ function showSection(
 
   if (sectionName === "inicio") {
 
-    void loadHomeRecentData();
+    void loadRecentGeneralComments();
 
   }
 
@@ -8863,273 +8721,6 @@ function showSection(
   }
 
 }
-
-
-/* ============================================================
-   VISTAS PREVIAS DE INICIO
-============================================================ */
-
-function renderHomeRecentLists() {
-  const container =
-    document.getElementById(
-      "homeRecentLists"
-    );
-
-  if (!container) {
-    return;
-  }
-
-  const lists =
-    (currentBandLists || [])
-      .slice()
-      .sort(
-        (a, b) =>
-          (Date.parse(b.created_at || "") || 0) -
-          (Date.parse(a.created_at || "") || 0)
-      )
-      .slice(0, 3);
-
-  if (!lists.length) {
-    container.innerHTML =
-      '<div class="home-preview-empty">Todavía no hay listas.</div>';
-    return;
-  }
-
-  container.innerHTML =
-    lists.map(
-      list => {
-        const items =
-          getBandListItems(
-            list.id
-          );
-
-        const annotated =
-          items.filter(
-            item =>
-              item.item_type ===
-                "member" &&
-              item.status !==
-                "Confirmado"
-          ).length;
-
-        const confirmed =
-          items.filter(
-            item =>
-              item.item_type ===
-                "member" &&
-              item.status ===
-                "Confirmado"
-          ).length;
-
-        return (
-          '<div class="home-preview-item">' +
-            "<strong>" +
-            escapeHtml(
-              list.title ||
-              "Lista"
-            ) +
-            "</strong>" +
-            '<div class="home-preview-meta">' +
-              escapeHtml(
-                list.status ||
-                "Planificada"
-              ) +
-              " · " +
-              annotated +
-              " anotados · " +
-              confirmed +
-              " confirmados" +
-            "</div>" +
-            (
-              list.notes
-                ? '<div class="home-preview-text">' +
-                  escapeHtml(
-                    list.notes
-                  ) +
-                  "</div>"
-                : ""
-            ) +
-          "</div>"
-        );
-      }
-    ).join("");
-}
-
-
-async function loadHomeRecentProposals() {
-  const container =
-    document.getElementById(
-      "homeRecentProposals"
-    );
-
-  if (!container || !currentBand) {
-    return;
-  }
-
-  try {
-    const {
-      data,
-      error
-    } =
-      await getProposalsByBandId(
-        supabaseClient,
-        currentBand.id
-      );
-
-    if (error) {
-      throw error;
-    }
-
-    const proposals =
-      (data || [])
-        .slice(0, 3);
-
-    if (!proposals.length) {
-      container.innerHTML =
-        '<div class="home-preview-empty">Todavía no hay propuestas.</div>';
-      return;
-    }
-
-    container.innerHTML =
-      proposals.map(
-        proposal =>
-          '<div class="home-preview-item">' +
-            "<strong>" +
-            escapeHtml(
-              proposal.title ||
-              "Propuesta"
-            ) +
-            "</strong>" +
-            '<div class="home-preview-meta">' +
-              escapeHtml(
-                proposal.status ||
-                "Abierta"
-              ) +
-              " · " +
-              escapeHtml(
-                proposalTypeLabel(
-                  proposal.voting_type
-                )
-              ) +
-            "</div>" +
-            (
-              proposal.detail
-                ? '<div class="home-preview-text">' +
-                  escapeHtml(
-                    proposal.detail
-                  )
-                  .slice(0, 220) +
-                  (
-                    proposal.detail.length >
-                    220
-                      ? "…"
-                      : ""
-                  ) +
-                  "</div>"
-                : ""
-            ) +
-          "</div>"
-      ).join("");
-
-  } catch (error) {
-    container.innerHTML =
-      '<div class="home-preview-empty">No se pudieron cargar las propuestas.</div>';
-  }
-}
-
-
-function renderHomeRecentComments() {
-  const container =
-    document.getElementById(
-      "homeRecentComments"
-    );
-
-  if (!container) {
-    return;
-  }
-
-  const comments =
-    (generalComments || [])
-      .slice(0, 3);
-
-  if (!comments.length) {
-    container.innerHTML =
-      '<div class="home-preview-empty">Todavía no hay comentarios.</div>';
-    return;
-  }
-
-  container.innerHTML =
-    comments.map(
-      comment =>
-        '<div class="home-preview-item">' +
-          "<strong>" +
-            escapeHtml(
-              getCommentAuthorNameFromMap(
-                comment,
-                generalCommentProfilesMap
-              )
-            ) +
-          "</strong>" +
-          '<div class="home-preview-meta">' +
-            escapeHtml(
-              formatCommentDate(
-                comment.created_at
-              )
-            ) +
-          "</div>" +
-          '<div class="home-preview-text">' +
-            escapeHtml(
-              (
-                getCommentText(
-                  comment.blocks || []
-                ) ||
-                "[Adjunto]"
-              )
-            ).slice(0, 220) +
-            (
-              getCommentText(
-                comment.blocks || []
-              ).length > 220
-                ? "…"
-                : ""
-            ) +
-          "</div>" +
-        "</div>"
-    ).join("");
-}
-
-
-async function loadHomeRecentData() {
-  renderHomeRecentLists();
-
-  await Promise.all([
-    loadHomeRecentProposals(),
-    loadRecentGeneralComments()
-  ]);
-
-  renderHomeRecentLists();
-  renderHomeRecentComments();
-  bindCommentAttachmentEvents();
-}
-
-
-document
-  .querySelectorAll(
-    "[data-home-go-section]"
-  )
-  .forEach(
-    button => {
-      button.addEventListener(
-        "click",
-        () => {
-          showSection(
-            button.dataset
-              .homeGoSection
-          );
-        }
-      );
-    }
-  );
 
 
 /* ============================================================
