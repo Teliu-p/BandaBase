@@ -2,7 +2,7 @@ create table if not exists public.band_list_managers (
   id uuid primary key default gen_random_uuid(),
   list_id uuid not null references public.band_lists(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  created_by uuid not null references auth.users(id) on delete restrict,
+  created_by uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (list_id, user_id)
 );
