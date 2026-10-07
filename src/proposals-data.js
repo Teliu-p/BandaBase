@@ -103,7 +103,10 @@ async function createProposal(client, proposalData, optionLabels) {
   if (optionError) {
     await client
       .from("proposals")
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: currentUser?.id || null
+      })
       .eq("id", proposal.id);
 
     return { data: null, error: optionError };
