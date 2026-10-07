@@ -1210,8 +1210,12 @@ function renderProposalCard(proposal) {
     )
     .join("");
 
+  const canManageProposal =
+    proposal.created_by === currentUser?.id ||
+    window.bandabaseIsAdmin?.();
+
   const actions =
-    proposal.created_by === currentUser?.id
+    canManageProposal
       ? `
         <div class="proposal-card-actions">
           <button
@@ -1234,7 +1238,7 @@ function renderProposalCard(proposal) {
     <article
       class="proposal-card"
       data-proposal-id="${escapeHtml(proposal.id)}"
-      ${proposal.created_by === currentUser?.id ? `data-context-delete="proposal" data-context-delete-id="${escapeHtml(proposal.id)}"` : ""}
+      ${canManageProposal ? `data-context-delete="proposal" data-context-delete-id="${escapeHtml(proposal.id)}"` : ""}
     >
 
       <div class="proposal-card-header">
@@ -1460,7 +1464,7 @@ function renderProposals() {
           async () => {
             const confirmed =
               window.confirm(
-                "¿Eliminar esta propuesta?"
+                "¿Mover esta propuesta a la papelera?"
               );
 
             if (!confirmed) {
@@ -1482,7 +1486,7 @@ function renderProposals() {
             }
 
             showNotice(
-              "Propuesta eliminada.",
+              "Propuesta enviada a la papelera.",
               "success"
             );
 
