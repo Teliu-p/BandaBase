@@ -1,28 +1,29 @@
 const COMMENT_COLUMNS = `
   id,
   band_id,
+  song_id,
   user_id,
   content,
   created_at
 `;
 
 
-async function getCommentsByBandId(
+async function getCommentsBySongId(
   supabaseClient,
-  bandId
+  songId
 ) {
 
   return await supabaseClient
     .from("comments")
     .select(COMMENT_COLUMNS)
     .eq(
-      "band_id",
-      bandId
+      "song_id",
+      songId
     )
     .order(
       "created_at",
       {
-        ascending: false
+        ascending: true
       }
     );
 
@@ -36,6 +37,7 @@ async function createComment(
 
   const {
     band_id,
+    song_id,
     user_id,
     content
   } =
@@ -45,6 +47,7 @@ async function createComment(
     .from("comments")
     .insert({
       band_id,
+      song_id,
       user_id,
       content
     })
@@ -69,7 +72,6 @@ async function updateComment(
       "id",
       commentId
     );
-
 
 }
 
