@@ -156,7 +156,7 @@ function renderBandListCard(list) {
   const repertoire = getListSongs(list.id);
   const memberCount = items.filter(item => item.item_type === "member").length;
 
-  let html = '<article class="list-card">';
+  let html = '<article class="list-card" data-context-delete="list" data-context-delete-id="' + escapeHtml(list.id) + '">';
   html += '<div class="list-card-header"><div>';
   html += '<div class="list-card-title">' + escapeHtml(list.title || "Lista") + '</div>';
   html += '</div><div class="detail-actions">';
