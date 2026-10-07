@@ -79,6 +79,22 @@ async function getProposalVotesByProposalIds(client, proposalIds) {
     .in("proposal_id", proposalIds);
 }
 
+async function getProposalVoteStatsByProposalIds(
+  client,
+  proposalIds
+) {
+  if (!proposalIds.length) {
+    return { data: [], error: null };
+  }
+
+  return await client.rpc(
+    "get_proposal_vote_stats",
+    {
+      p_proposal_ids: proposalIds
+    }
+  );
+}
+
 async function createProposal(client, proposalData, optionLabels) {
   const { data: proposal, error } = await client
     .from("proposals")
