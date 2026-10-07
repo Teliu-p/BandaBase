@@ -1637,6 +1637,84 @@
       margin-top: 12px;
     }
 
+    .home-recent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .home-recent-panel {
+      min-width: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .home-recent-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .home-recent-panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .home-recent-panel-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .home-preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .home-preview-item {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f9fafb;
+      overflow-wrap: anywhere;
+    }
+
+    .home-preview-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .home-preview-meta {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .home-preview-text {
+      margin-top: 6px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .home-preview-empty {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 12px 2px;
+    }
+
+    @media (max-width: 980px) {
+      .home-recent-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* =========================
        BANDA
     ========================= */
@@ -1959,35 +2037,85 @@
 
       </div>
 
+      <div class="home-recent-grid">
 
-      <div class="form-card">
+        <section class="home-recent-panel">
 
-        <div class="section-header" style="margin-bottom:18px;">
+          <div class="home-recent-panel-header">
+            <div>
+              <h3>Listas</h3>
+              <p>Las listas más recientes.</p>
+            </div>
 
-          <div>
-
-            <h3 style="margin:0;">
-              Comentarios recientes
-            </h3>
-
-            <p style="margin-top:4px;">
-              Últimos comentarios generales de la banda.
-            </p>
-
+            <button
+              type="button"
+              class="btn btn-subtle"
+              data-home-go-section="listas"
+            >
+              Ver
+            </button>
           </div>
 
-        </div>
+          <div
+            id="homeRecentLists"
+            class="home-preview-list"
+          ></div>
+
+        </section>
 
 
-        <div
-          id="recentCommentsList"
-          class="comment-list"
-        ></div>
+        <section class="home-recent-panel">
+
+          <div class="home-recent-panel-header">
+            <div>
+              <h3>Propuestas</h3>
+              <p>Las propuestas más recientes.</p>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-subtle"
+              data-home-go-section="propuestas"
+            >
+              Ver
+            </button>
+          </div>
+
+          <div
+            id="homeRecentProposals"
+            class="home-preview-list"
+          ></div>
+
+        </section>
+
+
+        <section class="home-recent-panel">
+
+          <div class="home-recent-panel-header">
+            <div>
+              <h3>Comentarios</h3>
+              <p>Los comentarios generales más recientes.</p>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-subtle"
+              data-home-go-section="comentarios"
+            >
+              Ver
+            </button>
+          </div>
+
+          <div
+            id="homeRecentComments"
+            class="home-preview-list"
+          ></div>
+
+        </section>
 
       </div>
 
     </section>
-
 
     <!-- =========================
          BANDA
@@ -2757,8 +2885,9 @@
                   <input
                     id="detailRepertoire"
                     type="checkbox"
+                    disabled
                   >
-                  <span>En repertorio</span>
+                  <span>En repertorio · automático según las listas</span>
                 </label>
               </div>
 
