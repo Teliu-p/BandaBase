@@ -4,6 +4,49 @@ const PROPOSAL_COLUMNS =
 const PROPOSAL_ATTACHMENT_COLUMNS =
   "id, proposal_id, band_id, kind, title, file_name, storage_path, url, mime_type, file_size, created_by, created_at";
 
+const PROPOSAL_BLOCK_COLUMNS =
+  "id, proposal_id, block_type, content, attachment_id, position, created_at";
+
+async function getProposalBlocksByProposalIds(
+  client,
+  proposalIds
+) {
+  if (!proposalIds.length) {
+    return { data: [], error: null };
+  }
+
+  return client
+    .from("proposal_blocks")
+    .select(PROPOSAL_BLOCK_COLUMNS)
+    .in("proposal_id", proposalIds)
+    .order("position", { ascending: true });
+}
+
+async function replaceProposalBlocks(
+  client,
+  proposalId,
+  blocks
+) {
+  const { error: deleteError } =
+    await client
+      .from("proposal_blocks")
+      .delete()
+      .eq("proposal_id", proposalId);
+
+  if (deleteError) {
+    return { data: null, error: deleteError };
+  }
+
+  if (!blocks.length) {
+    return { data: [], error: null };
+  }
+
+  return client
+    .from("proposal_blocks")
+    .insert(blocks)
+    .select(PROPOSAL_BLOCK_COLUMNS);
+}
+
 async function getProposalsByBandId(client, bandId) {
   return client
     .from("proposals")
