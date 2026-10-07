@@ -13,6 +13,9 @@ create index if not exists band_list_managers_list_id_idx
 create index if not exists band_list_managers_user_id_idx
   on public.band_list_managers(user_id);
 
+create index if not exists band_list_managers_created_by_idx
+  on public.band_list_managers(created_by);
+
 create unique index if not exists band_list_items_one_member_per_list_idx
 on public.band_list_items(list_id, member_user_id)
 where item_type = 'member' and member_user_id is not null;
