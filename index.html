@@ -804,20 +804,16 @@
       gap: 10px;
     }
 
-    .list-member-info {
-      min-width: 0;
-    }
-
     .list-check-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 7px;
+      grid-template-columns: 1fr;
+      gap: 8px;
       margin-top: 6px;
     }
 
     .list-check-option {
       display: grid;
-      grid-template-columns: auto minmax(0,1fr) 125px;
+      grid-template-columns: auto minmax(0, 1fr) 125px;
       align-items: center;
       gap: 8px;
       border: 1px solid var(--border);
@@ -836,10 +832,64 @@
       min-width: 0;
     }
 
-    .list-textarea-help {
+    .list-song-option {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .list-song-option:hover {
+      background: #f9fafb;
+    }
+
+    .list-song-option input[type="checkbox"] {
+      width: auto;
+      margin-top: 4px;
+    }
+
+    .list-song-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .list-song-title {
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .list-song-artist,
+    .list-song-meta,
+    .list-song-genre,
+    .list-song-singers {
+      font-size: 13px;
       color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .list-song-title + .list-song-artist {
+      margin-bottom: 2px;
+    }
+
+    .list-song-genre {
+      color: var(--text);
       font-size: 12px;
-      margin-top: 5px;
+    }
+
+    .list-song-singers {
+      font-size: 12px;
+    }
+
+    .list-song-detail {
+      padding: 11px 12px;
     }
 
     .list-notes {
@@ -848,97 +898,6 @@
       line-height: 1.5;
     }
 
-    .material-composer {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .material-composer-editor {
-      min-height: 180px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-      padding: 12px;
-      line-height: 1.55;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      outline: none;
-    }
-
-    .material-composer-editor:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
-    }
-
-    .material-composer-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin: 8px 0;
-    }
-
-    .material-inline-attachment {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 7px;
-      margin: 0 2px;
-      border: 1px solid #d1d5db;
-      border-radius: 7px;
-      background: #f9fafb;
-      vertical-align: baseline;
-      user-select: none;
-      white-space: nowrap;
-    }
-
-    .material-inline-attachment .inline-remove {
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      padding: 0 2px;
-      line-height: 1;
-    }
-
-    .material-view {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .material-view-text {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      line-height: 1.55;
-    }
-
-    .material-view-attachment {
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 12px;
-      background: #f9fafb;
-    }
-
-    .material-audio {
-      width: 100%;
-      max-width: 520px;
-      margin-top: 8px;
-    }
-
-    @media (max-width: 650px) {
-      .list-check-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .list-check-option {
-        grid-template-columns: auto minmax(0,1fr);
-      }
-
-      .list-check-option select {
-        grid-column: 2;
-      }
-    }
 
     /* =========================
        COMENTARIOS
@@ -2638,13 +2597,10 @@
       <div class="section-header">
 
         <div>
-
           <h2>Listas</h2>
-
           <p>
-            Una lista reúne todo lo necesario para una fecha o actividad de la banda.
+            Organizá una fecha con sus datos, repertorio e integrantes.
           </p>
-
         </div>
 
         <button
@@ -2671,7 +2627,7 @@
               id="bandListTitle"
               type="text"
               required
-              placeholder="Ej. Domingo 12 de octubre"
+              placeholder="Ej. Domingo 12 de octubre · Culto"
             >
           </div>
 
@@ -2686,21 +2642,10 @@
           </div>
 
           <div class="form-group">
-            <label for="bandListEventType">Tipo de actividad</label>
-            <input
-              id="bandListEventType"
-              type="text"
-              placeholder="Ej. Culto, campaña, reunión..."
-            >
-          </div>
-
-          <div class="form-group">
             <label for="bandListStatus">Estado</label>
             <select id="bandListStatus">
               <option value="Planificada">Planificada</option>
               <option value="Confirmada">Confirmada</option>
-              <option value="Realizada">Realizada</option>
-              <option value="Cancelada">Cancelada</option>
             </select>
           </div>
 
@@ -2708,7 +2653,7 @@
             <label for="bandListNotes">Notas generales</label>
             <textarea
               id="bandListNotes"
-              placeholder="Detalles generales de la fecha o actividad..."
+              placeholder="Detalles generales de la fecha..."
             ></textarea>
           </div>
 
@@ -2717,49 +2662,19 @@
 
         <div class="list-detail-section" style="margin-top:16px;">
           <h3>Repertorio</h3>
-          <div class="list-textarea-help">
-            Seleccioná las canciones que forman parte de esta lista.
-          </div>
+          <p class="list-form-help">
+            Seleccioná las canciones y consultá sus datos directamente acá.
+          </p>
           <div id="bandListSongsPicker" class="list-check-grid"></div>
         </div>
 
 
         <div class="list-detail-section">
           <h3>Integrantes y asistencia</h3>
-          <div class="list-textarea-help">
-            Marcá quién participa y dejá su estado de asistencia.
-          </div>
+          <p class="list-form-help">
+            Marcá quién participa y su estado de asistencia.
+          </p>
           <div id="bandListMembersPicker" class="list-check-grid"></div>
-        </div>
-
-
-        <div class="list-detail-section">
-          <h3>Tareas</h3>
-          <div class="list-textarea-help">Una tarea por línea.</div>
-          <textarea
-            id="bandListTasks"
-            placeholder="Ej. Preparar pistas&#10;Confirmar sonido"
-          ></textarea>
-        </div>
-
-
-        <div class="list-detail-section">
-          <h3>Equipamiento / materiales</h3>
-          <div class="list-textarea-help">Una cosa por línea.</div>
-          <textarea
-            id="bandListEquipment"
-            placeholder="Ej. 2 pies de micrófono&#10;Cable XLR largo"
-          ></textarea>
-        </div>
-
-
-        <div class="list-detail-section">
-          <h3>Pendientes</h3>
-          <div class="list-textarea-help">Una cosa por línea.</div>
-          <textarea
-            id="bandListPending"
-            placeholder="Ej. Confirmar quién lleva la consola&#10;Definir última canción"
-          ></textarea>
         </div>
 
 
@@ -2801,6 +2716,13 @@
           </div>
 
           <div class="detail-actions">
+
+            <span
+              id="listDetailStatus"
+              class="status pending"
+            >
+              Planificada
+            </span>
 
             <button
               id="backToListsBtn"
