@@ -7481,39 +7481,6 @@ function getFilteredSongs() {
 
 }
 
-async function toggleSongRepertoire(songId, checked) {
-  const song = allSongs.find(item => item.id === songId);
-  if (!song) return;
-
-  const previous = song.in_repertoire;
-  const nextStatus = Boolean(checked);
-
-  song.in_repertoire = nextStatus;
-  renderSongs();
-
-  const { error } = await setSongRepertoireStatus(
-    supabaseClient,
-    songId,
-    nextStatus
-  );
-
-  if (error) {
-    song.in_repertoire = previous;
-    renderSongs();
-    showNotice(error.message, "error");
-    return;
-  }
-
-  if (currentSong?.id === songId) {
-    currentSong.in_repertoire = nextStatus;
-    const detailCheckbox = document.getElementById("detailRepertoire");
-    if (detailCheckbox) {
-      detailCheckbox.checked = nextStatus;
-    }
-  }
-}
-
-
 async function openSongListsDialog(songId) {
   const song = (allSongs || []).find(item => item.id === songId);
   if (!song) return;
@@ -8246,7 +8213,9 @@ async function openSong(
   document.getElementById(
     "detailRepertoire"
   ).checked =
-    Boolean(song.in_repertoire);
+    typeof getSongListCount === "function"
+      ? getSongListCount(song.id) > 0
+      : Boolean(song.in_repertoire);
 
 
   document.getElementById(
