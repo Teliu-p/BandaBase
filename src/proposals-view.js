@@ -451,6 +451,8 @@ function resetProposalForm() {
     ?.classList.add("hidden");
 
   renderProposalOptionInputs(["", ""]);
+  resetProposalComposer();
+  openProposalComposer();
   updateProposalTypeUI();
 }
 
@@ -741,17 +743,7 @@ function renderProposalCard(proposal) {
 
       </div>
 
-      ${
-        proposal.detail
-          ? `
-            <div class="proposal-detail">
-              ${escapeHtml(proposal.detail)}
-            </div>
-          `
-          : ""
-      }
-
-      ${renderProposalAttachments(proposal)}
+      ${renderProposalContent(proposal)}
 
       <div class="proposal-vote-box">
 
@@ -1010,6 +1002,7 @@ async function loadProposals() {
   proposalVotesMap = {};
   proposalProfilesMap = {};
   proposalAttachmentsMap = {};
+  proposalBlocksMap = {};
 
   const proposalIds =
     currentProposals.map(
@@ -1045,6 +1038,93 @@ async function loadProposals() {
 
   const proposalAttachments =
     attachmentsResult.data || [];
+
+  const proposalBlocksResult =
+    await getProposalBlocksByProposalIds(
+      supabaseClient,
+      proposalIds
+    );
+
+  if (proposalBlocksResult.error) {
+    showNotice(
+      proposalBlocksResult.error.message,
+      "error"
+    );
+    return;
+  }
+
+  const attachmentsById =
+    Object.fromEntries(
+      proposalAttachments.map(
+        attachment => [
+          attachment.id,
+          attachment
+        ]
+      )
+    );
+
+  (proposalBlocksResult.data || []).forEach(
+    block => {
+      (
+        proposalBlocksMap[
+          block.proposal_id
+        ] ||= []
+      ).push({
+        ...block,
+        attachment:
+          block.attachment_id
+            ? attachmentsById[
+                block.attachment_id
+              ] || null
+            : null
+      });
+    }
+  );
+
+  currentProposals.forEach(
+    proposal => {
+      if (
+        proposalBlocksMap[
+          proposal.id
+        ]?.length
+      ) {
+        return;
+      }
+
+      const fallback = [];
+
+      if (proposal.detail) {
+        fallback.push({
+          block_type:
+            "text",
+          content:
+            proposal.detail
+        });
+      }
+
+      proposalAttachments
+        .filter(
+          attachment =>
+            attachment.proposal_id ===
+            proposal.id
+        )
+        .forEach(
+          attachment => {
+            fallback.push({
+              block_type:
+                "attachment",
+              attachment_id:
+                attachment.id,
+              attachment
+            });
+          }
+        );
+
+      proposalBlocksMap[
+        proposal.id
+      ] = fallback;
+    }
+  );
 
   const fileAttachments =
     proposalAttachments.filter(
@@ -1319,29 +1399,13 @@ document
           ?.value
           .trim() || "";
 
+      const proposalBlocks =
+        collectProposalComposerBlocks();
+
       const detail =
-        document
-          .getElementById("proposalDetail")
-          ?.value
-          .trim() || "";
-
-      const proposalFiles =
-        document.getElementById(
-          "proposalFiles"
-        )?.files || [];
-
-      const proposalLinks =
-        document
-          .getElementById(
-            "proposalLinks"
-          )
-          ?.value
-          .split("\n")
-          .map(
-            value =>
-              value.trim()
-          )
-          .filter(Boolean) || [];
+        collectProposalLegacyText(
+          proposalBlocks
+        );
 
       const votingVisibility =
         document
@@ -1421,10 +1485,9 @@ document
       }
 
       const attachmentErrors =
-        await saveProposalAttachments(
+        await saveProposalComposerContent(
           result.data,
-          proposalFiles,
-          proposalLinks
+          proposalBlocks
         );
 
       if (attachmentErrors.length) {
