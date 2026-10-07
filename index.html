@@ -1456,6 +1456,28 @@
       cursor: pointer;
     }
 
+    .context-delete-summary {
+      padding: 6px 9px 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .context-delete-menu .context-delete-cancel {
+      color: var(--text);
+    }
+
+    .context-delete-menu .context-delete-cancel:hover {
+      background: #f3f4f6;
+    }
+
+    .context-delete-selected {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+    }
+
     .context-delete-menu button:hover {
       background: #fef2f2;
     }
@@ -3688,11 +3710,26 @@
   id="contextDeleteMenu"
   class="context-delete-menu hidden"
 >
+  <div
+    id="contextDeleteSummary"
+    class="context-delete-summary"
+  >
+    0 seleccionados
+  </div>
+
   <button
     id="contextDeleteAction"
     type="button"
   >
-    Eliminar
+    Eliminar seleccionados
+  </button>
+
+  <button
+    id="contextDeleteCancel"
+    type="button"
+    class="context-delete-cancel"
+  >
+    Cancelar selección
   </button>
 </div>
 
@@ -3805,6 +3842,174 @@ let initializingUserId = null;
 let currentBandLists = [];
 let bandListItemsMap = {};
 let currentBandList = null;
+
+async function bandabaseReloadAfterDelete(
+  type
+) {
+  if (type === "song") {
+    await loadSongs();
+    return;
+  }
+
+  if (type === "list") {
+    await loadBandLists();
+    return;
+  }
+
+  if (type === "proposal") {
+    await loadProposals();
+    return;
+  }
+
+  if (type === "generalComment") {
+    await loadGeneralComments();
+    await loadRecentGeneralComments();
+    return;
+  }
+
+  if (type === "songComment") {
+    await loadComments();
+  }
+}
+
+
+window.bandabaseDeleteSelected =
+  async function(type, ids) {
+    const uniqueIds = [
+      ...new Set(
+        (ids || []).filter(Boolean)
+      )
+    ];
+
+    if (
+      !type ||
+      !uniqueIds.length
+    ) {
+      return {
+        error: null
+      };
+    }
+
+    const labels = {
+      song: "canción",
+      list: "lista",
+      proposal: "propuesta",
+      generalComment: "comentario",
+      songComment: "comentario"
+    };
+
+    const label =
+      labels[type] ||
+      "elemento";
+
+    const plural =
+      uniqueIds.length === 1
+        ? label
+        : (
+            type === "song"
+              ? "canciones"
+              : type === "list"
+                ? "listas"
+                : type === "proposal"
+                  ? "propuestas"
+                  : "comentarios"
+          );
+
+    if (
+      !window.confirm(
+        "¿Eliminar " +
+        uniqueIds.length +
+        " " +
+        plural +
+        " seleccionado" +
+        (
+          uniqueIds.length === 1
+            ? ""
+            : "s"
+        ) +
+        "?"
+      )
+    ) {
+      return {
+        cancelled: true,
+        error: null
+      };
+    }
+
+    let result = {
+      error: null
+    };
+
+    try {
+      if (type === "song") {
+        result =
+          await deleteSongs(
+            supabaseClient,
+            uniqueIds
+          );
+      } else if (type === "list") {
+        result =
+          await deleteBandLists(
+            supabaseClient,
+            uniqueIds
+          );
+      } else if (type === "proposal") {
+        result =
+          await deleteProposals(
+            supabaseClient,
+            uniqueIds
+          );
+      } else if (
+        type === "generalComment" ||
+        type === "songComment"
+      ) {
+        result =
+          await deleteComments(
+            supabaseClient,
+            uniqueIds
+          );
+      } else {
+        return {
+          error:
+            new Error(
+              "Tipo de eliminación no reconocido."
+            )
+        };
+      }
+
+      await bandabaseReloadAfterDelete(
+        type
+      );
+    } catch (error) {
+      result = {
+        error
+      };
+
+      await bandabaseReloadAfterDelete(
+        type
+      );
+    }
+
+    if (result.error) {
+      showNotice(
+        result.error.message ||
+          "No se pudieron eliminar todos los elementos seleccionados.",
+        "error"
+      );
+      return result;
+    }
+
+    showNotice(
+      uniqueIds.length === 1
+        ? "Elemento eliminado."
+        : uniqueIds.length +
+          " elementos eliminados.",
+      "success"
+    );
+
+    return result;
+  };
+
 let editingBandListId = null;
 
 let selectedNewSongColor = null;
