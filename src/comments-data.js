@@ -4,7 +4,9 @@ const COMMENT_COLUMNS = `
   song_id,
   user_id,
   content,
-  created_at
+  created_at,
+  deleted_at,
+  deleted_by
 `;
 
 const COMMENT_ATTACHMENT_COLUMNS = `
@@ -45,6 +47,7 @@ async function getCommentsBySongId(
       "song_id",
       songId
     )
+    .is("deleted_at", null)
     .order(
       "created_at",
       {
@@ -68,6 +71,7 @@ async function getGeneralCommentsByBandId(
       "band_id",
       bandId
     )
+    .is("deleted_at", null)
     .is(
       "song_id",
       null
@@ -267,89 +271,16 @@ async function deleteCommentAttachment(
 
 async function deleteComment(
   supabaseClient,
-  commentId
+  commentId,
+  deletedBy = currentUser?.id || null
 ) {
-
-  const {
-    data: attachments,
-    error: attachmentsFetchError
-  } =
-    await supabaseClient
-      .from("comment_attachments")
-      .select(
-        "id, storage_path, kind"
-      )
-      .eq(
-        "comment_id",
-        commentId
-      );
-
-  if (attachmentsFetchError) {
-    return {
-      error:
-        attachmentsFetchError
-    };
-  }
-
-  const storagePaths =
-    (attachments || [])
-      .filter(
-        attachment =>
-          attachment.kind === "file" &&
-          attachment.storage_path
-      )
-      .map(
-        attachment =>
-          attachment.storage_path
-      );
-
-  if (storagePaths.length) {
-
-    const {
-      error: storageError
-    } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .remove(
-          storagePaths
-        );
-
-    if (storageError) {
-      return {
-        error:
-          storageError
-      };
-    }
-
-  }
-
-  const {
-    error: attachmentDeleteError
-  } =
-    await supabaseClient
-      .from("comment_attachments")
-      .delete()
-      .eq(
-        "comment_id",
-        commentId
-      );
-
-  if (attachmentDeleteError) {
-    return {
-      error:
-        attachmentDeleteError
-    };
-  }
-
   return await supabaseClient
     .from("comments")
-    .delete()
-    .eq(
-      "id",
-      commentId
-    );
-
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy
+    })
+    .eq("id", commentId);
 }
 
 async function deleteComments(
