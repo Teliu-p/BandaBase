@@ -43,6 +43,8 @@ create index if not exists comment_blocks_attachment_id_idx
 alter table public.comment_attachments enable row level security;
 alter table public.comment_blocks enable row level security;
 
+drop policy if exists comment_attachments_band_access on public.comment_attachments;
+
 create policy comment_attachments_band_access
 on public.comment_attachments
 for all
@@ -65,6 +67,8 @@ with check (
       and is_band_member(c.band_id)
   )
 );
+
+drop policy if exists comment_blocks_band_access on public.comment_blocks;
 
 create policy comment_blocks_band_access
 on public.comment_blocks
