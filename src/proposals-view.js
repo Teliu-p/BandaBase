@@ -3,10 +3,18 @@ let proposalOptionsMap = {};
 let proposalVotesMap = {};
 let proposalProfilesMap = {};
 let proposalAttachmentsMap = {};
+let proposalBlocksMap = {};
+let proposalSelectionRange = null;
+let proposalPendingAttachments = {};
 
 
 function getProposalAttachments(proposalId) {
   return proposalAttachmentsMap[proposalId] || [];
+}
+
+
+function getProposalBlocks(proposalId) {
+  return proposalBlocksMap[proposalId] || [];
 }
 
 
@@ -35,9 +43,7 @@ function formatProposalFileSize(size) {
 
 function normalizeProposalLink(value) {
   try {
-    const url = new URL(
-      String(value || "").trim()
-    );
+    const url = new URL(String(value || "").trim());
 
     if (
       url.protocol !== "http:" &&
@@ -63,219 +69,740 @@ function sanitizeProposalFileName(name) {
 }
 
 
-function renderProposalAttachments(proposal) {
-  const attachments =
-    getProposalAttachments(proposal.id);
-
-  if (!attachments.length) {
-    return "";
+function getProposalAttachmentIcon(attachment) {
+  if (attachment?.kind === "link") {
+    return "🔗";
   }
 
-  const items =
-    attachments
-      .map(
-        attachment => {
-
-          if (attachment.kind === "link") {
-            const href =
-              normalizeProposalLink(
-                attachment.url
-              );
-
-            if (!href) {
-              return "";
-            }
-
-            return (
-              '<a class="proposal-attachment proposal-attachment-link" href="' +
-              escapeHtml(href) +
-              '" target="_blank" rel="noopener noreferrer">' +
-              '<span>' +
-              escapeHtml(
-                attachment.title || href
-              ) +
-              '</span>' +
-              '<small>Enlace externo ↗</small>' +
-              '</a>'
-            );
-          }
-
-          if (!attachment.signed_url) {
-            return (
-              '<div class="proposal-attachment proposal-attachment-file">' +
-              '<span>' +
-              escapeHtml(
-                attachment.file_name ||
-                attachment.title ||
-                "Archivo"
-              ) +
-              '</span>' +
-              '<small>Archivo no disponible</small>' +
-              '</div>'
-            );
-          }
-
-          return (
-            '<a class="proposal-attachment proposal-attachment-file" href="' +
-            escapeHtml(attachment.signed_url) +
-            '" target="_blank" rel="noopener noreferrer">' +
-            '<span>' +
-            escapeHtml(
-              attachment.file_name ||
-              attachment.title ||
-              "Archivo"
-            ) +
-            '</span>' +
-            '<small>' +
-            escapeHtml(
-              formatProposalFileSize(
-                attachment.file_size
-              ) || "Archivo adjunto"
-            ) +
-            '</small>' +
-            '</a>'
-          );
-        }
-      )
-      .filter(Boolean)
-      .join("");
-
-  if (!items) {
-    return "";
+  if (
+    String(attachment?.mime_type || "")
+      .startsWith("audio/")
+  ) {
+    return "🎧";
   }
 
-  return (
-    '<div class="proposal-attachments">' +
-      '<div class="proposal-attachments-title">Adjuntos y enlaces</div>' +
-      '<div class="proposal-attachments-list">' +
-        items +
-      '</div>' +
-    '</div>'
-  );
+  if (
+    String(attachment?.mime_type || "")
+      .includes("pdf")
+  ) {
+    return "📄";
+  }
+
+  return "📎";
 }
 
 
-async function saveProposalAttachments(
-  proposal,
-  files,
-  linkValues
+function rememberProposalSelection() {
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  if (
+    editor.contains(range.startContainer) &&
+    editor.contains(range.endContainer)
+  ) {
+    proposalSelectionRange =
+      range.cloneRange();
+  }
+}
+
+
+function restoreProposalSelection() {
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  if (
+    !editor ||
+    !proposalSelectionRange
+  ) {
+    return false;
+  }
+
+  const selection =
+    window.getSelection();
+
+  try {
+    selection.removeAllRanges();
+    selection.addRange(proposalSelectionRange);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+
+function createProposalInlineAttachment(
+  attachment,
+  pendingKey = null
 ) {
-  const errors = [];
+  const wrapper =
+    document.createElement(
+      "span"
+    );
 
-  for (const file of Array.from(files || [])) {
-    const cleanName =
-      sanitizeProposalFileName(
-        file.name
-      );
+  wrapper.className =
+    "proposal-inline-attachment";
 
-    const path =
-      currentBand.id +
-      "/proposals/" +
-      proposal.id +
-      "/" +
-      crypto.randomUUID() +
-      "_" +
-      cleanName;
+  wrapper.contentEditable =
+    "false";
 
-    const { error: uploadError } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .upload(
-          path,
-          file,
-          {
-            cacheControl: "3600",
-            upsert: false,
-            contentType:
-              file.type ||
-              "application/octet-stream"
-          }
+  if (attachment?.id) {
+    wrapper.dataset.attachmentId =
+      attachment.id;
+  }
+
+  if (pendingKey) {
+    wrapper.dataset.pendingKey =
+      pendingKey;
+  }
+
+  wrapper.appendChild(
+    document.createTextNode(
+      getProposalAttachmentIcon(
+        attachment
+      ) +
+      " " +
+      (
+        attachment?.name ||
+        attachment?.file_name ||
+        attachment?.title ||
+        "Archivo"
+      ) +
+      " "
+    )
+  );
+
+  const removeButton =
+    document.createElement(
+      "button"
+    );
+
+  removeButton.type =
+    "button";
+
+  removeButton.className =
+    "inline-remove";
+
+  removeButton.textContent =
+    "×";
+
+  removeButton.title =
+    "Quitar";
+
+  removeButton.addEventListener(
+    "mousedown",
+    function(event) {
+      event.preventDefault();
+    }
+  );
+
+  removeButton.addEventListener(
+    "click",
+    function(event) {
+      event.preventDefault();
+      wrapper.remove();
+    }
+  );
+
+  wrapper.appendChild(
+    removeButton
+  );
+
+  return wrapper;
+}
+
+
+function insertProposalNodeAtSelection(node) {
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  editor.focus();
+
+  const hasSelection =
+    restoreProposalSelection();
+
+  let range =
+    proposalSelectionRange;
+
+  if (!hasSelection) {
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(false);
+  }
+
+  range.deleteContents();
+
+  const spacerBefore =
+    document.createTextNode(" ");
+
+  const spacerAfter =
+    document.createTextNode(" ");
+
+  range.insertNode(spacerAfter);
+  range.insertNode(node);
+  range.insertNode(spacerBefore);
+
+  range.setStartAfter(
+    spacerAfter
+  );
+
+  range.collapse(true);
+
+  const selection =
+    window.getSelection();
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  proposalSelectionRange =
+    range.cloneRange();
+}
+
+
+function collectProposalComposerBlocks() {
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  if (!editor) {
+    return [];
+  }
+
+  const blocks = [];
+  let textBuffer = "";
+
+  const flushText =
+    function() {
+      if (
+        textBuffer.length ||
+        !blocks.length
+      ) {
+        blocks.push({
+          block_type:
+            "text",
+          content:
+            textBuffer
+        });
+      }
+
+      textBuffer =
+        "";
+    };
+
+  editor.childNodes.forEach(
+    node => {
+      if (
+        node.nodeType ===
+        Node.TEXT_NODE
+      ) {
+        textBuffer +=
+          node.textContent || "";
+        return;
+      }
+
+      if (
+        node.nodeType !==
+        Node.ELEMENT_NODE
+      ) {
+        return;
+      }
+
+      const element =
+        node;
+
+      if (
+        element.classList.contains(
+          "proposal-inline-attachment"
+        )
+      ) {
+        flushText();
+
+        blocks.push({
+          block_type:
+            "attachment",
+          attachment_id:
+            element.dataset.attachmentId ||
+            null,
+          pendingKey:
+            element.dataset.pendingKey ||
+            null
+        });
+
+        return;
+      }
+
+      textBuffer +=
+        element.innerText ||
+        "";
+    }
+  );
+
+  if (
+    textBuffer.length ||
+    !blocks.length
+  ) {
+    blocks.push({
+      block_type:
+        "text",
+      content:
+        textBuffer
+    });
+  }
+
+  return blocks;
+}
+
+
+function collectProposalLegacyText(blocks) {
+  return blocks
+    .filter(
+      block =>
+        block.block_type ===
+        "text"
+    )
+    .map(
+      block =>
+        block.content || ""
+    )
+    .join("\n\n")
+    .trim();
+}
+
+
+function renderProposalContent(proposal) {
+  const blocks =
+    getProposalBlocks(
+      proposal.id
+    );
+
+  if (!blocks.length) {
+    return "";
+  }
+
+  let html = "";
+
+  blocks.forEach(
+    block => {
+      if (
+        block.block_type ===
+        "text"
+      ) {
+        html +=
+          '<div class="proposal-detail">' +
+          escapeHtml(
+            block.content || ""
+          ) +
+          "</div>";
+        return;
+      }
+
+      const attachment =
+        block.attachment;
+
+      if (!attachment) {
+        return;
+      }
+
+      const icon =
+        getProposalAttachmentIcon(
+          attachment
         );
 
-    if (uploadError) {
-      errors.push(
-        "No se pudo subir " +
-        file.name +
-        ": " +
-        uploadError.message
-      );
+      if (
+        attachment.kind ===
+        "link"
+      ) {
+        const href =
+          normalizeProposalLink(
+            attachment.url
+          );
+
+        if (!href) {
+          return;
+        }
+
+        html +=
+          '<div class="proposal-inline-content">' +
+          '<a class="proposal-inline-resource" href="' +
+          escapeHtml(href) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          icon +
+          " " +
+          escapeHtml(
+            attachment.title ||
+            attachment.url ||
+            "Enlace"
+          ) +
+          " ↗</a>" +
+          "</div>";
+
+        return;
+      }
+
+      html +=
+        '<div class="proposal-inline-content">';
+
+      if (attachment.signed_url) {
+        html +=
+          '<a class="proposal-inline-resource" href="' +
+          escapeHtml(
+            attachment.signed_url
+          ) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          icon +
+          " " +
+          escapeHtml(
+            attachment.file_name ||
+            attachment.title ||
+            "Archivo"
+          ) +
+          (
+            formatProposalFileSize(
+              attachment.file_size
+            )
+              ? " · " +
+                escapeHtml(
+                  formatProposalFileSize(
+                    attachment.file_size
+                  )
+                )
+              : ""
+          ) +
+          " ↗</a>";
+      } else {
+        html +=
+          icon +
+          " " +
+          escapeHtml(
+            attachment.file_name ||
+            attachment.title ||
+            "Archivo"
+          );
+      }
+
+      html +=
+        "</div>";
+    }
+  );
+
+  return html
+    ? '<div class="proposal-content">' +
+      html +
+      "</div>"
+    : "";
+}
+
+
+async function saveProposalComposerContent(
+  proposal,
+  composedBlocks
+) {
+  const persistedBlocks = [];
+  const errors = [];
+
+  for (
+    const block
+    of composedBlocks
+  ) {
+    if (
+      block.block_type ===
+      "text"
+    ) {
+      persistedBlocks.push({
+        proposal_id:
+          proposal.id,
+        block_type:
+          "text",
+        content:
+          block.content || "",
+        attachment_id:
+          null
+      });
       continue;
     }
 
-    const { error: rowError } =
-      await createProposalAttachment(
-        supabaseClient,
-        {
-          proposal_id: proposal.id,
-          band_id: currentBand.id,
-          kind: "file",
-          title: file.name,
-          file_name: file.name,
-          storage_path: path,
-          url: null,
-          mime_type:
-            file.type ||
-            null,
-          file_size: file.size,
-          created_by: currentUser.id
-        }
-      );
-
-    if (rowError) {
-      await supabaseClient
-        .storage
-        .from("materials")
-        .remove([path]);
-
-      errors.push(
-        "No se pudo registrar " +
-        file.name +
-        ": " +
-        rowError.message
-      );
+    if (
+      block.block_type !==
+      "attachment"
+    ) {
+      continue;
     }
+
+    if (
+      block.attachment_id
+    ) {
+      persistedBlocks.push({
+        proposal_id:
+          proposal.id,
+        block_type:
+          "attachment",
+        content:
+          null,
+        attachment_id:
+          block.attachment_id
+      });
+      continue;
+    }
+
+    const pending =
+      proposalPendingAttachments[
+        block.pendingKey
+      ];
+
+    if (!pending) {
+      continue;
+    }
+
+    let attachment = null;
+
+    if (
+      pending.kind ===
+      "link"
+    ) {
+      const result =
+        await createProposalAttachment(
+          supabaseClient,
+          {
+            proposal_id:
+              proposal.id,
+            band_id:
+              currentBand.id,
+            kind:
+              "link",
+            title:
+              pending.name,
+            file_name:
+              null,
+            storage_path:
+              null,
+            url:
+              pending.url,
+            mime_type:
+              null,
+            file_size:
+              null,
+            created_by:
+              currentUser.id
+          }
+        );
+
+      if (result.error) {
+        errors.push(
+          "No se pudo guardar el enlace: " +
+          result.error.message
+        );
+        continue;
+      }
+
+      attachment =
+        result.data;
+
+    } else {
+      const file =
+        pending.file;
+
+      if (!file) {
+        continue;
+      }
+
+      const storagePath =
+        currentBand.id +
+        "/proposals/" +
+        proposal.id +
+        "/" +
+        crypto.randomUUID() +
+        "_" +
+        sanitizeProposalFileName(
+          file.name
+        );
+
+      const uploadResult =
+        await supabaseClient
+          .storage
+          .from("materials")
+          .upload(
+            storagePath,
+            file,
+            {
+              cacheControl:
+                "3600",
+              upsert:
+                false,
+              contentType:
+                file.type ||
+                undefined
+            }
+          );
+
+      if (uploadResult.error) {
+        errors.push(
+          "No se pudo subir " +
+          file.name +
+          ": " +
+          uploadResult.error.message
+        );
+        continue;
+      }
+
+      const result =
+        await createProposalAttachment(
+          supabaseClient,
+          {
+            proposal_id:
+              proposal.id,
+            band_id:
+              currentBand.id,
+            kind:
+              "file",
+            title:
+              file.name,
+            file_name:
+              file.name,
+            storage_path:
+              storagePath,
+            url:
+              null,
+            mime_type:
+              file.type ||
+              null,
+            file_size:
+              file.size,
+            created_by:
+              currentUser.id
+          }
+        );
+
+      if (result.error) {
+        await supabaseClient
+          .storage
+          .from("materials")
+          .remove([
+            storagePath
+          ]);
+
+        errors.push(
+          "No se pudo registrar " +
+          file.name +
+          ": " +
+          result.error.message
+        );
+        continue;
+      }
+
+      attachment =
+        result.data;
+    }
+
+    persistedBlocks.push({
+      proposal_id:
+        proposal.id,
+      block_type:
+        "attachment",
+      content:
+        null,
+      attachment_id:
+        attachment.id
+    });
   }
 
-  const uniqueLinks =
-    Array.from(
-      new Set(
-        (linkValues || [])
-          .map(normalizeProposalLink)
-          .filter(Boolean)
+  const { error: blocksError } =
+    await replaceProposalBlocks(
+      supabaseClient,
+      proposal.id,
+      persistedBlocks.map(
+        (item, index) => ({
+          ...item,
+          position:
+            index
+        })
       )
     );
 
-  for (const href of uniqueLinks) {
-    const { error } =
-      await createProposalAttachment(
-        supabaseClient,
-        {
-          proposal_id: proposal.id,
-          band_id: currentBand.id,
-          kind: "link",
-          title: href,
-          file_name: null,
-          storage_path: null,
-          url: href,
-          mime_type: null,
-          file_size: null,
-          created_by: currentUser.id
-        }
-      );
-
-    if (error) {
-      errors.push(
-        "No se pudo guardar el enlace " +
-        href +
-        ": " +
-        error.message
-      );
-    }
+  if (blocksError) {
+    errors.push(
+      "No se pudo guardar el orden del contenido: " +
+      blocksError.message
+    );
   }
 
   return errors;
 }
+
+
+function resetProposalComposer() {
+  proposalSelectionRange =
+    null;
+
+  proposalPendingAttachments =
+    {};
+
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  if (editor) {
+    editor.innerHTML =
+      "";
+  }
+
+  const fileInput =
+    document.getElementById(
+      "proposalPendingFile"
+    );
+
+  if (fileInput) {
+    fileInput.value =
+      "";
+  }
+}
+
+
+function openProposalComposer() {
+  resetProposalComposer();
+
+  const editor =
+    document.getElementById(
+      "proposalComposerEditor"
+    );
+
+  if (editor) {
+    editor.appendChild(
+      document.createTextNode("")
+    );
+  }
+}
+
+
 
 
 function proposalTypeLabel(type) {
@@ -451,6 +978,8 @@ function resetProposalForm() {
     ?.classList.add("hidden");
 
   renderProposalOptionInputs(["", ""]);
+  resetProposalComposer();
+  openProposalComposer();
   updateProposalTypeUI();
 }
 
@@ -741,17 +1270,7 @@ function renderProposalCard(proposal) {
 
       </div>
 
-      ${
-        proposal.detail
-          ? `
-            <div class="proposal-detail">
-              ${escapeHtml(proposal.detail)}
-            </div>
-          `
-          : ""
-      }
-
-      ${renderProposalAttachments(proposal)}
+      ${renderProposalContent(proposal)}
 
       <div class="proposal-vote-box">
 
@@ -1010,6 +1529,7 @@ async function loadProposals() {
   proposalVotesMap = {};
   proposalProfilesMap = {};
   proposalAttachmentsMap = {};
+  proposalBlocksMap = {};
 
   const proposalIds =
     currentProposals.map(
@@ -1045,6 +1565,93 @@ async function loadProposals() {
 
   const proposalAttachments =
     attachmentsResult.data || [];
+
+  const proposalBlocksResult =
+    await getProposalBlocksByProposalIds(
+      supabaseClient,
+      proposalIds
+    );
+
+  if (proposalBlocksResult.error) {
+    showNotice(
+      proposalBlocksResult.error.message,
+      "error"
+    );
+    return;
+  }
+
+  const attachmentsById =
+    Object.fromEntries(
+      proposalAttachments.map(
+        attachment => [
+          attachment.id,
+          attachment
+        ]
+      )
+    );
+
+  (proposalBlocksResult.data || []).forEach(
+    block => {
+      (
+        proposalBlocksMap[
+          block.proposal_id
+        ] ||= []
+      ).push({
+        ...block,
+        attachment:
+          block.attachment_id
+            ? attachmentsById[
+                block.attachment_id
+              ] || null
+            : null
+      });
+    }
+  );
+
+  currentProposals.forEach(
+    proposal => {
+      if (
+        proposalBlocksMap[
+          proposal.id
+        ]?.length
+      ) {
+        return;
+      }
+
+      const fallback = [];
+
+      if (proposal.detail) {
+        fallback.push({
+          block_type:
+            "text",
+          content:
+            proposal.detail
+        });
+      }
+
+      proposalAttachments
+        .filter(
+          attachment =>
+            attachment.proposal_id ===
+            proposal.id
+        )
+        .forEach(
+          attachment => {
+            fallback.push({
+              block_type:
+                "attachment",
+              attachment_id:
+                attachment.id,
+              attachment
+            });
+          }
+        );
+
+      proposalBlocksMap[
+        proposal.id
+      ] = fallback;
+    }
+  );
 
   const fileAttachments =
     proposalAttachments.filter(
@@ -1095,6 +1702,39 @@ async function loadProposals() {
         ] || null
     });
   });
+
+  Object.values(
+    proposalBlocksMap
+  ).forEach(
+    blocks => {
+      blocks.forEach(
+        block => {
+          if (
+            !block.attachment_id
+          ) {
+            return;
+          }
+
+          const attachmentList =
+            proposalAttachmentsMap[
+              block.proposal_id
+            ] || [];
+
+          const attachment =
+            attachmentList.find(
+              item =>
+                item.id ===
+                block.attachment_id
+            );
+
+          if (attachment) {
+            block.attachment =
+              attachment;
+          }
+        }
+      );
+    }
+  );
 
   const [
     optionsResult,
@@ -1299,6 +1939,252 @@ document
   );
 
 document
+  .getElementById(
+    "insertProposalFileBtn"
+  )
+  ?.addEventListener(
+    "mousedown",
+    function() {
+      rememberProposalSelection();
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalFileBtn"
+  )
+  ?.addEventListener(
+    "click",
+    function() {
+      const input =
+        document.getElementById(
+          "proposalPendingFile"
+        );
+
+      if (!input) {
+        return;
+      }
+
+      input.value = "";
+      input.click();
+    }
+  );
+
+document
+  .getElementById(
+    "proposalPendingFile"
+  )
+  ?.addEventListener(
+    "change",
+    function() {
+      const file =
+        this.files &&
+        this.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      proposalPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "file",
+        name:
+          file.name,
+        file
+      };
+
+      const node =
+        createProposalInlineAttachment(
+          proposalPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertProposalNodeAtSelection(
+        node
+      );
+
+      this.value = "";
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalLinkBtn"
+  )
+  ?.addEventListener(
+    "mousedown",
+    function() {
+      rememberProposalSelection();
+    }
+  );
+
+document
+  .getElementById(
+    "insertProposalLinkBtn"
+  )
+  ?.addEventListener(
+    "click",
+    function() {
+      const name =
+        window.prompt(
+          "Nombre del enlace",
+          "Enlace"
+        );
+
+      if (name === null) {
+        return;
+      }
+
+      const url =
+        window.prompt(
+          "Pegá la URL",
+          "https://"
+        );
+
+      if (url === null) {
+        return;
+      }
+
+      const safeUrl =
+        normalizeProposalLink(
+          url
+        );
+
+      if (!safeUrl) {
+        showNotice(
+          "La URL debe comenzar con http:// o https://.",
+          "error"
+        );
+        return;
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      proposalPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "link",
+        name:
+          name.trim() ||
+          "Enlace",
+        url:
+          safeUrl
+      };
+
+      const node =
+        createProposalInlineAttachment(
+          proposalPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertProposalNodeAtSelection(
+        node
+      );
+    }
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "keydown",
+    function(event) {
+      if (
+        event.key ===
+        "Enter"
+      ) {
+        event.preventDefault();
+        rememberProposalSelection();
+
+        insertProposalNodeAtSelection(
+          document.createTextNode(
+            "\n"
+          )
+        );
+
+        return;
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+        event.preventDefault();
+        rememberProposalSelection();
+
+        insertProposalNodeAtSelection(
+          document.createTextNode(
+            "  "
+          )
+        );
+      }
+    }
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "keyup",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "mouseup",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "focus",
+    rememberProposalSelection
+  );
+
+document
+  .getElementById(
+    "proposalComposerEditor"
+  )
+  ?.addEventListener(
+    "paste",
+    function(event) {
+      event.preventDefault();
+
+      const text =
+        event.clipboardData?.getData(
+          "text/plain"
+        ) || "";
+
+      rememberProposalSelection();
+
+      insertProposalNodeAtSelection(
+        document.createTextNode(
+          text
+        )
+      );
+    }
+  );
+
+document
   .getElementById("proposalForm")
   ?.addEventListener(
     "submit",
@@ -1319,29 +2205,13 @@ document
           ?.value
           .trim() || "";
 
+      const proposalBlocks =
+        collectProposalComposerBlocks();
+
       const detail =
-        document
-          .getElementById("proposalDetail")
-          ?.value
-          .trim() || "";
-
-      const proposalFiles =
-        document.getElementById(
-          "proposalFiles"
-        )?.files || [];
-
-      const proposalLinks =
-        document
-          .getElementById(
-            "proposalLinks"
-          )
-          ?.value
-          .split("\n")
-          .map(
-            value =>
-              value.trim()
-          )
-          .filter(Boolean) || [];
+        collectProposalLegacyText(
+          proposalBlocks
+        );
 
       const votingVisibility =
         document
@@ -1421,10 +2291,9 @@ document
       }
 
       const attachmentErrors =
-        await saveProposalAttachments(
+        await saveProposalComposerContent(
           result.data,
-          proposalFiles,
-          proposalLinks
+          proposalBlocks
         );
 
       if (attachmentErrors.length) {
