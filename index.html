@@ -251,6 +251,29 @@
       font-size: 19px;
     }
 
+    .profile-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .profile-card-header h3 {
+      margin: 0;
+    }
+
+    .profile-summary-name {
+      font-weight: 600;
+      font-size: 17px;
+    }
+
+    .profile-summary-info {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -926,11 +949,36 @@
       </div>
 
 
-      <div class="form-card">
+      <div class="form-card profile-card">
 
-        <h3>Mi perfil</h3>
+        <div class="profile-card-header">
 
-        <form id="profileForm">
+          <h3>Mi perfil</h3>
+
+          <button
+            id="profileEditBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            Editar perfil
+          </button>
+
+        </div>
+
+
+        <div id="profileSummary">
+
+          <div class="profile-summary-name" id="resumenPerfilNombre"></div>
+
+          <div class="profile-summary-info" id="resumenPerfilInfo"></div>
+
+        </div>
+
+
+        <form
+          id="profileForm"
+          class="hidden"
+        >
 
           <div class="form-grid">
 
@@ -2518,6 +2566,9 @@ async function loadCurrentProfile() {
   ).value =
     currentProfile.role || "";
 
+  updateProfileSummary();
+  setProfileEditing(false);
+
   await loadMembers();
 
 }
@@ -2644,6 +2695,142 @@ async function loadMembers() {
 }
 
 
+function updateProfileSummary() {
+
+  const name =
+    currentProfile.full_name ||
+    "Sin nombre";
+
+  const instrument =
+    currentProfile.instrument ||
+    "";
+
+  const role =
+    currentProfile.role ||
+    "";
+
+  document.getElementById(
+    "resumenPerfilNombre"
+  ).textContent =
+    name;
+
+  document.getElementById(
+    "resumenPerfilInfo"
+  ).textContent =
+    [instrument, role]
+      .filter(Boolean)
+      .join(" · ") ||
+    "Sin instrumento ni rol";
+
+}
+
+
+function setProfileEditing(isEditing) {
+
+  const profileForm =
+    document.getElementById(
+      "profileForm"
+    );
+
+  const profileSummary =
+    document.getElementById(
+      "profileSummary"
+    );
+
+  const profileEditBtn =
+    document.getElementById(
+      "profileEditBtn"
+    );
+
+  if (isEditing) {
+
+    profileSummary.classList.add(
+      "hidden"
+    );
+
+    profileForm.classList.remove(
+      "hidden"
+    );
+
+    profileEditBtn.textContent =
+      "Cancelar";
+
+  } else {
+
+    profileForm.classList.add(
+      "hidden"
+    );
+
+    profileSummary.classList.remove(
+      "hidden"
+    );
+
+    profileEditBtn.textContent =
+      "Editar perfil";
+
+  }
+
+}
+
+
+document.getElementById(
+  "profileEditBtn"
+).addEventListener(
+  "click",
+  function() {
+
+    const editing =
+      !document
+        .getElementById("profileForm")
+        .classList.contains("hidden");
+
+    if (editing) {
+
+      document.getElementById(
+        "profileName"
+      ).value =
+        currentProfile.full_name || "";
+
+      document.getElementById(
+        "profileInstrument"
+      ).value =
+        currentProfile.instrument || "";
+
+      document.getElementById(
+        "profileRole"
+      ).value =
+        currentProfile.role || "";
+
+      setProfileEditing(false);
+      return;
+
+    }
+
+    document.getElementById(
+      "profileName"
+    ).value =
+      currentProfile.full_name || "";
+
+    document.getElementById(
+      "profileInstrument"
+    ).value =
+      currentProfile.instrument || "";
+
+    document.getElementById(
+      "profileRole"
+    ).value =
+      currentProfile.role || "";
+
+    setProfileEditing(true);
+
+    document.getElementById(
+      "profileName"
+    ).focus();
+
+  }
+);
+
+
 document.getElementById(
   "profileForm"
 ).addEventListener(
@@ -2733,6 +2920,16 @@ document.getElementById(
       return;
     }
 
+    currentProfile = {
+      ...currentProfile,
+      full_name:
+        fullName || null,
+      instrument:
+        instrument || null,
+      role:
+        role || null
+    };
+
     currentUserName.textContent =
       fullName ||
       currentUser.email ||
@@ -2742,6 +2939,9 @@ document.getElementById(
       "Perfil guardado.",
       "success"
     );
+
+    setProfileEditing(false);
+    updateProfileSummary();
 
     await loadMembers();
 
