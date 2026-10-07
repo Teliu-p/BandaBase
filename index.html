@@ -16,6 +16,7 @@
   <script src="src/materials-data.js"></script>
   <script src="src/comments-data.js"></script>
   <script src="src/rehearsals-data.js"></script>
+  <script src="src/lists-data.js"></script>
 
   <style>
     :root {
@@ -698,6 +699,244 @@
     .rehearsal-song-option input {
       width: auto;
       margin: 0;
+    }
+
+    /* =========================
+       LISTAS
+    ========================= */
+
+    .lists-form {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    .lists-groups {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .list-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .list-card + .list-card {
+      margin-top: 10px;
+    }
+
+    .list-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .list-card-title {
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .list-card-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .list-card-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .list-summary-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .list-detail {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .list-detail-section {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .list-detail-section h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .list-detail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .list-detail-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .list-member-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .list-member-info {
+      min-width: 0;
+    }
+
+    .list-check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 6px;
+    }
+
+    .list-check-option {
+      display: grid;
+      grid-template-columns: auto minmax(0,1fr) 125px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fff;
+    }
+
+    .list-check-option input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .list-check-option select {
+      padding: 7px 8px;
+      min-width: 0;
+    }
+
+    .list-textarea-help {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .list-notes {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+
+    .material-composer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .material-composer-editor {
+      min-height: 180px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      outline: none;
+    }
+
+    .material-composer-editor:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+
+    .material-composer-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    .material-inline-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 7px;
+      margin: 0 2px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      background: #f9fafb;
+      vertical-align: baseline;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .material-inline-attachment .inline-remove {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 2px;
+      line-height: 1;
+    }
+
+    .material-view {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .material-view-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.55;
+    }
+
+    .material-view-attachment {
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      background: #f9fafb;
+    }
+
+    .material-audio {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 650px) {
+      .list-check-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .list-check-option {
+        grid-template-columns: auto minmax(0,1fr);
+      }
+
+      .list-check-option select {
+        grid-column: 2;
+      }
     }
 
     /* =========================
@@ -2232,19 +2471,53 @@
 
               </div>
 
+            </div>
 
-              <div class="form-group full">
 
-                <label for="materialContent">
-                  Texto
-                </label>
+            <div style="margin-top:14px;">
 
-                <textarea
-                  id="materialContent"
-                  placeholder="Escribí acá lo que quieras guardar para esta canción..."
-                ></textarea>
+              <strong style="font-size:14px;">
+                Contenido
+              </strong>
+
+              <div class="list-textarea-help">
+                Podés escribir la letra o las indicaciones y meter archivos o enlaces exactamente donde quieras.
+              </div>
+
+              <div class="material-composer-toolbar">
+
+                <button
+                  type="button"
+                  id="insertMaterialFileBtn"
+                  class="btn btn-subtle"
+                >
+                  📎 Adjuntar archivo
+                </button>
+
+                <button
+                  type="button"
+                  id="insertMaterialLinkBtn"
+                  class="btn btn-subtle"
+                >
+                  🔗 Añadir enlace
+                </button>
 
               </div>
+
+              <div
+                id="materialComposerEditor"
+                class="material-composer-editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+                spellcheck="true"
+              ></div>
+
+              <input
+                id="materialPendingFile"
+                type="file"
+                class="hidden"
+              >
 
             </div>
 
@@ -2368,15 +2641,188 @@
           <h2>Listas</h2>
 
           <p>
-            Listas de canciones.
+            Una lista reúne todo lo necesario para una fecha o actividad de la banda.
           </p>
 
         </div>
 
+        <button
+          id="showListFormBtn"
+          type="button"
+          class="btn btn-subtle"
+        >
+          + Nueva lista
+        </button>
+
       </div>
 
-      <div class="placeholder">
-        Esta sección se va a desarrollar posteriormente.
+
+      <form
+        id="bandListForm"
+        class="lists-form hidden"
+      >
+
+        <div class="form-grid">
+
+          <div class="form-group full">
+            <label for="bandListTitle">Título</label>
+            <input
+              id="bandListTitle"
+              type="text"
+              required
+              placeholder="Ej. Domingo 12 de octubre"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="bandListDate">Fecha</label>
+            <input id="bandListDate" type="date">
+          </div>
+
+          <div class="form-group">
+            <label for="bandListTime">Hora</label>
+            <input id="bandListTime" type="time">
+          </div>
+
+          <div class="form-group">
+            <label for="bandListEventType">Tipo de actividad</label>
+            <input
+              id="bandListEventType"
+              type="text"
+              placeholder="Ej. Culto, campaña, reunión..."
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="bandListStatus">Estado</label>
+            <select id="bandListStatus">
+              <option value="Planificada">Planificada</option>
+              <option value="Confirmada">Confirmada</option>
+              <option value="Realizada">Realizada</option>
+              <option value="Cancelada">Cancelada</option>
+            </select>
+          </div>
+
+          <div class="form-group full">
+            <label for="bandListNotes">Notas generales</label>
+            <textarea
+              id="bandListNotes"
+              placeholder="Detalles generales de la fecha o actividad..."
+            ></textarea>
+          </div>
+
+        </div>
+
+
+        <div class="list-detail-section" style="margin-top:16px;">
+          <h3>Repertorio</h3>
+          <div class="list-textarea-help">
+            Seleccioná las canciones que forman parte de esta lista.
+          </div>
+          <div id="bandListSongsPicker" class="list-check-grid"></div>
+        </div>
+
+
+        <div class="list-detail-section">
+          <h3>Integrantes y asistencia</h3>
+          <div class="list-textarea-help">
+            Marcá quién participa y dejá su estado de asistencia.
+          </div>
+          <div id="bandListMembersPicker" class="list-check-grid"></div>
+        </div>
+
+
+        <div class="list-detail-section">
+          <h3>Tareas</h3>
+          <div class="list-textarea-help">Una tarea por línea.</div>
+          <textarea
+            id="bandListTasks"
+            placeholder="Ej. Preparar pistas&#10;Confirmar sonido"
+          ></textarea>
+        </div>
+
+
+        <div class="list-detail-section">
+          <h3>Equipamiento / materiales</h3>
+          <div class="list-textarea-help">Una cosa por línea.</div>
+          <textarea
+            id="bandListEquipment"
+            placeholder="Ej. 2 pies de micrófono&#10;Cable XLR largo"
+          ></textarea>
+        </div>
+
+
+        <div class="list-detail-section">
+          <h3>Pendientes</h3>
+          <div class="list-textarea-help">Una cosa por línea.</div>
+          <textarea
+            id="bandListPending"
+            placeholder="Ej. Confirmar quién lleva la consola&#10;Definir última canción"
+          ></textarea>
+        </div>
+
+
+        <div class="form-actions">
+          <button
+            id="cancelBandListBtn"
+            type="button"
+            class="btn"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Guardar lista
+          </button>
+        </div>
+
+      </form>
+
+
+      <div id="listsBrowser">
+        <div id="listsList" class="lists-groups"></div>
+      </div>
+
+
+      <div id="listDetail" class="hidden">
+
+        <div class="detail-top">
+
+          <div>
+            <h2 id="listDetailTitle">Lista</h2>
+            <p
+              id="listDetailSubtitle"
+              style="margin:5px 0 0; color:var(--muted);"
+            ></p>
+          </div>
+
+          <div class="detail-actions">
+
+            <button
+              id="backToListsBtn"
+              type="button"
+              class="btn"
+            >
+              ← Volver
+            </button>
+
+            <button
+              id="editListFromDetailBtn"
+              type="button"
+              class="btn"
+            >
+              Editar lista
+            </button>
+
+          </div>
+
+        </div>
+
+        <div id="listDetailContent" class="list-detail"></div>
+
       </div>
 
     </section>
@@ -2627,7 +3073,9 @@
       <div
         id="rehearsalsList"
         class="rehearsal-groups"
-      ></div>
+      >
+        <div class="empty-state">Cargando ensayos...</div>
+      </div>
 
     </section>
 
@@ -2760,6 +3208,8 @@ let currentProfile = null;
 
 let allSongs = [];
 let songSingersMap = {};
+let allBandMembers = [];
+let bandMemberProfilesMap = {};
 
 let currentSong = null;
 let currentMaterials = [];
@@ -3131,6 +3581,7 @@ async function initializeApp() {
   await loadCurrentBand();
   await loadCurrentProfile();
   await loadSongs();
+  await loadMembers();
 
   setupNavigation();
 
