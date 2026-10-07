@@ -206,9 +206,11 @@ function readSongFormFields(
     ).value.trim();
 
   const genre =
-    document.getElementById(
-      fieldIds.genre
-    ).value.trim();
+    normalizeSongGenres(
+      document.getElementById(
+        fieldIds.genre
+      ).value
+    );
 
   const bpmValue =
     document.getElementById(

@@ -1,3 +1,41 @@
+function normalizeSongGenres(value) {
+  const raw = Array.isArray(value)
+    ? value
+    : (
+        typeof value === "string"
+          ? value.split(",")
+          : []
+      );
+
+  const result = [];
+  const seen = new Set();
+
+  raw.forEach(item => {
+    const genre = String(item || "").trim();
+
+    if (!genre) {
+      return;
+    }
+
+    const key = genre.toLocaleLowerCase("es");
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    result.push(genre);
+  });
+
+  return result;
+}
+
+
+function formatSongGenres(value) {
+  return normalizeSongGenres(value).join(", ");
+}
+
+
 const SONG_COLUMNS = `
   id,
   band_id,

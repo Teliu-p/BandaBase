@@ -61,8 +61,11 @@ function populateSongFilters(
 
   const genres =
     uniqueSorted(
-      songs.map(
-        song => song.genre
+      songs.flatMap(
+        song =>
+          normalizeSongGenres(
+            song.genre
+          )
       )
     );
 
@@ -194,7 +197,13 @@ function filterSongs(
 
       if (
         genre &&
-        song.genre !== genre
+        !normalizeSongGenres(
+          song.genre
+        ).some(
+          item =>
+            normalizeText(item) ===
+            normalizeText(genre)
+        )
       ) {
         return false;
       }

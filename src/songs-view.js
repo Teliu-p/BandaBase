@@ -151,7 +151,7 @@ function renderSongCards(
 
             <div class="song-genre">
               ${escapeHtml(
-                song.genre ||
+                formatSongGenres(song.genre) ||
                 "Género no especificado"
               )}
             </div>
