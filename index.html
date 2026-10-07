@@ -3215,6 +3215,11 @@ let currentSong = null;
 let currentMaterials = [];
 let navigationInitialized = false;
 
+let currentBandLists = [];
+let bandListItemsMap = {};
+let currentBandList = null;
+let editingBandListId = null;
+
 let selectedNewSongColor = null;
 let selectedDetailSongColor = null;
 
@@ -3768,14 +3773,25 @@ async function loadMembers() {
         userIds
       );
 
-  const profileMap =
-    new Map(
+  bandMemberProfilesMap =
+    Object.fromEntries(
       (profiles || []).map(
         profile => [
           profile.user_id,
           profile
         ]
       )
+    );
+
+  allBandMembers =
+    (members || []).map(
+      member => ({
+        ...member,
+        profile:
+          bandMemberProfilesMap[
+            member.user_id
+          ] || {}
+      })
     );
 
   membersList.innerHTML =
@@ -4088,6 +4104,9 @@ document.getElementById(
 
 let editingMaterialId = null;
 let openMaterialIds = new Set();
+let materialDraftInitialAttachmentIds = new Set();
+let materialSelectionRange = null;
+let materialPendingAttachments = {};
 
 
 function getSafeMaterialUrl(value) {
@@ -4124,7 +4143,7 @@ function sanitizeStorageFileName(fileName) {
 
   return String(fileName || "archivo")
     .normalize("NFKD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9._-]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 120) || "archivo";
@@ -4132,13 +4151,525 @@ function sanitizeStorageFileName(fileName) {
 }
 
 
-function getAttachmentLabel(attachment) {
+function getMaterialAttachmentIcon(
+  attachment
+) {
 
-  if (attachment.kind === "link") {
+  if (attachment?.kind === "link") {
+    return "🔗";
+  }
+
+  if (
+    String(
+      attachment?.mime_type || ""
+    ).startsWith("audio/")
+  ) {
+    return "🎧";
+  }
+
+  if (
+    String(
+      attachment?.mime_type || ""
+    ).includes("pdf")
+  ) {
+    return "📄";
+  }
+
+  return "📎";
+
+}
+
+
+function getAttachmentLabel(
+  attachment
+) {
+
+  if (attachment?.kind === "link") {
     return "Enlace";
   }
 
-  return attachment.mime_type || "Archivo";
+  return attachment?.mime_type ||
+    "Archivo";
+
+}
+
+
+function rememberMaterialSelection() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  if (
+    editor.contains(
+      range.startContainer
+    ) &&
+    editor.contains(
+      range.endContainer
+    )
+  ) {
+
+    materialSelectionRange =
+      range.cloneRange();
+
+  }
+
+}
+
+
+function restoreMaterialSelection() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (
+    !editor ||
+    !materialSelectionRange
+  ) {
+    return false;
+  }
+
+  const selection =
+    window.getSelection();
+
+  try {
+
+    selection.removeAllRanges();
+
+    selection.addRange(
+      materialSelectionRange
+    );
+
+    return true;
+
+  } catch (error) {
+
+    return false;
+
+  }
+
+}
+
+
+function createMaterialInlineAttachment(
+  attachment,
+  pendingKey = null
+) {
+
+  const wrapper =
+    document.createElement("span");
+
+  wrapper.className =
+    "material-inline-attachment";
+
+  wrapper.contentEditable =
+    "false";
+
+  if (attachment?.id) {
+
+    wrapper.dataset.attachmentId =
+      attachment.id;
+
+  }
+
+  if (pendingKey) {
+
+    wrapper.dataset.pendingKey =
+      pendingKey;
+
+  }
+
+  const icon =
+    getMaterialAttachmentIcon(
+      attachment
+    );
+
+  const name =
+    attachment?.name ||
+    "Archivo";
+
+  const label =
+    document.createTextNode(
+      icon +
+      " " +
+      name +
+      " "
+    );
+
+  wrapper.appendChild(
+    label
+  );
+
+  const removeButton =
+    document.createElement(
+      "button"
+    );
+
+  removeButton.type =
+    "button";
+
+  removeButton.className =
+    "inline-remove";
+
+  removeButton.textContent =
+    "×";
+
+  removeButton.title =
+    "Quitar";
+
+  removeButton.setAttribute(
+    "aria-label",
+    "Quitar " + name
+  );
+
+  removeButton.addEventListener(
+    "mousedown",
+    function(event) {
+
+      event.preventDefault();
+
+    }
+  );
+
+  removeButton.addEventListener(
+    "click",
+    function(event) {
+
+      event.preventDefault();
+
+      wrapper.remove();
+
+    }
+  );
+
+  wrapper.appendChild(
+    removeButton
+  );
+
+  return wrapper;
+
+}
+
+
+function insertMaterialNodeAtSelection(
+  node
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  editor.focus();
+
+  const hasSelection =
+    restoreMaterialSelection();
+
+  let range =
+    materialSelectionRange;
+
+  if (
+    !hasSelection
+  ) {
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(
+      false
+    );
+
+  }
+
+  range.deleteContents();
+
+  const spacerBefore =
+    document.createTextNode(
+      " "
+    );
+
+  const spacerAfter =
+    document.createTextNode(
+      " "
+    );
+
+  range.insertNode(
+    spacerAfter
+  );
+
+  range.insertNode(
+    node
+  );
+
+  range.insertNode(
+    spacerBefore
+  );
+
+  range.setStartAfter(
+    spacerAfter
+  );
+
+  range.collapse(
+    true
+  );
+
+  const selection =
+    window.getSelection();
+
+  selection.removeAllRanges();
+  selection.addRange(
+    range
+  );
+
+  materialSelectionRange =
+    range.cloneRange();
+
+}
+
+
+function renderMaterialComposer(
+  blocks
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  editor.innerHTML =
+    "";
+
+  const safeBlocks =
+    blocks?.length
+      ? blocks
+      : [
+          {
+            block_type:
+              "text",
+            content:
+              ""
+          }
+        ];
+
+  safeBlocks.forEach(
+    block => {
+
+      if (
+        block.block_type ===
+        "text"
+      ) {
+
+        editor.appendChild(
+          document.createTextNode(
+            block.content || ""
+          )
+        );
+
+        return;
+
+      }
+
+      if (
+        block.block_type ===
+        "attachment"
+      ) {
+
+        const attachment =
+          block.attachment ||
+          block.pending;
+
+        if (!attachment) {
+          return;
+        }
+
+        const inline =
+          createMaterialInlineAttachment(
+            attachment,
+            block.pendingKey || null
+          );
+
+        editor.appendChild(
+          inline
+        );
+
+      }
+
+    }
+  );
+
+  if (
+    !editor.childNodes.length
+  ) {
+
+    editor.appendChild(
+      document.createTextNode("")
+    );
+
+  }
+
+}
+
+
+function collectMaterialComposerBlocks() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return [];
+  }
+
+  const blocks = [];
+  let textBuffer = "";
+
+  const flushText =
+    function() {
+
+      if (
+        textBuffer.length ||
+        !blocks.length
+      ) {
+
+        blocks.push({
+          block_type:
+            "text",
+          content:
+            textBuffer
+        });
+
+      }
+
+      textBuffer =
+        "";
+
+    };
+
+  editor.childNodes.forEach(
+    node => {
+
+      if (
+        node.nodeType ===
+        Node.TEXT_NODE
+      ) {
+
+        textBuffer +=
+          node.textContent || "";
+
+        return;
+
+      }
+
+      if (
+        node.nodeType !==
+        Node.ELEMENT_NODE
+      ) {
+        return;
+      }
+
+      const element =
+        node;
+
+      if (
+        element.classList.contains(
+          "material-inline-attachment"
+        )
+      ) {
+
+        flushText();
+
+        const attachmentId =
+          element.dataset.attachmentId ||
+          null;
+
+        const pendingKey =
+          element.dataset.pendingKey ||
+          null;
+
+        blocks.push({
+          block_type:
+            "attachment",
+          attachment_id:
+            attachmentId,
+          pendingKey
+        });
+
+        return;
+
+      }
+
+      textBuffer +=
+        element.innerText ||
+        "";
+
+    }
+  );
+
+  if (
+    textBuffer.length ||
+    !blocks.length
+  ) {
+
+    blocks.push({
+      block_type:
+        "text",
+      content:
+        textBuffer
+    });
+
+  }
+
+  return blocks;
+
+}
+
+
+function collectMaterialLegacyText(
+  blocks
+) {
+
+  return blocks
+    .filter(
+      block =>
+        block.block_type ===
+        "text"
+    )
+    .map(
+      block =>
+        block.content || ""
+    )
+    .join("\n\n")
+    .trim();
 
 }
 
@@ -4146,13 +4677,16 @@ function getAttachmentLabel(attachment) {
 async function loadMaterials() {
 
   const materialsList =
-    document.getElementById("materialsList");
+    document.getElementById(
+      "materialsList"
+    );
 
   if (!currentSong) {
     return;
   }
 
-  materialsList.innerHTML = "Cargando...";
+  materialsList.innerHTML =
+    "Cargando...";
 
   const {
     data: materials,
@@ -4165,16 +4699,22 @@ async function loadMaterials() {
 
   if (error) {
 
-    showNotice(error.message, "error");
+    showNotice(
+      error.message,
+      "error"
+    );
+
     return;
 
   }
 
-  const materialRows = materials || [];
+  const materialRows =
+    materials || [];
 
   const materialIds =
     materialRows.map(
-      material => material.id
+      material =>
+        material.id
     );
 
   const {
@@ -4197,48 +4737,243 @@ async function loadMaterials() {
 
   }
 
-  const attachmentsByMaterial = {};
+  const attachmentsById =
+    Object.fromEntries(
+      (attachmentRows || []).map(
+        attachment => [
+          attachment.id,
+          attachment
+        ]
+      )
+    );
 
-  (attachmentRows || []).forEach(
-    attachment => {
+  const {
+    data: blockRows,
+    error: blockError
+  } =
+    await getMaterialBlocksByMaterialIds(
+      supabaseClient,
+      materialIds
+    );
+
+  if (blockError) {
+
+    showNotice(
+      blockError.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  const blocksByMaterial = {};
+
+  (blockRows || []).forEach(
+    block => {
 
       if (
-        !attachmentsByMaterial[
-          attachment.material_id
+        !blocksByMaterial[
+          block.material_id
         ]
       ) {
-        attachmentsByMaterial[
-          attachment.material_id
+
+        blocksByMaterial[
+          block.material_id
         ] = [];
+
       }
 
-      attachmentsByMaterial[
-        attachment.material_id
-      ].push(attachment);
+      blocksByMaterial[
+        block.material_id
+      ].push({
+        ...block,
+        attachment:
+          block.attachment_id
+            ? attachmentsById[
+                block.attachment_id
+              ] || null
+            : null
+      });
 
     }
   );
 
   currentMaterials =
     materialRows.map(
-      material => ({
-        ...material,
-        attachments:
-          attachmentsByMaterial[
+      material => {
+
+        const dbBlocks =
+          blocksByMaterial[
             material.id
-          ] || []
-      })
+          ] || [];
+
+        const blocks =
+          dbBlocks.length
+            ? dbBlocks.map(
+                block =>
+                  block.block_type ===
+                    "text"
+                    ? {
+                        block_type:
+                          "text",
+                        content:
+                          block.content ||
+                          ""
+                      }
+                    : {
+                        block_type:
+                          "attachment",
+                        attachment_id:
+                          block.attachment_id,
+                        attachment:
+                          block.attachment
+                      }
+              )
+            : [
+                {
+                  block_type:
+                    "text",
+                  content:
+                    material.content ||
+                    ""
+                }
+              ];
+
+        return {
+          ...material,
+          attachments:
+            (attachmentRows || []).filter(
+              attachment =>
+                attachment.material_id ===
+                material.id
+            ),
+          blocks
+        };
+
+      }
     );
 
   openMaterialIds =
     new Set(
       [...openMaterialIds].filter(
         id =>
-          materialIds.includes(id)
+          materialIds.includes(
+            id
+          )
       )
     );
 
   renderMaterials();
+
+}
+
+
+function renderMaterialViewBlock(
+  block
+) {
+
+  if (
+    block.block_type ===
+    "text"
+  ) {
+
+    return (
+      '<div class="material-view-text">' +
+      (
+        block.content
+          ? escapeHtml(
+              block.content
+            )
+          : ""
+      ) +
+      '</div>'
+    );
+
+  }
+
+  const attachment =
+    block.attachment;
+
+  if (!attachment) {
+    return "";
+  }
+
+  const icon =
+    getMaterialAttachmentIcon(
+      attachment
+    );
+
+  if (
+    attachment.kind ===
+      "file" &&
+    String(
+      attachment.mime_type || ""
+    ).startsWith("audio/")
+  ) {
+
+    return (
+      '<div class="material-view-attachment">' +
+      '<strong>' +
+      icon +
+      " " +
+      escapeHtml(
+        attachment.name
+      ) +
+      '</strong>' +
+      '<div class="material-attachment-type">' +
+      escapeHtml(
+        getAttachmentLabel(
+          attachment
+        )
+      ) +
+      '</div>' +
+      '<audio class="material-audio" controls preload="metadata" data-material-audio="' +
+      escapeHtml(
+        attachment.storage_path || ""
+      ) +
+      '"></audio>' +
+      '</div>'
+    );
+
+  }
+
+  return (
+    '<div class="material-view-attachment">' +
+    '<div class="detail-actions" style="align-items:center;">' +
+    '<div style="min-width:0; flex:1;">' +
+    '<strong>' +
+    icon +
+    " " +
+    escapeHtml(
+      attachment.name
+    ) +
+    '</strong>' +
+    '<div class="material-attachment-type">' +
+    escapeHtml(
+      getAttachmentLabel(
+        attachment
+      )
+    ) +
+    (
+      attachment.kind === "link" &&
+      attachment.url
+        ? " · " +
+          escapeHtml(
+            attachment.url
+          )
+        : ""
+    ) +
+    '</div>' +
+    '</div>' +
+    '<button type="button" class="btn btn-subtle" data-open-attachment="' +
+    escapeHtml(
+      attachment.id
+    ) +
+    '">Abrir</button>' +
+    '</div>' +
+    '</div>'
+  );
 
 }
 
@@ -4271,221 +5006,163 @@ function renderMaterials() {
             material.id
           );
 
-        const attachments =
-          material.attachments || [];
+        const blocks =
+          material.blocks || [];
+
+        const resourceCount =
+          blocks.filter(
+            block =>
+              block.block_type ===
+              "attachment"
+          ).length;
 
         let html =
           '<article class="material-card">';
 
         html +=
-          '<button type="button" ' +
-          'class="material-header" ' +
-          'data-material-toggle="' +
-          escapeHtml(material.id) +
+          '<button type="button" class="material-header" data-material-toggle="' +
+          escapeHtml(
+            material.id
+          ) +
           '" aria-expanded="' +
-          (isOpen ? "true" : "false") +
+          (
+            isOpen
+              ? "true"
+              : "false"
+          ) +
           '">';
 
         html +=
           '<span class="material-header-main">' +
           '<span class="material-chevron">' +
-          (isOpen ? "▾" : "▸") +
+          (
+            isOpen
+              ? "▾"
+              : "▸"
+          ) +
           '</span>' +
           '<span class="material-title">' +
-          escapeHtml(material.name) +
+          escapeHtml(
+            material.name
+          ) +
           '</span>' +
           '</span>';
 
         html +=
           '<span class="material-attachment-type">' +
           (
-            attachments.length
-              ? attachments.length +
+            resourceCount
+              ? resourceCount +
                 " recurso" +
-                (attachments.length === 1 ? "" : "s")
+                (
+                  resourceCount === 1
+                    ? ""
+                    : "s"
+                )
               : "Solo texto"
           ) +
           '</span>';
 
-        html += '</button>';
+        html +=
+          '</button>';
 
         if (isOpen) {
 
           html +=
-            '<div class="material-body">';
+            '<div class="material-body">' +
+            '<div class="material-view">';
 
-          if (material.content) {
+          blocks.forEach(
+            block => {
 
-            html +=
-              '<div class="material-content">' +
-              escapeHtml(material.content) +
-              '</div>';
+              html +=
+                renderMaterialViewBlock(
+                  block
+                );
 
-          } else {
-
-            html +=
-              '<div class="material-content-empty">' +
-              'Este material no tiene texto.' +
-              '</div>';
-
-          }
-
-          if (attachments.length) {
-
-            html +=
-              '<div class="material-attachments">';
-
-            attachments.forEach(
-              attachment => {
-
-                html +=
-                  '<div class="material-attachment">';
-
-                html +=
-                  '<div class="material-attachment-name">' +
-                  '<div>' +
-                  escapeHtml(attachment.name) +
-                  '</div>' +
-                  '<div class="material-attachment-type">' +
-                  escapeHtml(
-                    getAttachmentLabel(
-                      attachment
-                    )
-                  ) +
-                  '</div>' +
-                  '</div>';
-
-                html +=
-                  '<div class="material-attachment-actions">';
-
-                html +=
-                  '<button type="button" ' +
-                  'class="btn btn-subtle" ' +
-                  'data-open-attachment="' +
-                  escapeHtml(attachment.id) +
-                  '">Abrir</button>';
-
-                html +=
-                  '<button type="button" ' +
-                  'class="btn btn-subtle btn-danger" ' +
-                  'data-delete-attachment="' +
-                  escapeHtml(attachment.id) +
-                  '">Eliminar</button>';
-
-                html +=
-                  '</div>' +
-                  '</div>';
-
-              }
-            );
-
-            html +=
-              '</div>';
-
-          }
+            }
+          );
 
           html +=
-            '<div class="material-attachment-form hidden" ' +
-            'data-attachment-form="' +
-            escapeHtml(material.id) +
-            '">';
-
-          html +=
-            '<div class="form-grid">';
-
-          html +=
-            '<div class="form-group">' +
-            '<label>Nombre</label>' +
-            '<input type="text" ' +
-            'data-attachment-name="' +
-            escapeHtml(material.id) +
-            '" placeholder="Ej. Pista de práctica">' +
-            '</div>';
-
-          html +=
-            '<div class="form-group">' +
-            '<label>Tipo</label>' +
-            '<select data-attachment-kind="' +
-            escapeHtml(material.id) +
-            '">' +
-            '<option value="file">Archivo</option>' +
-            '<option value="link">Enlace</option>' +
-            '</select>' +
-            '</div>';
-
-          html +=
-            '<div class="form-group full" data-file-group="' +
-            escapeHtml(material.id) +
-            '">' +
-            '<label>Archivo</label>' +
-            '<input type="file" data-attachment-file="' +
-            escapeHtml(material.id) +
-            '">' +
-            '</div>';
-
-          html +=
-            '<div class="form-group full hidden" ' +
-            'data-link-group="' +
-            escapeHtml(material.id) +
-            '">' +
-            '<label>Enlace</label>' +
-            '<input type="url" data-attachment-url="' +
-            escapeHtml(material.id) +
-            '" placeholder="https://...">' +
-            '</div>';
-
-          html +=
-            '</div>';
-
-          html +=
-            '<div class="form-actions">' +
-            '<button type="button" class="btn" ' +
-            'data-cancel-attachment="' +
-            escapeHtml(material.id) +
-            '">Cancelar</button>' +
-            '<button type="button" class="btn btn-primary" ' +
-            'data-save-attachment="' +
-            escapeHtml(material.id) +
-            '">Guardar recurso</button>' +
-            '</div>';
-
-          html +=
-            '</div>';
-
-          html +=
-            '<div class="detail-actions" style="margin-top:12px;">' +
-            '<button type="button" class="btn btn-subtle" ' +
-            'data-show-attachment="' +
-            escapeHtml(material.id) +
-            '">+ Añadir archivo o enlace</button>' +
-            '<button type="button" class="btn btn-subtle" ' +
-            'data-edit-material="' +
-            escapeHtml(material.id) +
-            '">Editar texto</button>' +
-            '<button type="button" class="btn btn-subtle btn-danger" ' +
-            'data-delete-material="' +
-            escapeHtml(material.id) +
+            '</div>' +
+            '<div class="detail-actions" style="margin-top:14px;">' +
+            '<button type="button" class="btn btn-subtle" data-edit-material="' +
+            escapeHtml(
+              material.id
+            ) +
+            '">Editar material</button>' +
+            '<button type="button" class="btn btn-subtle btn-danger" data-delete-material="' +
+            escapeHtml(
+              material.id
+            ) +
             '">Eliminar material</button>' +
-            '</div>';
-
-          html +=
+            '</div>' +
             '</div>';
 
         }
 
-        html += '</article>';
+        html +=
+          '</article>';
 
         return html;
 
       }
     ).join("");
 
-  bindMaterialEvents();
+  bindMaterialViewEvents();
+
+  void hydrateMaterialAudioPlayers();
 
 }
 
 
-function bindMaterialEvents() {
+async function hydrateMaterialAudioPlayers() {
+
+  const players =
+    document.querySelectorAll(
+      "[data-material-audio]"
+    );
+
+  for (
+    const player
+    of players
+  ) {
+
+    const storagePath =
+      player.dataset.materialAudio;
+
+    if (!storagePath) {
+      continue;
+    }
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .storage
+        .from("materials")
+        .createSignedUrl(
+          storagePath,
+          3600
+        );
+
+    if (
+      error ||
+      !data?.signedUrl
+    ) {
+      continue;
+    }
+
+    player.src =
+      data.signedUrl;
+
+  }
+
+}
+
+
+function bindMaterialViewEvents() {
 
   document
     .querySelectorAll(
@@ -4502,11 +5179,21 @@ function bindMaterialEvents() {
               button.dataset.materialToggle;
 
             if (
-              openMaterialIds.has(id)
+              openMaterialIds.has(
+                id
+              )
             ) {
-              openMaterialIds.delete(id);
+
+              openMaterialIds.delete(
+                id
+              );
+
             } else {
-              openMaterialIds.add(id);
+
+              openMaterialIds.add(
+                id
+              );
+
             }
 
             renderMaterials();
@@ -4536,37 +5223,13 @@ function bindMaterialEvents() {
                   button.dataset.editMaterial
               );
 
-            if (!material) {
-              return;
+            if (material) {
+
+              openMaterialEditor(
+                material
+              );
+
             }
-
-            editingMaterialId =
-              material.id;
-
-            document.getElementById(
-              "materialName"
-            ).value =
-              material.name || "";
-
-            document.getElementById(
-              "materialContent"
-            ).value =
-              material.content || "";
-
-            document.getElementById(
-              "showMaterialFormBtn"
-            ).textContent =
-              "Editando material";
-
-            document.getElementById(
-              "materialForm"
-            ).classList.remove(
-              "hidden"
-            );
-
-            document.getElementById(
-              "materialName"
-            ).focus();
 
           }
         );
@@ -4586,14 +5249,11 @@ function bindMaterialEvents() {
           "click",
           async function() {
 
-            const materialId =
-              button.dataset.deleteMaterial;
-
             const material =
               currentMaterials.find(
                 item =>
                   item.id ===
-                  materialId
+                  button.dataset.deleteMaterial
               );
 
             if (!material) {
@@ -4653,7 +5313,7 @@ function bindMaterialEvents() {
             } =
               await deleteMaterial(
                 supabaseClient,
-                materialId
+                material.id
               );
 
             if (error) {
@@ -4668,112 +5328,10 @@ function bindMaterialEvents() {
             }
 
             openMaterialIds.delete(
-              materialId
+              material.id
             );
 
             await loadMaterials();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-show-attachment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          function() {
-
-            const materialId =
-              button.dataset.showAttachment;
-
-            const form =
-              document.querySelector(
-                '[data-attachment-form="' +
-                CSS.escape(materialId) +
-                '"]'
-              );
-
-            if (!form) {
-              return;
-            }
-
-            form.classList.remove(
-              "hidden"
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-cancel-attachment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          function() {
-
-            resetAttachmentForm(
-              button.dataset.cancelAttachment
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-attachment-kind]"
-    )
-    .forEach(
-      select => {
-
-        select.addEventListener(
-          "change",
-          function() {
-
-            toggleAttachmentKind(
-              select.dataset.attachmentKind
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-save-attachment]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          async function() {
-
-            await saveAttachment(
-              button.dataset.saveAttachment
-            );
 
           }
         );
@@ -4810,15 +5368,18 @@ function bindMaterialEvents() {
             }
 
             if (
-              attachment.kind === "link"
+              attachment.kind ===
+              "link"
             ) {
 
-              const safeUrl =
+              const url =
                 getSafeMaterialUrl(
                   attachment.url
                 );
 
-              if (!safeUrl) {
+              if (
+                !url
+              ) {
 
                 showNotice(
                   "El enlace guardado no es válido.",
@@ -4830,7 +5391,7 @@ function bindMaterialEvents() {
               }
 
               window.open(
-                safeUrl,
+                url,
                 "_blank",
                 "noopener,noreferrer"
               );
@@ -4862,7 +5423,9 @@ function bindMaterialEvents() {
 
             }
 
-            if (data?.signedUrl) {
+            if (
+              data?.signedUrl
+            ) {
 
               window.open(
                 data.signedUrl,
@@ -4878,303 +5441,515 @@ function bindMaterialEvents() {
       }
     );
 
+}
 
-  document
-    .querySelectorAll(
-      "[data-delete-attachment]"
-    )
-    .forEach(
-      button => {
 
-        button.addEventListener(
-          "click",
-          async function() {
+function openMaterialEditor(
+  material = null
+) {
 
-            const attachment =
-              currentMaterials
-                .flatMap(
-                  material =>
-                    material.attachments || []
-                )
-                .find(
-                  item =>
-                    item.id ===
-                    button.dataset.deleteAttachment
-                );
+  editingMaterialId =
+    material?.id ||
+    null;
 
-            if (!attachment) {
-              return;
-            }
+  materialDraftInitialAttachmentIds =
+    new Set(
+      (
+        material?.attachments ||
+        []
+      ).map(
+        attachment =>
+          attachment.id
+      )
+    );
 
-            const confirmed =
-              window.confirm(
-                "¿Eliminar \"" +
-                attachment.name +
-                "\"?"
-              );
+  materialPendingAttachments = {};
 
-            if (!confirmed) {
-              return;
-            }
+  document.getElementById(
+    "materialName"
+  ).value =
+    material?.name ||
+    "";
 
-            if (
-              attachment.kind === "file" &&
-              attachment.storage_path
-            ) {
-
-              const {
-                error: storageError
-              } =
-                await supabaseClient
-                  .storage
-                  .from("materials")
-                  .remove([
-                    attachment.storage_path
-                  ]);
-
-              if (storageError) {
-
-                showNotice(
-                  storageError.message,
-                  "error"
-                );
-
-                return;
-
-              }
-
-            }
-
-            const {
-              error
-            } =
-              await deleteMaterialAttachment(
-                supabaseClient,
-                attachment.id
-              );
-
-            if (error) {
-
-              showNotice(
-                error.message,
-                "error"
-              );
-
-              return;
-
-            }
-
-            await loadMaterials();
-
-          }
-        );
-
+  renderMaterialComposer(
+    material?.blocks ||
+    [
+      {
+        block_type:
+          "text",
+        content:
+          material?.content ||
+          ""
       }
-    );
+    ]
+  );
+
+  rememberMaterialSelection();
+
+  document.getElementById(
+    "materialForm"
+  ).classList.remove(
+    "hidden"
+  );
+
+  document.getElementById(
+    "showMaterialFormBtn"
+  ).textContent =
+    material
+      ? "Editando material"
+      : "+ Añadir material";
+
+  document.getElementById(
+    "materialName"
+  ).focus();
 
 }
 
 
-function toggleAttachmentKind(
-  materialId
-) {
+function showMaterialForm() {
 
-  const select =
-    document.querySelector(
-      '[data-attachment-kind="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  const fileGroup =
-    document.querySelector(
-      '[data-file-group="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  const linkGroup =
-    document.querySelector(
-      '[data-link-group="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  if (!select || !fileGroup || !linkGroup) {
-    return;
-  }
-
-  const isFile =
-    select.value === "file";
-
-  fileGroup.classList.toggle(
-    "hidden",
-    !isFile
-  );
-
-  linkGroup.classList.toggle(
-    "hidden",
-    isFile
-  );
+  openMaterialEditor();
 
 }
 
 
-function resetAttachmentForm(
-  materialId
-) {
+function hideMaterialForm() {
+
+  editingMaterialId =
+    null;
+
+  materialDraftInitialAttachmentIds =
+    new Set();
+
+  materialSelectionRange =
+    null;
+
+  materialPendingAttachments =
+    {};
 
   const form =
-    document.querySelector(
-      '[data-attachment-form="' +
-      CSS.escape(materialId) +
-      '"]'
+    document.getElementById(
+      "materialForm"
     );
-
-  if (!form) {
-    return;
-  }
 
   form.classList.add(
     "hidden"
   );
 
-  form.querySelector(
-    '[data-attachment-name="' +
-    CSS.escape(materialId) +
-    '"]'
-  ).value = "";
+  form.reset();
 
-  form.querySelector(
-    '[data-attachment-file="' +
-    CSS.escape(materialId) +
-    '"]'
-  ).value = "";
+  document.getElementById(
+    "materialComposerEditor"
+  ).innerHTML =
+    "";
 
-  form.querySelector(
-    '[data-attachment-url="' +
-    CSS.escape(materialId) +
-    '"]'
-  ).value = "";
-
-  const kind =
-    form.querySelector(
-      '[data-attachment-kind="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  kind.value = "file";
-
-  toggleAttachmentKind(
-    materialId
-  );
+  document.getElementById(
+    "showMaterialFormBtn"
+  ).textContent =
+    "+ Añadir material";
 
 }
 
 
-async function saveAttachment(
-  materialId
-) {
+document
+  .getElementById(
+    "showMaterialFormBtn"
+  )
+  .addEventListener(
+    "click",
+    showMaterialForm
+  );
 
-  if (!currentBand || !currentUser) {
+
+document
+  .getElementById(
+    "cancelMaterialBtn"
+  )
+  .addEventListener(
+    "click",
+    hideMaterialForm
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "keydown",
+    function(event) {
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        event.preventDefault();
+
+        rememberMaterialSelection();
+
+        const textNode =
+          document.createTextNode(
+            "\n"
+          );
+
+        insertMaterialNodeAtSelection(
+          textNode
+        );
+
+        return;
+
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+
+        event.preventDefault();
+
+        const textNode =
+          document.createTextNode(
+            "  "
+          );
+
+        insertMaterialNodeAtSelection(
+          textNode
+        );
+
+      }
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "keyup",
+    rememberMaterialSelection
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "mouseup",
+    rememberMaterialSelection
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "focus",
+    rememberMaterialSelection
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "paste",
+    function(event) {
+
+      event.preventDefault();
+
+      const text =
+        event.clipboardData?.getData(
+          "text/plain"
+        ) ||
+        "";
+
+      rememberMaterialSelection();
+
+      insertMaterialNodeAtSelection(
+        document.createTextNode(
+          text
+        )
+      );
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialFileBtn"
+  )
+  .addEventListener(
+    "mousedown",
+    function() {
+
+      rememberMaterialSelection();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialFileBtn"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      const input =
+        document.getElementById(
+          "materialPendingFile"
+        );
+
+      input.value =
+        "";
+
+      input.click();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "materialPendingFile"
+  )
+  .addEventListener(
+    "change",
+    function() {
+
+      const file =
+        this.files &&
+        this.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      materialPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "file",
+        name:
+          file.name,
+        mime_type:
+          file.type || null,
+        file
+      };
+
+      const node =
+        createMaterialInlineAttachment(
+          materialPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertMaterialNodeAtSelection(
+        node
+      );
+
+      this.value =
+        "";
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialLinkBtn"
+  )
+  .addEventListener(
+    "mousedown",
+    function() {
+
+      rememberMaterialSelection();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialLinkBtn"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      const name =
+        window.prompt(
+          "Nombre del enlace",
+          "Enlace"
+        );
+
+      if (
+        name === null
+      ) {
+        return;
+      }
+
+      const url =
+        window.prompt(
+          "Pegá la URL",
+          "https://"
+        );
+
+      if (
+        url === null
+      ) {
+        return;
+      }
+
+      const safeUrl =
+        getSafeMaterialUrl(
+          url
+        );
+
+      if (!safeUrl) {
+
+        showNotice(
+          "La URL debe comenzar con http:// o https://.",
+          "error"
+        );
+
+        return;
+
+      }
+
+      const pendingKey =
+        crypto.randomUUID();
+
+      materialPendingAttachments[
+        pendingKey
+      ] = {
+        kind:
+          "link",
+        name:
+          name.trim() ||
+          "Enlace",
+        url:
+          safeUrl,
+        mime_type:
+          null
+      };
+
+      const node =
+        createMaterialInlineAttachment(
+          materialPendingAttachments[
+            pendingKey
+          ],
+          pendingKey
+        );
+
+      insertMaterialNodeAtSelection(
+        node
+      );
+
+    }
+  );
+
+
+async function saveMaterialDraft() {
+
+  if (
+    !currentBand ||
+    !currentSong ||
+    !currentUser
+  ) {
     return;
   }
-
-  const material =
-    currentMaterials.find(
-      item =>
-        item.id === materialId
-    );
-
-  if (!material) {
-    return;
-  }
-
-  const nameInput =
-    document.querySelector(
-      '[data-attachment-name="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  const kindInput =
-    document.querySelector(
-      '[data-attachment-kind="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  const fileInput =
-    document.querySelector(
-      '[data-attachment-file="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
-
-  const urlInput =
-    document.querySelector(
-      '[data-attachment-url="' +
-      CSS.escape(materialId) +
-      '"]'
-    );
 
   const name =
-    nameInput.value.trim();
-
-  const kind =
-    kindInput.value;
+    document.getElementById(
+      "materialName"
+    ).value.trim();
 
   if (!name) {
 
     showNotice(
-      "Poné un nombre para el recurso.",
+      "El título es obligatorio.",
       "error"
     );
-
-    nameInput.focus();
 
     return;
 
   }
 
-  if (kind === "link") {
+  const composedBlocks =
+    collectMaterialComposerBlocks();
 
-    const safeUrl =
-      getSafeMaterialUrl(
-        urlInput.value
+  let materialId =
+    editingMaterialId;
+
+  const originalMaterial =
+    currentMaterials.find(
+      material =>
+        material.id ===
+        materialId
+    );
+
+  const wasNew =
+    !materialId;
+
+  if (materialId) {
+
+    const {
+      error
+    } =
+      await updateMaterial(
+        supabaseClient,
+        materialId,
+        {
+          name,
+          content:
+            collectMaterialLegacyText(
+              composedBlocks
+            )
+        }
       );
 
-    if (!safeUrl) {
+    if (error) {
 
       showNotice(
-        "El enlace debe ser una URL válida con http:// o https://.",
+        error.message,
         "error"
       );
-
-      urlInput.focus();
 
       return;
 
     }
 
+  } else {
+
     const {
+      data: material,
       error
     } =
-      await createMaterialAttachment(
+      await createMaterial(
         supabaseClient,
         {
-          material_id:
-            materialId,
-          kind:
-            "link",
+          band_id:
+            currentBand.id,
+          song_id:
+            currentSong.id,
           name,
-          url:
-            safeUrl,
-          storage_path:
-            null,
-          mime_type:
-            null,
+          content:
+            collectMaterialLegacyText(
+              composedBlocks
+            ),
           created_by:
             currentUser.id
         }
@@ -5191,301 +5966,93 @@ async function saveAttachment(
 
     }
 
-    showNotice(
-      "Enlace agregado.",
-      "success"
-    );
-
-    resetAttachmentForm(
-      materialId
-    );
-
-    openMaterialIds.add(
-      materialId
-    );
-
-    await loadMaterials();
-
-    return;
+    materialId =
+      material.id;
 
   }
 
-  const file =
-    fileInput.files &&
-    fileInput.files[0];
+  const persistedBlocks = [];
 
-  if (!file) {
-
-    showNotice(
-      "Elegí un archivo.",
-      "error"
-    );
-
-    fileInput.focus();
-
-    return;
-
-  }
-
-  const safeName =
-    sanitizeStorageFileName(
-      file.name
-    );
-
-  const storagePath =
-    currentBand.id +
-    "/" +
-    materialId +
-    "/" +
-    crypto.randomUUID() +
-    "-" +
-    safeName;
-
-  const {
-    error: uploadError
-  } =
-    await supabaseClient
-      .storage
-      .from("materials")
-      .upload(
-        storagePath,
-        file,
-        {
-          upsert:
-            false,
-          contentType:
-            file.type ||
-            undefined
-        }
-      );
-
-  if (uploadError) {
-
-    showNotice(
-      uploadError.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  const {
-    error
-  } =
-    await createMaterialAttachment(
-      supabaseClient,
-      {
-        material_id:
-          materialId,
-        kind:
-          "file",
-        name,
-        url:
-          null,
-        storage_path:
-          storagePath,
-        mime_type:
-          file.type ||
-          null,
-        created_by:
-          currentUser.id
-      }
-    );
-
-  if (error) {
-
-    await supabaseClient
-      .storage
-      .from("materials")
-      .remove([
-        storagePath
-      ]);
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
-    return;
-
-  }
-
-  showNotice(
-    "Archivo agregado.",
-    "success"
-  );
-
-  resetAttachmentForm(
-    materialId
-  );
-
-  openMaterialIds.add(
-    materialId
-  );
-
-  await loadMaterials();
-
-}
-
-
-function showMaterialForm() {
-
-  editingMaterialId =
-    null;
-
-  document.getElementById(
-    "materialName"
-  ).value = "";
-
-  document.getElementById(
-    "materialContent"
-  ).value = "";
-
-  document.getElementById(
-    "showMaterialFormBtn"
-  ).textContent =
-    "+ Añadir material";
-
-  document.getElementById(
-    "materialForm"
-  ).classList.remove(
-    "hidden"
-  );
-
-  document.getElementById(
-    "materialName"
-  ).focus();
-
-}
-
-
-function hideMaterialForm() {
-
-  editingMaterialId =
-    null;
-
-  const form =
-    document.getElementById(
-      "materialForm"
-    );
-
-  form.classList.add(
-    "hidden"
-  );
-
-  form.reset();
-
-  document.getElementById(
-    "showMaterialFormBtn"
-  ).textContent =
-    "+ Añadir material";
-
-}
-
-
-document.getElementById(
-  "showMaterialFormBtn"
-).addEventListener(
-  "click",
-  showMaterialForm
-);
-
-
-document.getElementById(
-  "cancelMaterialBtn"
-).addEventListener(
-  "click",
-  hideMaterialForm
-);
-
-
-document.getElementById(
-  "materialForm"
-).addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
+  for (
+    const block
+    of composedBlocks
+  ) {
 
     if (
-      !currentBand ||
-      !currentSong ||
-      !currentUser
+      block.block_type ===
+      "text"
     ) {
-      return;
-    }
 
-    const name =
-      document.getElementById(
-        "materialName"
-      ).value.trim();
+      persistedBlocks.push({
+        block_type:
+          "text",
+        content:
+          block.content || "",
+        attachment_id:
+          null
+      });
 
-    const content =
-      document.getElementById(
-        "materialContent"
-      ).value;
-
-    if (!name) {
-
-      showNotice(
-        "El título es obligatorio.",
-        "error"
-      );
-
-      return;
+      continue;
 
     }
 
-    if (editingMaterialId) {
+    if (
+      block.block_type !==
+      "attachment"
+    ) {
+      continue;
+    }
+
+    if (
+      block.attachment_id
+    ) {
+
+      persistedBlocks.push({
+        block_type:
+          "attachment",
+        content:
+          null,
+        attachment_id:
+          block.attachment_id
+      });
+
+      continue;
+
+    }
+
+    const pending =
+      materialPendingAttachments[
+        block.pendingKey
+      ];
+
+    if (!pending) {
+      continue;
+    }
+
+    if (
+      pending.kind ===
+      "link"
+    ) {
 
       const {
+        data: attachment,
         error
       } =
-        await updateMaterial(
-          supabaseClient,
-          editingMaterialId,
-          {
-            name,
-            content
-          }
-        );
-
-      if (error) {
-
-        showNotice(
-          error.message,
-          "error"
-        );
-
-        return;
-
-      }
-
-      openMaterialIds.add(
-        editingMaterialId
-      );
-
-      showNotice(
-        "Material actualizado.",
-        "success"
-      );
-
-    } else {
-
-      const {
-        data: material,
-        error
-      } =
-        await createMaterial(
+        await createMaterialAttachment(
           supabaseClient,
           {
-            band_id:
-              currentBand.id,
-            song_id:
-              currentSong.id,
-            name,
-            content,
+            material_id:
+              materialId,
+            kind:
+              "link",
+            name:
+              pending.name,
+            url:
+              pending.url,
+            storage_path:
+              null,
+            mime_type:
+              null,
             created_by:
               currentUser.id
           }
@@ -5494,6 +6061,7 @@ document.getElementById(
       if (error) {
 
         showNotice(
+          "El material se guardó, pero no se pudo registrar el enlace: " +
           error.message,
           "error"
         );
@@ -5502,27 +6070,278 @@ document.getElementById(
 
       }
 
-      if (material?.id) {
+      persistedBlocks.push({
+        block_type:
+          "attachment",
+        content:
+          null,
+        attachment_id:
+          attachment.id
+      });
 
-        openMaterialIds.add(
-          material.id
+      continue;
+
+    }
+
+    const file =
+      pending.file;
+
+    if (!file) {
+      continue;
+    }
+
+    const storagePath =
+      currentBand.id +
+      "/" +
+      materialId +
+      "/" +
+      crypto.randomUUID() +
+      "-" +
+      sanitizeStorageFileName(
+        file.name
+      );
+
+    const {
+      error: uploadError
+    } =
+      await supabaseClient
+        .storage
+        .from("materials")
+        .upload(
+          storagePath,
+          file,
+          {
+            upsert:
+              false,
+            contentType:
+              file.type ||
+              undefined
+          }
+        );
+
+    if (uploadError) {
+
+      showNotice(
+        "El material se guardó, pero no se pudo subir "" +
+        file.name +
+        "": " +
+        uploadError.message,
+        "error"
+      );
+
+      return;
+
+    }
+
+    const {
+      data: attachment,
+      error
+    } =
+      await createMaterialAttachment(
+        supabaseClient,
+        {
+          material_id:
+            materialId,
+          kind:
+            "file",
+          name:
+            file.name,
+          url:
+            null,
+          storage_path:
+            storagePath,
+          mime_type:
+            file.type ||
+            null,
+          created_by:
+            currentUser.id
+        }
+      );
+
+    if (error) {
+
+      await supabaseClient
+        .storage
+        .from("materials")
+        .remove([
+          storagePath
+        ]);
+
+      showNotice(
+        "El archivo se subió, pero no se pudo registrar: " +
+        error.message,
+        "error"
+      );
+
+      return;
+
+    }
+
+    persistedBlocks.push({
+      block_type:
+        "attachment",
+      content:
+        null,
+      attachment_id:
+        attachment.id
+    });
+
+  }
+
+  const {
+    error: blocksError
+  } =
+    await replaceMaterialBlocks(
+      supabaseClient,
+      materialId,
+      persistedBlocks.map(
+        (
+          block,
+          index
+        ) => ({
+          material_id:
+            materialId,
+          block_type:
+            block.block_type,
+          content:
+            block.content,
+          attachment_id:
+            block.attachment_id,
+          position:
+            index
+        })
+      )
+    );
+
+  if (blocksError) {
+
+    showNotice(
+      "El material se guardó, pero no se pudo guardar el orden de su contenido: " +
+      blocksError.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  const keptIds =
+    new Set(
+      persistedBlocks
+        .filter(
+          block =>
+            block.block_type ===
+              "attachment" &&
+            block.attachment_id
+        )
+        .map(
+          block =>
+            block.attachment_id
+        )
+    );
+
+  const removedIds =
+    [...materialDraftInitialAttachmentIds]
+      .filter(
+        id =>
+          !keptIds.has(id)
+      );
+
+  if (removedIds.length) {
+
+    const removedAttachments =
+      (
+        originalMaterial?.attachments ||
+        []
+      ).filter(
+        attachment =>
+          removedIds.includes(
+            attachment.id
+          )
+      );
+
+    const storagePaths =
+      removedAttachments
+        .filter(
+          attachment =>
+            attachment.kind ===
+              "file" &&
+            attachment.storage_path
+        )
+        .map(
+          attachment =>
+            attachment.storage_path
+        );
+
+    if (storagePaths.length) {
+
+      const {
+        error: storageError
+      } =
+        await supabaseClient
+          .storage
+          .from("materials")
+          .remove(
+            storagePaths
+          );
+
+      if (storageError) {
+
+        showNotice(
+          "El contenido se guardó, pero algunos archivos quitados no pudieron borrarse del almacenamiento.",
+          "error"
         );
 
       }
 
-      showNotice(
-        "Material agregado.",
-        "success"
+    }
+
+    for (
+      const attachmentId
+      of removedIds
+    ) {
+
+      await deleteMaterialAttachment(
+        supabaseClient,
+        attachmentId
       );
 
     }
 
-    hideMaterialForm();
-
-    await loadMaterials();
-
   }
-);
+
+  openMaterialIds.add(
+    materialId
+  );
+
+  hideMaterialForm();
+
+  showNotice(
+    wasNew
+      ? "Material agregado."
+      : "Material actualizado.",
+    "success"
+  );
+
+  await loadMaterials();
+
+}
+
+
+document
+  .getElementById(
+    "materialForm"
+  )
+  .addEventListener(
+    "submit",
+    async function(event) {
+
+      event.preventDefault();
+
+      await saveMaterialDraft();
+
+    }
+  );
 
 
 /* ============================================================
