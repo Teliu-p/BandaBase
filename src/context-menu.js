@@ -4,6 +4,7 @@
   const menu = document.getElementById("contextDeleteMenu");
   const action = document.getElementById("contextDeleteAction");
   const cancel = document.getElementById("contextDeleteCancel");
+  const summary = document.getElementById("contextDeleteSummary");
 
   if (!menu || !action || !cancel) return;
 
@@ -32,7 +33,11 @@
 
   function closeMenu() {
     menu.classList.add("hidden");
-    menuType = null;
+
+    menuType =
+      selection.size
+        ? [...selection.values()][0].type
+        : null;
   }
 
   function updateSelectionUi() {
@@ -48,6 +53,16 @@
     cancel.textContent = count
       ? "Cancelar selección"
       : "Cerrar";
+
+    if (summary) {
+      summary.textContent =
+        count +
+        (
+          count === 1
+            ? " seleccionado"
+            : " seleccionados"
+        );
+    }
   }
 
   function selectTarget(target) {
@@ -138,7 +153,7 @@
         ids
       );
 
-    if (result?.error) {
+    if (result?.cancelled) {
       return;
     }
 
