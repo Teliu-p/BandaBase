@@ -36,3 +36,6 @@ with check (
 
 create index if not exists proposal_blocks_proposal_position_idx
 on public.proposal_blocks(proposal_id, position);
+
+create index if not exists proposal_blocks_attachment_id_idx
+on public.proposal_blocks(attachment_id);
