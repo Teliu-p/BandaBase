@@ -208,7 +208,7 @@ function filterSongs(
 
       if (
         listStatus &&
-        song.list_status !== listStatus
+        song.status !== listStatus
       ) {
         return false;
       }

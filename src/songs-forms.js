@@ -236,9 +236,12 @@ function readSongFormFields(
   const listStatus =
     document.getElementById(
       fieldIds.listStatus
-    ).checked
-      ? "Lista"
-      : "Pendiente";
+    ).value || "Pendiente";
+
+  const inRepertoire =
+    document.getElementById(
+      fieldIds.repertoire
+    ).checked;
 
   const activeStatus =
     document.getElementById(
@@ -262,6 +265,7 @@ function readSongFormFields(
     meter,
     color,
     listStatus,
+    inRepertoire,
     activeStatus,
     singers
   };
@@ -286,6 +290,7 @@ function readCreateSongForm(
       duration: "newSongDuration",
       meter: "newSongMeter",
       listStatus: "newSongListStatus",
+      repertoire: "newSongRepertoire",
       activeStatus: "newSongActiveStatus",
       singers: "newSingersContainer"
     },
@@ -315,6 +320,7 @@ function readSongDetailForm(
         duration: "detailDuration",
         meter: "detailMeter",
         listStatus: "detailListStatus",
+        repertoire: "detailRepertoire",
         activeStatus: "detailActiveStatus",
         singers: "detailSingersContainer"
       },
