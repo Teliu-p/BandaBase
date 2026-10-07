@@ -1,6 +1,9 @@
 const PROPOSAL_COLUMNS =
   "id, band_id, title, detail, status, voting_type, voting_visibility, created_by, created_at, decided_at";
 
+const PROPOSAL_ATTACHMENT_COLUMNS =
+  "id, proposal_id, band_id, kind, title, file_name, storage_path, url, mime_type, file_size, created_by, created_at";
+
 async function getProposalsByBandId(client, bandId) {
   return client
     .from("proposals")
@@ -65,6 +68,36 @@ async function createProposal(client, proposalData, optionLabels) {
   return { data: proposal, error: null };
 }
 
+
+
+async function getProposalAttachmentsByProposalIds(
+  client,
+  proposalIds
+) {
+  if (!proposalIds.length) {
+    return { data: [], error: null };
+  }
+
+  return client
+    .from("proposal_attachments")
+    .select(PROPOSAL_ATTACHMENT_COLUMNS)
+    .in("proposal_id", proposalIds)
+    .order("created_at", { ascending: true });
+}
+
+
+async function createProposalAttachment(
+  client,
+  attachmentData
+) {
+  return client
+    .from("proposal_attachments")
+    .insert(attachmentData)
+    .select(PROPOSAL_ATTACHMENT_COLUMNS)
+    .single();
+}
+
+
 async function replaceMyProposalVotes(client, proposalId, optionIds) {
   const { error: deleteError } = await client
     .from("proposal_votes")
@@ -107,6 +140,50 @@ async function setProposalStatus(client, proposalId, status) {
 }
 
 async function deleteProposal(client, proposalId) {
+  const { data: attachments, error: attachmentsFetchError } =
+    await client
+      .from("proposal_attachments")
+      .select("id, storage_path, kind")
+      .eq("proposal_id", proposalId);
+
+  if (attachmentsFetchError) {
+    return { error: attachmentsFetchError };
+  }
+
+  const storagePaths =
+    (attachments || [])
+      .filter(
+        attachment =>
+          attachment.kind === "file" &&
+          attachment.storage_path
+      )
+      .map(
+        attachment =>
+          attachment.storage_path
+      );
+
+  if (storagePaths.length) {
+    const { error: storageError } =
+      await client
+        .storage
+        .from("materials")
+        .remove(storagePaths);
+
+    if (storageError) {
+      return { error: storageError };
+    }
+  }
+
+  const { error: attachmentDeleteError } =
+    await client
+      .from("proposal_attachments")
+      .delete()
+      .eq("proposal_id", proposalId);
+
+  if (attachmentDeleteError) {
+    return { error: attachmentDeleteError };
+  }
+
   const { error: votesError } = await client
     .from("proposal_votes")
     .delete()
