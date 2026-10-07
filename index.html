@@ -363,6 +363,94 @@
       min-width: 0;
     }
 
+    .filter-multi {
+      position: relative;
+      min-width: 0;
+    }
+
+    .filter-multi-toggle {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .filter-multi-toggle:hover {
+      background: #f9fafb;
+    }
+
+    .filter-multi.open .filter-multi-toggle {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+
+    .filter-multi-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .filter-multi-arrow {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filter-multi-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 30;
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 6px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 16px 35px rgba(0,0,0,.12);
+    }
+
+    .filter-multi.open .filter-multi-menu {
+      display: grid;
+      gap: 2px;
+    }
+
+    .filter-multi-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 8px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .filter-multi-option:hover {
+      background: #f3f4f6;
+    }
+
+    .filter-multi-option input {
+      width: auto;
+      margin: 0;
+    }
+
+    .filter-multi-empty {
+      padding: 10px 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     /* =========================
        SONG CARDS
     ========================= */
@@ -2057,44 +2145,72 @@
 
         <div class="filters">
 
-          <select
+          <div
             id="filterColor"
-            class="filter-select"
+            class="filter-multi"
           >
-            <option value="">
-              Todos los colores
-            </option>
-          </select>
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los colores
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
 
 
-          <select
+          <div
             id="filterGenre"
-            class="filter-select"
+            class="filter-multi"
           >
-            <option value="">
-              Todos los géneros
-            </option>
-          </select>
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los géneros
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
 
 
-          <select
+          <div
             id="filterArtist"
-            class="filter-select"
+            class="filter-multi"
           >
-            <option value="">
-              Todos los artistas
-            </option>
-          </select>
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los artistas
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
 
 
-          <select
+          <div
             id="filterSinger"
-            class="filter-select"
+            class="filter-multi"
           >
-            <option value="">
-              Todos los cantantes
-            </option>
-          </select>
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los cantantes
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
 
 
           <select
@@ -3548,48 +3664,25 @@ function renderColorPicker(
 ============================================================ */
 
 function populateColorFilter() {
-
-  const select =
-    document.getElementById(
-      "filterColor"
-    );
-
-  const current =
-    select.value;
-
-  select.innerHTML = `
-    <option value="">
-      Todos los colores
-    </option>
-  `;
-
-  SONG_COLORS.forEach(color => {
-
-    const option =
-      document.createElement("option");
-
-    option.value =
-      color.value;
-
-    option.textContent =
-      color.name;
-
-    select.appendChild(
-      option
-    );
-
-  });
-
-  if (
-    SONG_COLORS.some(
+  populateMultiSongFilter(
+    "filterColor",
+    "Todos los colores",
+    SONG_COLORS.map(
       color =>
-        color.value === current
-    )
-  ) {
-    select.value =
-      current;
-  }
+        color.value
+    ),
+    value => {
+      const color =
+        SONG_COLORS.find(
+          item =>
+            item.value === value
+        );
 
+      return color
+        ? color.name
+        : value;
+    }
+  );
 }
 
 
@@ -6933,10 +7026,6 @@ function renderSongs() {
 ============================================================ */
 
 [
-  "filterColor",
-  "filterGenre",
-  "filterArtist",
-  "filterSinger",
   "filterListStatus",
   "filterActiveStatus"
 ]
@@ -6950,6 +7039,27 @@ function renderSongs() {
     );
 
 });
+
+document.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      !event.target.closest(".filter-multi")
+    ) {
+      document
+        .querySelectorAll(
+          ".filter-multi.open"
+        )
+        .forEach(
+          container => {
+            container.classList.remove("open");
+          }
+        );
+    }
+
+  }
+);
 
 
 document.getElementById(
