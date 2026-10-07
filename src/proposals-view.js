@@ -2,6 +2,281 @@ let currentProposals = [];
 let proposalOptionsMap = {};
 let proposalVotesMap = {};
 let proposalProfilesMap = {};
+let proposalAttachmentsMap = {};
+
+
+function getProposalAttachments(proposalId) {
+  return proposalAttachmentsMap[proposalId] || [];
+}
+
+
+function formatProposalFileSize(size) {
+  const bytes = Number(size);
+
+  if (!Number.isFinite(bytes) || bytes < 1) {
+    return "";
+  }
+
+  if (bytes < 1024) {
+    return bytes + " B";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + " KB";
+  }
+
+  if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+}
+
+
+function normalizeProposalLink(value) {
+  try {
+    const url = new URL(
+      String(value || "").trim()
+    );
+
+    if (
+      url.protocol !== "http:" &&
+      url.protocol !== "https:"
+    ) {
+      return null;
+    }
+
+    return url.href;
+  } catch (error) {
+    return null;
+  }
+}
+
+
+function sanitizeProposalFileName(name) {
+  return String(name || "archivo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 120) || "archivo";
+}
+
+
+function renderProposalAttachments(proposal) {
+  const attachments =
+    getProposalAttachments(proposal.id);
+
+  if (!attachments.length) {
+    return "";
+  }
+
+  const items =
+    attachments
+      .map(
+        attachment => {
+
+          if (attachment.kind === "link") {
+            const href =
+              normalizeProposalLink(
+                attachment.url
+              );
+
+            if (!href) {
+              return "";
+            }
+
+            return (
+              '<a class="proposal-attachment proposal-attachment-link" href="' +
+              escapeHtml(href) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              '<span>' +
+              escapeHtml(
+                attachment.title || href
+              ) +
+              '</span>' +
+              '<small>Enlace externo ↗</small>' +
+              '</a>'
+            );
+          }
+
+          if (!attachment.signed_url) {
+            return (
+              '<div class="proposal-attachment proposal-attachment-file">' +
+              '<span>' +
+              escapeHtml(
+                attachment.file_name ||
+                attachment.title ||
+                "Archivo"
+              ) +
+              '</span>' +
+              '<small>Archivo no disponible</small>' +
+              '</div>'
+            );
+          }
+
+          return (
+            '<a class="proposal-attachment proposal-attachment-file" href="' +
+            escapeHtml(attachment.signed_url) +
+            '" target="_blank" rel="noopener noreferrer">' +
+            '<span>' +
+            escapeHtml(
+              attachment.file_name ||
+              attachment.title ||
+              "Archivo"
+            ) +
+            '</span>' +
+            '<small>' +
+            escapeHtml(
+              formatProposalFileSize(
+                attachment.file_size
+              ) || "Archivo adjunto"
+            ) +
+            '</small>' +
+            '</a>'
+          );
+        }
+      )
+      .filter(Boolean)
+      .join("");
+
+  if (!items) {
+    return "";
+  }
+
+  return (
+    '<div class="proposal-attachments">' +
+      '<div class="proposal-attachments-title">Adjuntos y enlaces</div>' +
+      '<div class="proposal-attachments-list">' +
+        items +
+      '</div>' +
+    '</div>'
+  );
+}
+
+
+async function saveProposalAttachments(
+  proposal,
+  files,
+  linkValues
+) {
+  const errors = [];
+
+  for (const file of Array.from(files || [])) {
+    const cleanName =
+      sanitizeProposalFileName(
+        file.name
+      );
+
+    const path =
+      currentBand.id +
+      "/proposals/" +
+      proposal.id +
+      "/" +
+      crypto.randomUUID() +
+      "_" +
+      cleanName;
+
+    const { error: uploadError } =
+      await supabaseClient
+        .storage
+        .from("materials")
+        .upload(
+          path,
+          file,
+          {
+            cacheControl: "3600",
+            upsert: false,
+            contentType:
+              file.type ||
+              "application/octet-stream"
+          }
+        );
+
+    if (uploadError) {
+      errors.push(
+        "No se pudo subir " +
+        file.name +
+        ": " +
+        uploadError.message
+      );
+      continue;
+    }
+
+    const { error: rowError } =
+      await createProposalAttachment(
+        supabaseClient,
+        {
+          proposal_id: proposal.id,
+          band_id: currentBand.id,
+          kind: "file",
+          title: file.name,
+          file_name: file.name,
+          storage_path: path,
+          url: null,
+          mime_type:
+            file.type ||
+            null,
+          file_size: file.size,
+          created_by: currentUser.id
+        }
+      );
+
+    if (rowError) {
+      await supabaseClient
+        .storage
+        .from("materials")
+        .remove([path]);
+
+      errors.push(
+        "No se pudo registrar " +
+        file.name +
+        ": " +
+        rowError.message
+      );
+    }
+  }
+
+  const uniqueLinks =
+    Array.from(
+      new Set(
+        (linkValues || [])
+          .map(normalizeProposalLink)
+          .filter(Boolean)
+      )
+    );
+
+  for (const href of uniqueLinks) {
+    const { error } =
+      await createProposalAttachment(
+        supabaseClient,
+        {
+          proposal_id: proposal.id,
+          band_id: currentBand.id,
+          kind: "link",
+          title: href,
+          file_name: null,
+          storage_path: null,
+          url: href,
+          mime_type: null,
+          file_size: null,
+          created_by: currentUser.id
+        }
+      );
+
+    if (error) {
+      errors.push(
+        "No se pudo guardar el enlace " +
+        href +
+        ": " +
+        error.message
+      );
+    }
+  }
+
+  return errors;
+}
+
 
 function proposalTypeLabel(type) {
   if (type === "yes_no") {
@@ -476,6 +751,8 @@ function renderProposalCard(proposal) {
           : ""
       }
 
+      ${renderProposalAttachments(proposal)}
+
       <div class="proposal-vote-box">
 
         <div class="proposal-vote-heading">
@@ -732,6 +1009,7 @@ async function loadProposals() {
   proposalOptionsMap = {};
   proposalVotesMap = {};
   proposalProfilesMap = {};
+  proposalAttachmentsMap = {};
 
   const proposalIds =
     currentProposals.map(
@@ -750,6 +1028,73 @@ async function loadProposals() {
       )
     ];
 
+
+  const attachmentsResult =
+    await getProposalAttachmentsByProposalIds(
+      supabaseClient,
+      proposalIds
+    );
+
+  if (attachmentsResult.error) {
+    showNotice(
+      attachmentsResult.error.message,
+      "error"
+    );
+    return;
+  }
+
+  const proposalAttachments =
+    attachmentsResult.data || [];
+
+  const fileAttachments =
+    proposalAttachments.filter(
+      attachment =>
+        attachment.kind === "file" &&
+        attachment.storage_path
+    );
+
+  const signedUrlMap = {};
+
+  if (fileAttachments.length) {
+    const { data: signedUrls, error: signedError } =
+      await supabaseClient
+        .storage
+        .from("materials")
+        .createSignedUrls(
+          fileAttachments.map(
+            attachment =>
+              attachment.storage_path
+          ),
+          3600
+        );
+
+    if (signedError) {
+      showNotice(
+        signedError.message,
+        "error"
+      );
+      return;
+    }
+
+    (signedUrls || []).forEach(item => {
+      signedUrlMap[item.path] =
+        item.signedUrl;
+    });
+  }
+
+  proposalAttachments.forEach(attachment => {
+    (
+      proposalAttachmentsMap[
+        attachment.proposal_id
+      ] ||= []
+    ).push({
+      ...attachment,
+      signed_url:
+        signedUrlMap[
+          attachment.storage_path
+        ] || null
+    });
+  });
 
   const [
     optionsResult,
@@ -980,6 +1325,24 @@ document
           ?.value
           .trim() || "";
 
+      const proposalFiles =
+        document.getElementById(
+          "proposalFiles"
+        )?.files || [];
+
+      const proposalLinks =
+        document
+          .getElementById(
+            "proposalLinks"
+          )
+          ?.value
+          .split("\n")
+          .map(
+            value =>
+              value.trim()
+          )
+          .filter(Boolean) || [];
+
       const votingVisibility =
         document
           .getElementById("proposalVotingVisibility")
@@ -1057,10 +1420,27 @@ document
         return;
       }
 
-      showNotice(
-        "Propuesta publicada.",
-        "success"
-      );
+      const attachmentErrors =
+        await saveProposalAttachments(
+          result.data,
+          proposalFiles,
+          proposalLinks
+        );
+
+      if (attachmentErrors.length) {
+        showNotice(
+          "La propuesta se publicó, pero algunos adjuntos no se pudieron guardar.",
+          "error"
+        );
+        console.error(
+          attachmentErrors.join("\n")
+        );
+      } else {
+        showNotice(
+          "Propuesta publicada.",
+          "success"
+        );
+      }
 
       resetProposalForm();
       await loadProposals();
