@@ -13,6 +13,7 @@
   <script src="src/songs-view.js"></script>
   <script src="src/songs-filters.js"></script>
   <script src="src/songs-forms.js"></script>
+  <script src="src/materials-data.js"></script>
 
   <style>
     :root {
@@ -1867,6 +1868,119 @@
 
         </div>
 
+
+        <div class="form-card">
+
+          <div class="section-header" style="margin-bottom:18px;">
+
+            <div>
+
+              <h3 style="margin:0;">
+                Materiales
+              </h3>
+
+              <p style="margin-top:4px;">
+                Archivos y enlaces asociados a esta canción.
+              </p>
+
+            </div>
+
+            <button
+              id="showMaterialFormBtn"
+              type="button"
+              class="btn btn-subtle"
+            >
+              + Agregar material
+            </button>
+
+          </div>
+
+
+          <form
+            id="materialForm"
+            class="hidden"
+          >
+
+            <div class="form-grid">
+
+              <div class="form-group">
+
+                <label for="materialType">
+                  Tipo
+                </label>
+
+                <input
+                  id="materialType"
+                  type="text"
+                  required
+                  placeholder="Ej. Audio, letra, partitura"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="materialName">
+                  Nombre
+                </label>
+
+                <input
+                  id="materialName"
+                  type="text"
+                  required
+                  placeholder="Ej. Pista de práctica"
+                >
+
+              </div>
+
+
+              <div class="form-group full">
+
+                <label for="materialUrl">
+                  Enlace
+                </label>
+
+                <input
+                  id="materialUrl"
+                  type="url"
+                  placeholder="https://..."
+                >
+
+              </div>
+
+            </div>
+
+
+            <div class="form-actions">
+
+              <button
+                type="button"
+                id="cancelMaterialBtn"
+                class="btn"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                class="btn btn-primary"
+              >
+                Guardar material
+              </button>
+
+            </div>
+
+          </form>
+
+
+          <div
+            id="materialsList"
+            class="member-list"
+          ></div>
+
+        </div>
+
       </div>
 
     </section>
@@ -2081,6 +2195,7 @@ let allSongs = [];
 let songSingersMap = {};
 
 let currentSong = null;
+let currentMaterials = [];
 let navigationInitialized = false;
 
 let selectedNewSongColor = null;
@@ -2950,6 +3065,358 @@ document.getElementById(
 
 
 /* ============================================================
+   MATERIALES
+============================================================ */
+
+function getSafeMaterialUrl(value) {
+
+  const url =
+    String(value || "").trim();
+
+  if (!url) {
+    return null;
+  }
+
+  try {
+
+    const parsed =
+      new URL(url);
+
+    if (
+      parsed.protocol !== "http:" &&
+      parsed.protocol !== "https:"
+    ) {
+      return null;
+    }
+
+    return parsed.href;
+
+  } catch (error) {
+
+    return null;
+
+  }
+
+}
+
+
+async function loadMaterials() {
+
+  const materialsList =
+    document.getElementById(
+      "materialsList"
+    );
+
+  if (!currentSong) {
+    return;
+  }
+
+  materialsList.innerHTML =
+    "Cargando...";
+
+  const {
+    data: materials,
+    error
+  } =
+    await getMaterialsBySongId(
+      supabaseClient,
+      currentSong.id
+    );
+
+  if (error) {
+
+    showNotice(
+      error.message,
+      "error"
+    );
+
+    return;
+  }
+
+  currentMaterials =
+    materials || [];
+
+  renderMaterials();
+
+}
+
+
+function renderMaterials() {
+
+  const materialsList =
+    document.getElementById(
+      "materialsList"
+    );
+
+  if (!currentMaterials.length) {
+
+    materialsList.innerHTML = `
+      <div class="member">
+        <div>
+          <div class="member-info">
+            Todavía no hay materiales para esta canción.
+          </div>
+        </div>
+      </div>
+    `;
+
+    return;
+  }
+
+  materialsList.innerHTML =
+    currentMaterials
+      .map(material => {
+
+        const safeUrl =
+          getSafeMaterialUrl(
+            material.url
+          );
+
+        return `
+          <div class="member">
+
+            <div>
+
+              <div class="member-name">
+                ${escapeHtml(material.name)}
+              </div>
+
+              <div class="member-info">
+                ${escapeHtml(material.type)}
+              </div>
+
+            </div>
+
+            <div class="detail-actions">
+
+              ${safeUrl
+                ? `
+                  <a
+                    href="${escapeHtml(safeUrl)}"
+                    class="btn btn-subtle"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Abrir
+                  </a>
+                `
+                : ""}
+
+              <button
+                type="button"
+                class="btn btn-subtle"
+                data-material-id="${escapeHtml(material.id)}"
+              >
+                Eliminar
+              </button>
+
+            </div>
+
+          </div>
+        `;
+
+      })
+      .join("");
+
+  materialsList
+    .querySelectorAll(
+      "[data-material-id]"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        async function() {
+
+          const materialId =
+            button.dataset.materialId;
+
+          const material =
+            currentMaterials.find(
+              item =>
+                item.id === materialId
+            );
+
+          if (!material) {
+            return;
+          }
+
+          const confirmed =
+            window.confirm(
+              `¿Eliminar "${material.name}"?`
+            );
+
+          if (!confirmed) {
+            return;
+          }
+
+          const {
+            error
+          } =
+            await deleteMaterial(
+              supabaseClient,
+              materialId
+            );
+
+          if (error) {
+
+            showNotice(
+              error.message,
+              "error"
+            );
+
+            return;
+          }
+
+          await loadMaterials();
+
+        }
+      );
+
+    });
+
+}
+
+
+function showMaterialForm() {
+
+  const form =
+    document.getElementById(
+      "materialForm"
+    );
+
+  form.classList.remove(
+    "hidden"
+  );
+
+  document.getElementById(
+    "materialType"
+  ).focus();
+
+}
+
+
+function hideMaterialForm() {
+
+  const form =
+    document.getElementById(
+      "materialForm"
+    );
+
+  form.classList.add(
+    "hidden"
+  );
+
+  form.reset();
+
+}
+
+
+document.getElementById(
+  "showMaterialFormBtn"
+).addEventListener(
+  "click",
+  showMaterialForm
+);
+
+
+document.getElementById(
+  "cancelMaterialBtn"
+).addEventListener(
+  "click",
+  hideMaterialForm
+);
+
+
+document.getElementById(
+  "materialForm"
+).addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    if (!currentBand || !currentSong || !currentUser) {
+      return;
+    }
+
+    const type =
+      document.getElementById(
+        "materialType"
+      ).value.trim();
+
+    const name =
+      document.getElementById(
+        "materialName"
+      ).value.trim();
+
+    const rawUrl =
+      document.getElementById(
+        "materialUrl"
+      ).value.trim();
+
+    const url =
+      getSafeMaterialUrl(
+        rawUrl
+      );
+
+    if (!type || !name) {
+      showNotice(
+        "El tipo y el nombre son obligatorios.",
+        "error"
+      );
+      return;
+    }
+
+    if (rawUrl && !url) {
+      showNotice(
+        "El enlace debe ser una URL válida con http:// o https://.",
+        "error"
+      );
+      return;
+    }
+
+    const {
+      error
+    } =
+      await createMaterial(
+        supabaseClient,
+        {
+          band_id:
+            currentBand.id,
+          song_id:
+            currentSong.id,
+          type,
+          name,
+          url,
+          created_by:
+            currentUser.id
+        }
+      );
+
+    if (error) {
+
+      showNotice(
+        error.message,
+        "error"
+      );
+
+      return;
+    }
+
+    showNotice(
+      "Material agregado.",
+      "success"
+    );
+
+    hideMaterialForm();
+    await loadMaterials();
+
+  }
+);
+
+
+/* ============================================================
    CANCIONES - CARGA
 ============================================================ */
 
@@ -3495,6 +3962,12 @@ async function openSong(
   currentSong =
     song;
 
+  currentMaterials = [];
+
+  hideMaterialForm();
+
+  loadMaterials();
+
 
   document.getElementById(
     "songsBrowser"
@@ -3978,6 +4451,10 @@ document.getElementById(
 
     currentSong =
       null;
+
+    currentMaterials = [];
+
+    hideMaterialForm();
 
     document.getElementById(
       "songDetail"
