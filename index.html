@@ -7417,14 +7417,23 @@ async function openSongListsDialog(songId) {
 
   const assignedIds = new Set(getSongListIds(songId));
 
-  if (!currentBandLists.length) {
+  const editableLists =
+    (currentBandLists || [])
+      .filter(
+        list =>
+          isBandListCreator(
+            list
+          )
+      );
+
+  if (!editableLists.length) {
     picker.innerHTML =
-      '<div class="empty-state">Todavía no hay listas creadas. ' +
-      'Creá una desde la sección Listas.</div>';
+      '<div class="empty-state">No tenés listas que puedas editar. ' +
+      'Solo quien creó una lista puede modificar su repertorio.</div>';
     return;
   }
 
-  picker.innerHTML = currentBandLists
+  picker.innerHTML = editableLists
     .slice()
     .sort((a, b) =>
       String(a.title || "").localeCompare(
