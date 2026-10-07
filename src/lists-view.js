@@ -316,7 +316,7 @@ function renderBandListCard(list) {
   let html =
     '<article class="list-card"' +
     (
-      isBandListCreator(list)
+      isBandListEditor(list)
         ? ' data-context-delete="list" data-context-delete-id="' +
           escapeHtml(list.id) +
           '"'
