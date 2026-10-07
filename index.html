@@ -1953,13 +1953,13 @@
 
 
             <div class="form-group">
-              <label for="newSongRepertoire">Repertorio</label>
+              <label for="newSongListStatus">Lista / Pendiente</label>
               <label class="inline-check">
                 <input
-                  id="newSongRepertoire"
+                  id="newSongListStatus"
                   type="checkbox"
                 >
-                <span>Añadir al repertorio</span>
+                <span>En lista</span>
               </label>
             </div>
 
@@ -2318,13 +2318,13 @@
 
 
               <div class="form-group">
-                <label for="detailRepertoire">Repertorio</label>
+                <label for="detailListStatus">Lista / Pendiente</label>
                 <label class="inline-check">
                   <input
-                    id="detailRepertoire"
+                    id="detailListStatus"
                     type="checkbox"
                   >
-                  <span>En repertorio</span>
+                  <span>En lista</span>
                 </label>
               </div>
 
@@ -6674,7 +6674,7 @@ async function toggleSongRepertoire(songId, checked) {
 
   if (currentSong?.id === songId) {
     currentSong.list_status = nextStatus;
-    const detailCheckbox = document.getElementById("detailRepertoire");
+    const detailCheckbox = document.getElementById("detailListStatus");
     if (detailCheckbox) {
       detailCheckbox.checked = checked;
     }
@@ -7382,7 +7382,7 @@ async function openSong(
 
 
   document.getElementById(
-    "detailRepertoire"
+    "detailListStatus"
   ).checked =
     song.list_status === "Lista";
 
