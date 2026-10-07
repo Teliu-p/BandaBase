@@ -15,6 +15,31 @@ function proposalTypeLabel(type) {
   return "Una opción";
 }
 
+function proposalVisibilityLabel(visibility) {
+  return visibility === "anonymous"
+    ? "Votos anónimos"
+    : "Votos públicos";
+}
+
+function getProposalVoterName(userId) {
+  if (userId === currentUser?.id) {
+    return (
+      currentProfile?.full_name ||
+      currentProfile?.display_name ||
+      "Vos"
+    );
+  }
+
+  const profile =
+    proposalProfilesMap[userId];
+
+  return (
+    profile?.full_name ||
+    profile?.display_name ||
+    "Integrante"
+  );
+}
+
 function getProposalAuthorName(proposal) {
   if (proposal.created_by === currentUser?.id) {
     return (
@@ -242,34 +267,72 @@ function renderProposalResults(proposal) {
   const options =
     proposalOptionsMap[proposal.id] || [];
 
-  const votes = getProposalVotes(proposal.id);
+  const votes =
+    getProposalVotes(proposal.id);
 
-  const voterIds = new Set(
-    votes
-      .map(vote => vote.user_id)
-      .filter(Boolean)
-  );
+  const voterIds =
+    new Set(
+      votes
+        .map(vote => vote.user_id)
+        .filter(Boolean)
+    );
 
-  const totalVoters = voterIds.size;
+  const totalVoters =
+    voterIds.size;
 
   return `
     <div class="proposal-results">
+
+      <div class="proposal-meta">
+        ${totalVoters} integrante${totalVoters === 1 ? "" : "s"} votaron
+      </div>
+
       ${
         options.length
           ? options
               .map(option => {
-                const count =
+                const optionVotes =
                   getProposalOptionVotes(
                     proposal.id,
                     option.id
-                  ).length;
+                  );
 
-                const percent = totalVoters
-                  ? Math.round(
-                      (count * 100) /
-                        totalVoters
-                    )
-                  : 0;
+                const count =
+                  optionVotes.length;
+
+                const percent =
+                  totalVoters
+                    ? Math.round(
+                        (count * 100) /
+                          totalVoters
+                      )
+                    : 0;
+
+                let votersHtml = "";
+
+                if (
+                  proposal.voting_visibility !==
+                  "anonymous" &&
+                  optionVotes.length
+                ) {
+                  const names =
+                    Array.from(
+                      new Set(
+                        optionVotes.map(
+                          vote =>
+                            getProposalVoterName(
+                              vote.user_id
+                            )
+                        )
+                      )
+                    );
+
+                  votersHtml =
+                    '<div class="proposal-voter-list">' +
+                    "Votan: " +
+                    escapeHtml(names.join(", ")) +
+                    "</div>";
+                }
 
                 return `
                   <div class="proposal-result-row">
@@ -277,18 +340,27 @@ function renderProposalResults(proposal) {
                       <span>${escapeHtml(option.label)}</span>
                       <span>${count} (${percent}%)</span>
                     </div>
+
                     <div class="proposal-result-bar">
                       <span style="width:${percent}%"></span>
                     </div>
+
+                    ${votersHtml}
                   </div>
                 `;
               })
               .join("")
           : '<div class="empty-state">No hay opciones.</div>'
       }
+
       <div class="proposal-vote-count">
-        ${totalVoters} integrante${totalVoters === 1 ? "" : "s"} votaron
+        ${
+          proposal.voting_visibility === "anonymous"
+            ? "Los nombres de los votantes no se muestran."
+            : "Los votos son públicos."
+        }
       </div>
+
     </div>
   `;
 }
@@ -374,6 +446,12 @@ function renderProposalCard(proposal) {
                 proposal.voting_type
               )
             )}
+            ·
+            ${escapeHtml(
+              proposalVisibilityLabel(
+                proposal.voting_visibility
+              )
+            )}
           </div>
 
         </div>
@@ -421,8 +499,10 @@ function renderProposalCard(proposal) {
         ${
           open
             ? '<button type="button" class="btn btn-primary proposal-save-vote">Guardar voto</button>'
-            : renderProposalResults(proposal)
+            : ""
         }
+
+        ${renderProposalResults(proposal)}
 
       </div>
 
@@ -670,10 +750,10 @@ async function loadProposals() {
       )
     ];
 
+
   const [
     optionsResult,
-    votesResult,
-    profilesResult
+    votesResult
   ] = await Promise.all([
     getProposalOptionsByProposalIds(
       supabaseClient,
@@ -682,27 +762,12 @@ async function loadProposals() {
     getProposalVotesByProposalIds(
       supabaseClient,
       proposalIds
-    ),
-    authorIds.length
-      ? supabaseClient
-          .from("profiles")
-          .select(
-            "user_id, display_name, full_name"
-          )
-          .in(
-            "user_id",
-            authorIds
-          )
-      : Promise.resolve({
-          data: [],
-          error: null
-        })
+    )
   ]);
 
   const combinedError =
     optionsResult.error ||
-    votesResult.error ||
-    profilesResult.error;
+    votesResult.error;
 
   if (combinedError) {
     showNotice(
@@ -730,14 +795,68 @@ async function loadProposals() {
       ).push(vote);
     });
 
-  (profilesResult.data || [])
-    .forEach(profile => {
-      proposalProfilesMap[
-        profile.user_id
-      ] = profile;
-    });
+  const publicProposalIds =
+    currentProposals
+      .filter(
+        proposal =>
+          proposal.voting_visibility !==
+          "anonymous"
+      )
+      .map(
+        proposal =>
+          proposal.id
+      );
+
+  const voterIds =
+    [
+      ...new Set(
+        (votesResult.data || [])
+          .filter(
+            vote =>
+              publicProposalIds.includes(
+                vote.proposal_id
+              )
+          )
+          .map(
+            vote =>
+              vote.user_id
+          )
+          .filter(Boolean)
+      )
+    ];
+
+  if (voterIds.length) {
+    const {
+      data: profiles,
+      error: profilesError
+    } = await supabaseClient
+      .from("profiles")
+      .select(
+        "user_id, display_name, full_name"
+      )
+      .in(
+        "user_id",
+        voterIds
+      );
+
+    if (profilesError) {
+      showNotice(
+        profilesError.message,
+        "error"
+      );
+      return;
+    }
+
+    (profiles || [])
+      .forEach(profile => {
+        proposalProfilesMap[
+          profile.user_id
+        ] = profile;
+      });
+  }
 
   renderProposals();
+
 }
 
 document
@@ -759,6 +878,27 @@ document
   ?.addEventListener(
     "change",
     updateProposalTypeUI
+  );
+
+document
+  .getElementById("proposalVotingVisibility")
+  ?.addEventListener(
+    "change",
+    event => {
+      const help =
+        document.getElementById(
+          "proposalVisibilityHelp"
+        );
+
+      if (!help) {
+        return;
+      }
+
+      help.textContent =
+        event.target.value === "anonymous"
+          ? "No se muestran los nombres de quienes votan."
+          : "Se muestran los nombres de quienes votan en cada opción.";
+    }
   );
 
 document
@@ -840,6 +980,11 @@ document
           ?.value
           .trim() || "";
 
+      const votingVisibility =
+        document
+          .getElementById("proposalVotingVisibility")
+          ?.value || "public";
+
       const votingType =
         document.getElementById(
           "proposalVotingType"
@@ -896,6 +1041,8 @@ document
               "Abierta",
             voting_type:
               votingType,
+            voting_visibility:
+              votingVisibility,
             created_by:
               currentUser.id
           },

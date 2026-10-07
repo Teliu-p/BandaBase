@@ -1,5 +1,5 @@
 const PROPOSAL_COLUMNS =
-  "id, band_id, title, detail, status, voting_type, created_by, created_at, decided_at";
+  "id, band_id, title, detail, status, voting_type, voting_visibility, created_by, created_at, decided_at";
 
 async function getProposalsByBandId(client, bandId) {
   return client
