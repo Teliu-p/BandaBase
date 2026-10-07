@@ -177,3 +177,84 @@ async function deleteMaterialAttachment(
     );
 
 }
+
+
+const MATERIAL_BLOCK_COLUMNS = `
+  id,
+  material_id,
+  block_type,
+  content,
+  attachment_id,
+  position,
+  created_at
+`;
+
+
+async function getMaterialBlocksByMaterialIds(
+  supabaseClient,
+  materialIds
+) {
+
+  if (!materialIds.length) {
+    return {
+      data: [],
+      error: null
+    };
+  }
+
+  return await supabaseClient
+    .from("material_blocks")
+    .select(MATERIAL_BLOCK_COLUMNS)
+    .in(
+      "material_id",
+      materialIds
+    )
+    .order(
+      "position",
+      {
+        ascending: true
+      }
+    );
+
+}
+
+
+async function replaceMaterialBlocks(
+  supabaseClient,
+  materialId,
+  blocks
+) {
+
+  const {
+    error: deleteError
+  } =
+    await supabaseClient
+      .from("material_blocks")
+      .delete()
+      .eq(
+        "material_id",
+        materialId
+      );
+
+  if (deleteError) {
+    return {
+      data: null,
+      error: deleteError
+    };
+  }
+
+  if (!blocks.length) {
+    return {
+      data: [],
+      error: null
+    };
+  }
+
+  return await supabaseClient
+    .from("material_blocks")
+    .insert(
+      blocks
+    )
+    .select(MATERIAL_BLOCK_COLUMNS);
+
+}
