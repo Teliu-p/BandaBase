@@ -15,11 +15,8 @@
   <script src="src/songs-forms.js"></script>
   <script src="src/materials-data.js"></script>
   <script src="src/comments-data.js"></script>
-  <script src="src/rehearsals-data.js"></script>
   <script src="src/lists-data.js"></script>
   <script src="src/lists-view.js"></script>
-  <script src="src/proposals-data.js"></script>
-  <script src="src/proposals-view.js"></script>
 
   <style>
     :root {
@@ -719,7 +716,6 @@
       margin-bottom: 10px;
     }
 
-
     /* =========================
        LISTAS
     ========================= */
@@ -868,6 +864,7 @@
       margin: 0 0 8px;
     }
 
+
     /* =========================
        PROPUESTAS
     ========================= */
@@ -910,6 +907,7 @@
     .proposal-detail {
       margin-top: 13px;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       line-height: 1.45;
     }
 
@@ -934,6 +932,11 @@
       border-radius: 8px;
       padding: 10px 12px;
       cursor: pointer;
+    }
+
+    .proposal-vote-option.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
     }
 
     .proposal-vote-option input {
@@ -1439,7 +1442,7 @@
         Listas
       </button>
 
-<button
+      <button
         type="button"
         class="nav-btn"
         data-section="propuestas"
@@ -2872,57 +2875,181 @@
 
 
 
-
     <section
       id="section-propuestas"
       class="app-section hidden"
     >
+
       <div class="section-header">
+
         <div>
+
           <h2>Propuestas</h2>
-          <p>Decisiones de la banda mediante votación.</p>
+
+          <p>
+            Planteá decisiones para que la banda las vote.
+          </p>
+
         </div>
-        <button id="showProposalFormBtn" type="button" class="btn btn-subtle">+ Nueva propuesta</button>
+
+        <button
+          id="showProposalFormBtn"
+          type="button"
+          class="btn btn-subtle"
+        >
+          + Nueva propuesta
+        </button>
+
       </div>
 
-      <form id="proposalForm" class="form-card hidden">
-        <h3>Nueva propuesta</h3>
+
+      <form
+        id="proposalForm"
+        class="form-card hidden"
+      >
+
+        <div class="section-header" style="margin-bottom:18px;">
+
+          <div>
+
+            <h3 id="proposalFormTitle" style="margin:0;">
+              Nueva propuesta
+            </h3>
+
+            <p style="margin-top:4px;">
+              Una propuesta puede ser Sí / No, una opción o varias opciones.
+            </p>
+
+          </div>
+
+        </div>
+
+
         <div class="form-grid">
+
           <div class="form-group full">
-            <label for="proposalTitle">Título</label>
-            <input id="proposalTitle" type="text" maxlength="160" required placeholder="Ej. Cambiar el horario de ensayo">
+
+            <label for="proposalTitle">
+              Título
+            </label>
+
+            <input
+              id="proposalTitle"
+              type="text"
+              maxlength="160"
+              required
+              placeholder="Ej. Cambiar el horario del ensayo"
+            >
+
           </div>
+
+
           <div class="form-group full">
-            <label for="proposalDetail">Descripción</label>
-            <textarea id="proposalDetail" maxlength="5000" placeholder="Explicá la propuesta o el contexto..."></textarea>
+
+            <label for="proposalDetail">
+              Descripción
+            </label>
+
+            <textarea
+              id="proposalDetail"
+              maxlength="5000"
+              placeholder="Explicá la propuesta o el contexto..."
+            ></textarea>
+
           </div>
+
+
           <div class="form-group">
-            <label for="proposalVotingType">Tipo de votación</label>
+
+            <label for="proposalVotingType">
+              Tipo de votación
+            </label>
+
             <select id="proposalVotingType">
-              <option value="yes_no">Sí / No</option>
-              <option value="single" selected>Una opción</option>
-              <option value="multiple">Varias opciones</option>
+
+              <option value="yes_no">
+                Sí / No
+              </option>
+
+              <option value="single" selected>
+                Una opción
+              </option>
+
+              <option value="multiple">
+                Varias opciones
+              </option>
+
             </select>
+
           </div>
+
+
           <div class="form-group full">
+
             <div class="proposal-options-heading">
-              <label>Opciones</label>
-              <button id="addProposalOptionBtn" type="button" class="btn btn-subtle">+ Agregar opción</button>
+
+              <label>
+                Opciones
+              </label>
+
+              <button
+                id="addProposalOptionBtn"
+                type="button"
+                class="btn btn-subtle"
+              >
+                + Agregar opción
+              </button>
+
             </div>
-            <div id="proposalOptionsInputs" class="proposal-options-inputs"></div>
-            <p id="proposalOptionsHelp" class="form-help"></p>
+
+            <div
+              id="proposalOptionsInputs"
+              class="proposal-options-inputs"
+            ></div>
+
+            <p
+              id="proposalOptionsHelp"
+              class="form-help"
+            ></p>
+
           </div>
+
         </div>
+
+
         <div class="form-actions">
-          <button id="cancelProposalBtn" type="button" class="btn">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Publicar propuesta</button>
+
+          <button
+            id="cancelProposalBtn"
+            type="button"
+            class="btn"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Publicar propuesta
+          </button>
+
         </div>
+
       </form>
 
-      <div id="proposalsList" class="proposals-list">
-        <div class="empty-state">Todavía no hay propuestas.</div>
+
+      <div
+        id="proposalsList"
+        class="proposals-list"
+      >
+        <div class="empty-state">
+          Cargando propuestas...
+        </div>
       </div>
+
     </section>
+
 
 
 
@@ -2982,6 +3109,8 @@
 <div id="notice"></div>
 
 
+<script src="src/proposals-data.js"></script>
+<script src="src/proposals-view.js"></script>
 <script>
 /* ============================================================
    SUPABASE
@@ -7502,7 +7631,6 @@ document.getElementById(
 );
 
 
-
 /* ============================================================
    COMENTARIOS GENERALES
 ============================================================ */
@@ -8703,11 +8831,13 @@ function showSection(
 
   }
 
+
   if (sectionName === "propuestas") {
 
     void loadProposals();
 
   }
+
 
   if (sectionName === "inicio") {
 
