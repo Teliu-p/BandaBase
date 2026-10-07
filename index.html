@@ -997,6 +997,26 @@
       margin-top: 14px;
     }
 
+    .proposal-visibility-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .proposal-results {
+      margin-top: 15px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .proposal-voter-list {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
     /* =========================
        COMENTARIOS
     ========================= */
@@ -2983,6 +3003,30 @@
 
           </div>
 
+          <div class="form-group">
+
+            <label for="proposalVotingVisibility">
+              Visibilidad de los votos
+            </label>
+
+            <select id="proposalVotingVisibility">
+              <option value="public" selected>
+                Pública
+              </option>
+              <option value="anonymous">
+                Anónima
+              </option>
+            </select>
+
+            <p
+              id="proposalVisibilityHelp"
+              class="proposal-visibility-note"
+            >
+              Se muestran los nombres de quienes votan en cada opción.
+            </p>
+
+          </div>
+
 
           <div class="form-group full">
 
@@ -3209,6 +3253,8 @@ let bandMemberProfilesMap = {};
 let currentSong = null;
 let currentMaterials = [];
 let navigationInitialized = false;
+let initializedUserId = null;
+let initializingUserId = null;
 
 let currentBandLists = [];
 let bandListItemsMap = {};
@@ -3520,6 +3566,9 @@ async function handleAuthSession(session) {
 
     if (session?.user) {
 
+      const userId =
+        session.user.id;
+
       currentUser =
         session.user;
 
@@ -3531,13 +3580,41 @@ async function handleAuthSession(session) {
         "hidden"
       );
 
-      await initializeApp();
+      if (
+        initializedUserId === userId ||
+        initializingUserId === userId
+      ) {
+        return;
+      }
+
+      initializingUserId =
+        userId;
+
+      try {
+
+        await initializeApp();
+
+        initializedUserId =
+          userId;
+
+      } finally {
+
+        if (
+          initializingUserId === userId
+        ) {
+          initializingUserId =
+            null;
+        }
+
+      }
 
     } else {
 
       currentUser = null;
       currentBand = null;
       currentProfile = null;
+      initializedUserId = null;
+      initializingUserId = null;
 
       app.classList.add(
         "hidden"
@@ -3605,7 +3682,9 @@ async function initializeApp() {
   initializeSongListsDialogUI();
   await refreshBandListData();
 
-  showSection("inicio");
+  showSection(
+    getSavedSection()
+  );
 
 }
 
@@ -8732,6 +8811,51 @@ document.getElementById(
    NAVEGACIÓN
 ============================================================ */
 
+function getNavigationStorageKey() {
+  return currentBand?.id
+    ? "bandabase.activeSection." + currentBand.id
+    : "bandabase.activeSection";
+}
+
+function getSavedSection() {
+  let saved = null;
+
+  try {
+    saved = localStorage.getItem(
+      getNavigationStorageKey()
+    );
+  } catch (error) {
+    console.warn(
+      "No se pudo leer la sección guardada.",
+      error
+    );
+  }
+
+  const valid =
+    saved &&
+    document.querySelector(
+      '.nav-btn[data-section="' +
+      CSS.escape(saved) +
+      '"]'
+    );
+
+  return valid ? saved : "inicio";
+}
+
+function persistSection(sectionName) {
+  try {
+    localStorage.setItem(
+      getNavigationStorageKey(),
+      sectionName
+    );
+  } catch (error) {
+    console.warn(
+      "No se pudo guardar la sección actual.",
+      error
+    );
+  }
+}
+
 function setupNavigation() {
 
   if (navigationInitialized) {
@@ -8795,7 +8919,13 @@ function showSection(
       "hidden"
     );
 
+  } else {
+
+    return;
+
   }
+
+  persistSection(sectionName);
 
 
   document
