@@ -166,6 +166,20 @@ function isBandListCreator(list) {
   );
 }
 
+function isBandListAdmin(list) {
+  return Boolean(
+    list &&
+    window.bandabaseIsAdmin?.()
+  );
+}
+
+function isBandListEditor(list) {
+  return (
+    isBandListCreator(list) ||
+    isBandListAdmin(list)
+  );
+}
+
 function isBandListManager(list) {
   if (
     !list ||
@@ -174,7 +188,10 @@ function isBandListManager(list) {
     return false;
   }
 
-  if (isBandListCreator(list)) {
+  if (
+    isBandListCreator(list) ||
+    isBandListAdmin(list)
+  ) {
     return true;
   }
 
@@ -201,7 +218,7 @@ function canCurrentUserEditAnyBandList() {
   return (currentBandLists || [])
     .some(
       list =>
-        isBandListCreator(
+        isBandListEditor(
           list
         )
     );
@@ -338,7 +355,7 @@ function renderBandListCard(list) {
     '">Abrir</button>';
 
   if (
-    isBandListCreator(list)
+    isBandListEditor(list)
   ) {
     html +=
       '<button type="button" class="btn btn-subtle" data-edit-list="' +
@@ -526,7 +543,7 @@ function showBandListForm(list) {
     !isBandListCreator(list)
   ) {
     showNotice(
-      "Solo quien creó la lista puede editarla.",
+      "No tenés permiso para editar esta lista.",
       "error"
     );
     return;
@@ -684,7 +701,7 @@ function openBandListDetail(listId) {
   if (editButton) {
     editButton.classList.toggle(
       "hidden",
-      !isBandListCreator(list)
+      !isBandListEditor(list)
     );
   }
 
@@ -998,7 +1015,7 @@ async function saveBandList() {
 
     if (
       !existing ||
-      !isBandListCreator(
+      !isBandListEditor(
         existing
       )
     ) {
@@ -1320,7 +1337,7 @@ function bindBandListEvents() {
 
             if (
               list &&
-              isBandListCreator(
+              isBandListEditor(
                 list
               )
             ) {
@@ -1361,12 +1378,12 @@ function bindBandListEvents() {
             if (!list) return;
 
             if (
-              !isBandListCreator(
+              !isBandListEditor(
                 list
               )
             ) {
               showNotice(
-                "Solo quien creó la lista puede eliminarla.",
+                "No tenés permiso para mover esta lista a la papelera.",
                 "error"
               );
               return;
@@ -1397,7 +1414,7 @@ function bindBandListEvents() {
             }
 
             showNotice(
-              "Lista eliminada.",
+              "Lista enviada a la papelera.",
               "success"
             );
 
