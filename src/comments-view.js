@@ -711,8 +711,12 @@ function renderGeneralCommentCard(
   comment,
   showActions = true
 ) {
+  const canManageComment =
+    comment.user_id === currentUser?.id ||
+    window.bandabaseIsAdmin?.();
+
   const canContextDelete =
-    comment.user_id === currentUser?.id;
+    canManageComment;
 
   let html =
     '<article class="comment-card"' +
@@ -747,8 +751,7 @@ function renderGeneralCommentCard(
 
   if (
     showActions &&
-    comment.user_id ===
-      currentUser?.id
+    canManageComment
   ) {
     html +=
       '<div class="comment-actions">' +
@@ -1608,8 +1611,7 @@ function renderComments() {
           "</div>";
 
         if (
-          comment.user_id ===
-          currentUser?.id
+          canManageComment
         ) {
           html +=
             '<div class="comment-actions">' +
