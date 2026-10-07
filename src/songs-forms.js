@@ -236,7 +236,9 @@ function readSongFormFields(
   const listStatus =
     document.getElementById(
       fieldIds.listStatus
-    ).value;
+    ).checked
+      ? "Lista"
+      : "Pendiente";
 
   const activeStatus =
     document.getElementById(
