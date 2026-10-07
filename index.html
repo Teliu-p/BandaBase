@@ -1055,14 +1055,6 @@
         Propuestas
       </button>
 
-      <button
-        type="button"
-        class="nav-btn"
-        data-section="comentarios"
-      >
-        Comentarios
-      </button>
-
     </div>
 
   </nav>
@@ -2141,6 +2133,77 @@
           <div id="materialsList"></div>
 
         </div>
+
+
+        <div class="form-card">
+
+          <div class="section-header" style="margin-bottom:18px;">
+
+            <div>
+
+              <h3 style="margin:0;">
+                Comentarios
+              </h3>
+
+              <p style="margin-top:4px;">
+                Comentarios sobre esta canción.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <form
+            id="commentForm"
+            class="comments-form"
+          >
+
+            <div class="form-group">
+
+              <label for="commentContent">
+                Comentario
+              </label>
+
+              <textarea
+                id="commentContent"
+                maxlength="5000"
+                placeholder="Escribí algo sobre esta canción..."
+                required
+              ></textarea>
+
+            </div>
+
+
+            <div class="form-actions">
+
+              <button
+                id="cancelCommentBtn"
+                type="button"
+                class="btn hidden"
+              >
+                Cancelar
+              </button>
+
+              <button
+                id="saveCommentBtn"
+                type="submit"
+                class="btn btn-primary"
+              >
+                Publicar comentario
+              </button>
+
+            </div>
+
+          </form>
+
+
+          <div
+            id="commentsList"
+            class="comment-list"
+          ></div>
+
+        </div>
         </div>
 
       </div>
@@ -2230,76 +2293,7 @@
     </section>
 
 
-    <section
-      id="section-comentarios"
-      class="app-section hidden"
-    >
 
-      <div class="section-header">
-
-        <div>
-
-          <h2>Comentarios</h2>
-
-          <p>
-            Conversaciones y notas generales de la banda.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <form
-        id="commentForm"
-        class="comments-form"
-      >
-
-        <div class="form-group">
-
-          <label for="commentContent">
-            Comentario
-          </label>
-
-          <textarea
-            id="commentContent"
-            maxlength="5000"
-            placeholder="Escribí algo para la banda..."
-            required
-          ></textarea>
-
-        </div>
-
-
-        <div class="form-actions">
-
-          <button
-            id="cancelCommentBtn"
-            type="button"
-            class="btn hidden"
-          >
-            Cancelar
-          </button>
-
-          <button
-            id="saveCommentBtn"
-            type="submit"
-            class="btn btn-primary"
-          >
-            Publicar comentario
-          </button>
-
-        </div>
-
-      </form>
-
-
-      <div
-        id="commentsList"
-        class="comment-list"
-      ></div>
-
-    </section>
 
   </main>
 
@@ -5268,7 +5262,13 @@ async function openSong(
 
   hideMaterialForm();
 
+  resetCommentForm();
+
+  currentComments = [];
+
   loadMaterials();
+
+  loadComments();
 
 
   document.getElementById(
@@ -5756,6 +5756,10 @@ document.getElementById(
 
     currentMaterials = [];
 
+    currentComments = [];
+
+    resetCommentForm();
+
     hideMaterialForm();
 
     document.getElementById(
@@ -5777,7 +5781,7 @@ document.getElementById(
 
 
 /* ============================================================
-   COMENTARIOS
+   COMENTARIOS DE LA CANCIÓN
 ============================================================ */
 
 let currentComments = [];
@@ -5791,7 +5795,8 @@ function formatCommentDate(value) {
     return "";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return "";
@@ -5811,9 +5816,14 @@ function formatCommentDate(value) {
 async function loadComments() {
 
   const commentsList =
-    document.getElementById("commentsList");
+    document.getElementById(
+      "commentsList"
+    );
 
-  if (!currentBand) {
+  if (
+    !currentSong ||
+    !commentsList
+  ) {
     return;
   }
 
@@ -5824,9 +5834,9 @@ async function loadComments() {
     data: comments,
     error
   } =
-    await getCommentsByBandId(
+    await getCommentsBySongId(
       supabaseClient,
-      currentBand.id
+      currentSong.id
     );
 
   if (error) {
@@ -5837,6 +5847,7 @@ async function loadComments() {
     );
 
     return;
+
   }
 
   currentComments =
@@ -5889,7 +5900,8 @@ async function loadComments() {
 
           commentProfilesMap[
             profile.user_id
-          ] = profile;
+          ] =
+            profile;
 
         }
       );
@@ -5941,12 +5953,16 @@ function renderComments() {
       "commentsList"
     );
 
+  if (!commentsList) {
+    return;
+  }
+
   if (!currentComments.length) {
 
     commentsList.innerHTML =
       '<div class="empty-state">' +
-      'Todavía no hay comentarios.<br>' +
-      'Sé el primero en dejar uno para la banda.' +
+      'Todavía no hay comentarios sobre esta canción.<br>' +
+      'Sé el primero en dejar uno.' +
       '</div>';
 
     return;
@@ -5962,9 +5978,7 @@ function renderComments() {
             '<article class="comment-card">';
 
           html +=
-            '<div class="comment-header">';
-
-          html +=
+            '<div class="comment-header">' +
             '<div>' +
             '<div class="comment-author">' +
             escapeHtml(
@@ -6004,7 +6018,9 @@ function renderComments() {
 
           html +=
             '<div class="comment-content">' +
-            escapeHtml(comment.content) +
+            escapeHtml(
+              comment.content
+            ) +
             '</div>';
 
           html +=
@@ -6122,7 +6138,6 @@ function bindCommentEvents() {
               );
 
               return;
-
             }
 
             showNotice(
@@ -6146,9 +6161,14 @@ function resetCommentForm() {
   editingCommentId =
     null;
 
-  document.getElementById(
-    "commentForm"
-  ).reset();
+  const form =
+    document.getElementById(
+      "commentForm"
+    );
+
+  if (form) {
+    form.reset();
+  }
 
   document.getElementById(
     "cancelCommentBtn"
@@ -6182,6 +6202,7 @@ document.getElementById(
 
     if (
       !currentBand ||
+      !currentSong ||
       !currentUser
     ) {
       return;
@@ -6240,6 +6261,8 @@ document.getElementById(
           {
             band_id:
               currentBand.id,
+            song_id:
+              currentSong.id,
             user_id:
               currentUser.id,
             content
@@ -6265,6 +6288,7 @@ document.getElementById(
     }
 
     resetCommentForm();
+
     await loadComments();
 
   }
@@ -6362,13 +6386,6 @@ function showSection(
     salvo que ya estemos editando
     una canción.
   */
-
-  if (sectionName === "comentarios") {
-
-    void loadComments();
-
-  }
-
 
   if (
     sectionName === "canciones" &&
