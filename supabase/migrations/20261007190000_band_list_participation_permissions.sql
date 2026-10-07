@@ -123,12 +123,13 @@ using (
       and is_band_member(l.band_id)
   )
   and (
-    song_id is null
+    band_list_items.song_id is null
     or exists (
       select 1
-      from public.songs s
-      where s.id = band_list_items.song_id
-        and s.band_id = l.band_id
+      from public.band_lists l2
+      join public.songs s on s.band_id = l2.band_id
+      where l2.id = band_list_items.list_id
+        and s.id = band_list_items.song_id
     )
   )
   and (
