@@ -4575,6 +4575,13 @@ async function initializeApp() {
   initializeSongListsDialogUI();
   await refreshBandListData();
 
+  if (
+    typeof renderSongs ===
+    "function"
+  ) {
+    renderSongs();
+  }
+
   showSection(
     getSavedSection()
   );
