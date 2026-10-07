@@ -172,6 +172,16 @@ function getBandListManagers(listId) {
   );
 }
 
+function canCurrentUserEditAnyBandList() {
+  return (currentBandLists || [])
+    .some(
+      list =>
+        isBandListCreator(
+          list
+        )
+    );
+}
+
 function getBandListParticipantStatus(
   listId,
   userId
@@ -237,40 +247,112 @@ function renderRepertoireSong(song) {
 }
 
 function renderBandListCard(list) {
-  const items = getBandListItems(list.id);
-  const repertoire = getListSongs(list.id);
-  const memberCount = items.filter(item => item.item_type === "member").length;
+  const items =
+    getBandListItems(list.id);
 
-  let html = '<article class="list-card" data-context-delete="list" data-context-delete-id="' + escapeHtml(list.id) + '">';
-  html += '<div class="list-card-header"><div>';
-  html += '<div class="list-card-title">' + escapeHtml(list.title || "Lista") + '</div>';
-  html += '</div><div class="detail-actions">';
+  const repertoire =
+    getListSongs(list.id);
 
-  html += '<span class="status ' + bandListStatusClass(list.status) + '">' +
-    escapeHtml(list.status || "Planificada") +
-    '</span>';
+  const annotatedCount =
+    items.filter(
+      item =>
+        item.item_type ===
+          "member" &&
+        item.status !==
+          "Confirmado"
+    ).length;
 
-  html += '<button type="button" class="btn btn-subtle" data-open-list="' +
-    escapeHtml(list.id) + '">Abrir</button>';
+  const confirmedCount =
+    items.filter(
+      item =>
+        item.item_type ===
+          "member" &&
+        item.status ===
+          "Confirmado"
+    ).length;
 
-  html += '<button type="button" class="btn btn-subtle" data-edit-list="' +
-    escapeHtml(list.id) + '">Editar</button>';
+  let html =
+    '<article class="list-card"' +
+    (
+      isBandListCreator(list)
+        ? ' data-context-delete="list" data-context-delete-id="' +
+          escapeHtml(list.id) +
+          '"'
+        : ""
+    ) +
+    ">";
 
-  html += '<button type="button" class="btn btn-subtle btn-danger" data-delete-list="' +
-    escapeHtml(list.id) + '">Eliminar</button>';
+  html +=
+    '<div class="list-card-header"><div>';
 
-  html += '</div></div>';
+  html +=
+    '<div class="list-card-title">' +
+    escapeHtml(
+      list.title || "Lista"
+    ) +
+    "</div>";
 
-  html += '<div class="list-card-summary">';
-  html += '<span class="list-summary-chip">Repertorio: ' + repertoire.length + '</span>';
-  html += '<span class="list-summary-chip">Integrantes: ' + memberCount + '</span>';
-  html += '</div>';
+  html +=
+    "</div><div class="detail-actions">";
 
-  if (list.notes) {
-    html += '<div class="rehearsal-card-text">' + escapeHtml(list.notes) + '</div>';
+  html +=
+    '<span class="status ' +
+    bandListStatusClass(
+      list.status
+    ) +
+    '">' +
+    escapeHtml(
+      list.status ||
+        "Planificada"
+    ) +
+    "</span>";
+
+  html +=
+    '<button type="button" class="btn btn-subtle" data-open-list="' +
+    escapeHtml(list.id) +
+    '">Abrir</button>';
+
+  if (
+    isBandListCreator(list)
+  ) {
+    html +=
+      '<button type="button" class="btn btn-subtle" data-edit-list="' +
+      escapeHtml(list.id) +
+      '">Editar</button>';
+
+    html +=
+      '<button type="button" class="btn btn-subtle btn-danger" data-delete-list="' +
+      escapeHtml(list.id) +
+      '">Eliminar</button>';
   }
 
-  html += '</article>';
+  html +=
+    "</div></div>";
+
+  html +=
+    '<div class="list-card-summary">' +
+    '<span class="list-summary-chip">Repertorio: ' +
+    repertoire.length +
+    "</span>" +
+    '<span class="list-summary-chip">Anotados: ' +
+    annotatedCount +
+    "</span>" +
+    '<span class="list-summary-chip">Confirmados: ' +
+    confirmedCount +
+    "</span>" +
+    "</div>";
+
+  if (list.notes) {
+    html +=
+      '<div class="rehearsal-card-text">' +
+      escapeHtml(
+        list.notes
+      ) +
+      "</div>";
+  }
+
+  html += "</article>";
+
   return html;
 }
 
