@@ -419,6 +419,13 @@ async function loadBandLists() {
   }
 
   renderBandLists();
+
+  if (
+    typeof renderSongs ===
+    "function"
+  ) {
+    renderSongs();
+  }
 }
 
 function selectedListManagers() {
