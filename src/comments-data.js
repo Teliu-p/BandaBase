@@ -30,6 +30,34 @@ async function getCommentsBySongId(
 }
 
 
+async function getGeneralCommentsByBandId(
+  supabaseClient,
+  bandId,
+  limit = 50
+) {
+
+  return await supabaseClient
+    .from("comments")
+    .select(COMMENT_COLUMNS)
+    .eq(
+      "band_id",
+      bandId
+    )
+    .is(
+      "song_id",
+      null
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
+    .limit(limit);
+
+}
+
+
 async function createComment(
   supabaseClient,
   commentData
@@ -37,7 +65,7 @@ async function createComment(
 
   const {
     band_id,
-    song_id,
+    song_id = null,
     user_id,
     content
   } =
