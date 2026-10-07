@@ -15,10 +15,9 @@
   <script src="src/songs-forms.js"></script>
   <script src="src/materials-data.js"></script>
   <script src="src/comments-data.js"></script>
+  <script src="src/rehearsals-data.js"></script>
   <script src="src/lists-data.js"></script>
   <script src="src/lists-view.js"></script>
-  <script src="src/proposals-data.js"></script>
-  <script src="src/proposals-view.js"></script>
 
   <style>
     :root {
@@ -719,6 +718,111 @@
     }
 
     /* =========================
+       ENSAYOS
+    ========================= */
+
+    .rehearsals-form {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    .rehearsal-groups {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .rehearsal-group h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+
+    .rehearsal-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rehearsal-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px 16px;
+    }
+
+    .rehearsal-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .rehearsal-card-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .rehearsal-card-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .rehearsal-card-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+      margin-top: 12px;
+    }
+
+    .rehearsal-songs {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .rehearsal-song-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .rehearsal-songs-picker {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 6px;
+    }
+
+    .rehearsal-song-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .rehearsal-song-option:hover {
+      background: #f9fafb;
+    }
+
+    .rehearsal-song-option input {
+      width: auto;
+      margin: 0;
+    }
+
+    /* =========================
        LISTAS
     ========================= */
 
@@ -865,30 +969,6 @@
       font-size: 12px;
       margin: 0 0 8px;
     }
-
-    /* =========================
-       PROPUESTAS
-    ========================= */
-
-    .proposals-list { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    .proposal-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
-    .proposal-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
-    .proposal-card-header h3 { margin: 0; font-size: 18px; }
-    .proposal-meta { color: var(--muted); font-size: 13px; margin-top: 5px; }
-    .proposal-detail { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; margin-top: 14px; }
-    .proposal-vote-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-    .proposal-vote-heading, .proposal-options-heading, .proposal-result-label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .proposal-vote-heading span, .form-help, .proposal-vote-count { color: var(--muted); font-size: 13px; }
-    .proposal-vote-options, .proposal-options-inputs { display: grid; gap: 8px; margin-top: 9px; }
-    .proposal-vote-option { display: flex; align-items: center; gap: 9px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
-    .proposal-vote-option.selected { border-color: var(--primary); background: #eff6ff; }
-    .proposal-vote-option input { margin: 0; }
-    .proposal-save-vote { margin-top: 12px; }
-    .proposal-option-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-    .proposal-result-row { margin-top: 12px; }
-    .proposal-result-bar { height: 7px; background: #eef0f2; border-radius: 999px; overflow: hidden; margin-top: 5px; }
-    .proposal-result-bar span { display: block; height: 100%; background: var(--primary); }
-    .proposal-card-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 14px; }
 
     /* =========================
        COMENTARIOS
@@ -1228,7 +1308,7 @@
     <h1>BandaBase</h1>
 
     <p>
-      Gestión de canciones, banda, listas y decisiones.
+      Gestión de canciones, banda y ensayos.
     </p>
 
     <form id="loginForm">
@@ -1335,7 +1415,15 @@
         Listas
       </button>
 
-<button
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="ensayos"
+      >
+        Ensayos
+      </button>
+
+      <button
         type="button"
         class="nav-btn"
         data-section="propuestas"
@@ -1387,7 +1475,7 @@
 
         <p>
           Desde acá podés acceder a las canciones, la banda,
-          listas, propuestas y comentarios.
+          listas, ensayos y propuestas.
         </p>
 
       </div>
@@ -2768,63 +2856,209 @@
 
 
     <section
+      id="section-ensayos"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Ensayos</h2>
+
+          <p>
+            Planificá qué se va a trabajar y con qué canciones.
+          </p>
+
+        </div>
+
+        <button
+          id="showRehearsalFormBtn"
+          type="button"
+          class="btn btn-subtle"
+        >
+          + Nuevo ensayo
+        </button>
+
+      </div>
+
+
+      <form
+        id="rehearsalForm"
+        class="rehearsals-form hidden"
+      >
+
+        <div class="form-grid">
+
+          <div class="form-group full">
+
+            <label for="rehearsalTitle">
+              Título
+            </label>
+
+            <input
+              id="rehearsalTitle"
+              type="text"
+              required
+              placeholder="Ej. Ensayo del domingo"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="rehearsalDate">
+              Fecha
+            </label>
+
+            <input
+              id="rehearsalDate"
+              type="date"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="rehearsalTime">
+              Hora
+            </label>
+
+            <input
+              id="rehearsalTime"
+              type="time"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="rehearsalMode">
+              Estado
+            </label>
+
+            <select id="rehearsalMode">
+
+              <option value="Planificado">
+                Planificado
+              </option>
+
+              <option value="Realizado">
+                Realizado
+              </option>
+
+              <option value="Cancelado">
+                Cancelado
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label for="rehearsalAgenda">
+              Agenda
+            </label>
+
+            <textarea
+              id="rehearsalAgenda"
+              placeholder="Qué queremos trabajar en este ensayo..."
+            ></textarea>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label for="rehearsalNotes">
+              Notas
+            </label>
+
+            <textarea
+              id="rehearsalNotes"
+              placeholder="Detalles, indicaciones o cosas a recordar..."
+            ></textarea>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label>
+              Canciones a trabajar
+            </label>
+
+            <div
+              id="rehearsalSongsPicker"
+              class="rehearsal-songs-picker"
+            ></div>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-actions">
+
+          <button
+            id="cancelRehearsalBtn"
+            type="button"
+            class="btn"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Guardar ensayo
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div
+        id="rehearsalsList"
+        class="rehearsal-groups"
+      >
+        <div class="empty-state">Cargando ensayos...</div>
+      </div>
+
+    </section>
+
+
+    <section
       id="section-propuestas"
       class="app-section hidden"
     >
 
       <div class="section-header">
+
         <div>
+
           <h2>Propuestas</h2>
-          <p>Decisiones de la banda mediante votación.</p>
+
+          <p>
+            Propuestas de la banda.
+          </p>
+
         </div>
-        <button id="showProposalFormBtn" type="button" class="btn btn-subtle">+ Nueva propuesta</button>
+
       </div>
 
-      <form id="proposalForm" class="form-card hidden">
-        <div class="section-header" style="margin-bottom:18px;">
-          <div>
-            <h3 id="proposalFormTitle" style="margin:0;">Nueva propuesta</h3>
-            <p style="margin-top:4px;">Planteá una decisión y definí cómo se va a votar.</p>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group full">
-            <label for="proposalTitle">Título</label>
-            <input id="proposalTitle" type="text" maxlength="160" required placeholder="Ej. Cambiar el horario de ensayo">
-          </div>
-          <div class="form-group full">
-            <label for="proposalDetail">Descripción</label>
-            <textarea id="proposalDetail" maxlength="5000" placeholder="Explicá la propuesta o el contexto..."></textarea>
-          </div>
-          <div class="form-group">
-            <label for="proposalVotingType">Tipo de votación</label>
-            <select id="proposalVotingType">
-              <option value="yes_no">Sí / No</option>
-              <option value="single" selected>Una opción</option>
-              <option value="multiple">Varias opciones</option>
-            </select>
-          </div>
-          <div class="form-group full">
-            <div class="proposal-options-heading">
-              <label>Opciones</label>
-              <button id="addProposalOptionBtn" type="button" class="btn btn-subtle">+ Agregar opción</button>
-            </div>
-            <div id="proposalOptionsInputs" class="proposal-options-inputs"></div>
-            <p id="proposalOptionsHelp" class="form-help"></p>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button id="cancelProposalBtn" type="button" class="btn hidden">Cancelar</button>
-          <button id="saveProposalBtn" type="submit" class="btn btn-primary">Publicar propuesta</button>
-        </div>
-      </form>
-
-      <div id="proposalsList" class="proposals-list">
-        <div class="empty-state">Cargando propuestas...</div>
+      <div class="placeholder">
+        Esta sección se va a desarrollar posteriormente.
       </div>
-    </section>ion>
+
+    </section>
 
 
 
@@ -7405,6 +7639,935 @@ document.getElementById(
 
 
 /* ============================================================
+   ENSAYOS
+============================================================ */
+
+let currentRehearsals = [];
+let rehearsalSongsMap = {};
+let editingRehearsalId = null;
+
+
+function parseRehearsalDateParts(value) {
+
+  const parts =
+    String(value || "")
+      .split("-")
+      .map(Number);
+
+  if (
+    parts.length !== 3 ||
+    parts.some(
+      part =>
+        !Number.isInteger(part)
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    year: parts[0],
+    month: parts[1],
+    day: parts[2]
+  };
+
+}
+
+
+function formatRehearsalDate(value) {
+
+  const parts =
+    parseRehearsalDateParts(value);
+
+  if (!parts) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-AR"
+  ).format(
+    new Date(
+      Date.UTC(
+        parts.year,
+        parts.month - 1,
+        parts.day
+      )
+    )
+  );
+
+}
+
+
+function formatRehearsalTime(value) {
+
+  return String(value || "")
+    .slice(0, 5);
+
+}
+
+
+function rehearsalTimestamp(rehearsal) {
+
+  const parts =
+    parseRehearsalDateParts(
+      rehearsal.rehearsal_date
+    );
+
+  if (!parts) {
+    return null;
+  }
+
+  const timeParts =
+    formatRehearsalTime(
+      rehearsal.rehearsal_time
+    )
+      .split(":")
+      .map(Number);
+
+  return Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    timeParts[0] || 0,
+    timeParts[1] || 0
+  );
+
+}
+
+
+async function loadRehearsals() {
+
+  const list =
+    document.getElementById(
+      "rehearsalsList"
+    );
+
+  if (!list || !currentBand) {
+    return;
+  }
+
+  list.innerHTML =
+    "Cargando...";
+
+  const {
+    data: rehearsals,
+    error
+  } =
+    await getRehearsalsByBandId(
+      supabaseClient,
+      currentBand.id
+    );
+
+  if (error) {
+
+    list.innerHTML =
+      '<div class="empty-state">No se pudieron cargar los ensayos.<br>' +
+      escapeHtml(error.message) +
+      '</div>';
+
+    showNotice(
+      error.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  currentRehearsals =
+    rehearsals || [];
+
+  const ids =
+    currentRehearsals.map(
+      rehearsal =>
+        rehearsal.id
+    );
+
+  const {
+    data: rows,
+    error: songsError
+  } =
+    await getRehearsalSongsByRehearsalIds(
+      supabaseClient,
+      ids
+    );
+
+  if (songsError) {
+
+    list.innerHTML =
+      '<div class="empty-state">No se pudo cargar el contenido de los ensayos.<br>' +
+      escapeHtml(songsError.message) +
+      '</div>';
+
+    showNotice(
+      songsError.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  rehearsalSongsMap = {};
+
+  (rows || []).forEach(
+    row => {
+
+      if (
+        !rehearsalSongsMap[
+          row.rehearsal_id
+        ]
+      ) {
+        rehearsalSongsMap[
+          row.rehearsal_id
+        ] = [];
+      }
+
+      rehearsalSongsMap[
+        row.rehearsal_id
+      ].push(row.song_id);
+
+    }
+  );
+
+  renderRehearsals();
+
+}
+
+
+function renderRehearsalCard(
+  rehearsal
+) {
+
+  const timestamp =
+    rehearsalTimestamp(
+      rehearsal
+    );
+
+  const modeClass =
+    rehearsal.mode === "Cancelado"
+      ? "inactive"
+      : rehearsal.mode === "Realizado"
+        ? "active"
+        : "pending";
+
+  const songIds =
+    rehearsalSongsMap[
+      rehearsal.id
+    ] || [];
+
+  let html =
+    '<article class="rehearsal-card">';
+
+  html +=
+    '<div class="rehearsal-card-header">' +
+    '<div>' +
+    '<div class="rehearsal-card-title">' +
+    escapeHtml(
+      rehearsal.title ||
+      "Ensayo"
+    ) +
+    '</div>' +
+    '<div class="rehearsal-card-meta">' +
+    (
+      rehearsal.rehearsal_date
+        ? escapeHtml(
+            formatRehearsalDate(
+              rehearsal.rehearsal_date
+            )
+          )
+        : "Sin fecha"
+    ) +
+    (
+      rehearsal.rehearsal_time
+        ? " · " +
+          escapeHtml(
+            formatRehearsalTime(
+              rehearsal.rehearsal_time
+            )
+          )
+        : ""
+    ) +
+    '</div>' +
+    '</div>' +
+    '<div class="detail-actions">' +
+    '<span class="status ' +
+    modeClass +
+    '">' +
+    escapeHtml(
+      rehearsal.mode ||
+      "Planificado"
+    ) +
+    '</span>' +
+    '<button type="button" class="btn btn-subtle" data-edit-rehearsal="' +
+    escapeHtml(rehearsal.id) +
+    '">Editar</button>' +
+    '<button type="button" class="btn btn-subtle btn-danger" data-delete-rehearsal="' +
+    escapeHtml(rehearsal.id) +
+    '">Eliminar</button>' +
+    '</div>' +
+    '</div>';
+
+  if (rehearsal.agenda) {
+
+    html +=
+      '<div class="rehearsal-card-text">' +
+      '<strong>Agenda:</strong><br>' +
+      escapeHtml(
+        rehearsal.agenda
+      ) +
+      '</div>';
+
+  }
+
+  if (rehearsal.notes) {
+
+    html +=
+      '<div class="rehearsal-card-text">' +
+      '<strong>Notas:</strong><br>' +
+      escapeHtml(
+        rehearsal.notes
+      ) +
+      '</div>';
+
+  }
+
+  if (songIds.length) {
+
+    html +=
+      '<div class="rehearsal-songs">';
+
+    songIds.forEach(
+      songId => {
+
+        const song =
+          allSongs.find(
+            item =>
+              item.id === songId
+          );
+
+        html +=
+          '<span class="rehearsal-song-chip">' +
+          escapeHtml(
+            song?.name ||
+            "Canción"
+          ) +
+          '</span>';
+
+      }
+    );
+
+    html +=
+      '</div>';
+
+  }
+
+  html +=
+    '</article>';
+
+  return html;
+
+}
+
+
+function renderRehearsals() {
+
+  const list =
+    document.getElementById(
+      "rehearsalsList"
+    );
+
+  if (!list) {
+    return;
+  }
+
+  const now =
+    Date.now();
+
+  const upcoming = [];
+  const past = [];
+
+  currentRehearsals.forEach(
+    rehearsal => {
+
+      const timestamp =
+        rehearsalTimestamp(
+          rehearsal
+        );
+
+      if (
+        timestamp === null ||
+        timestamp >= now
+      ) {
+        upcoming.push(rehearsal);
+      } else {
+        past.push(rehearsal);
+      }
+
+    }
+  );
+
+  upcoming.sort(
+    (a, b) =>
+      (rehearsalTimestamp(a) ??
+        Number.MAX_SAFE_INTEGER) -
+      (rehearsalTimestamp(b) ??
+        Number.MAX_SAFE_INTEGER)
+  );
+
+  past.sort(
+    (a, b) =>
+      (rehearsalTimestamp(b) ?? 0) -
+      (rehearsalTimestamp(a) ?? 0)
+  );
+
+  let html =
+    '<div class="rehearsal-group">' +
+    '<h3>Próximos ensayos</h3>' +
+    '<div class="rehearsal-list">';
+
+  if (!upcoming.length) {
+
+    html +=
+      '<div class="empty-state">' +
+      'No hay próximos ensayos cargados.' +
+      '</div>';
+
+  } else {
+
+    upcoming.forEach(
+      rehearsal => {
+        html +=
+          renderRehearsalCard(
+            rehearsal
+          );
+      }
+    );
+
+  }
+
+  html +=
+    '</div>' +
+    '</div>' +
+    '<div class="rehearsal-group">' +
+    '<h3>Ensayos anteriores</h3>' +
+    '<div class="rehearsal-list">';
+
+  if (!past.length) {
+
+    html +=
+      '<div class="empty-state">' +
+      'Todavía no hay ensayos anteriores.' +
+      '</div>';
+
+  } else {
+
+    past.forEach(
+      rehearsal => {
+        html +=
+          renderRehearsalCard(
+            rehearsal
+          );
+      }
+    );
+
+  }
+
+  html +=
+    '</div>' +
+    '</div>';
+
+  list.innerHTML =
+    html;
+
+  bindRehearsalEvents();
+
+}
+
+
+function renderRehearsalSongPicker(
+  selectedIds
+) {
+
+  const picker =
+    document.getElementById(
+      "rehearsalSongsPicker"
+    );
+
+  const selected =
+    new Set(
+      selectedIds || []
+    );
+
+  const songs =
+    allSongs
+      .filter(
+        song =>
+          song.active_status !==
+          "Inactiva"
+      )
+      .slice()
+      .sort(
+        (a, b) =>
+          String(a.name || "")
+            .localeCompare(
+              String(b.name || ""),
+              "es"
+            )
+      );
+
+  if (!songs.length) {
+
+    picker.innerHTML =
+      '<div class="empty-state">' +
+      'No hay canciones activas para seleccionar.' +
+      '</div>';
+
+    return;
+
+  }
+
+  picker.innerHTML =
+    songs
+      .map(
+        song =>
+          '<label class="rehearsal-song-option">' +
+          '<input type="checkbox" value="' +
+          escapeHtml(song.id) +
+          '" ' +
+          (
+            selected.has(
+              song.id
+            )
+              ? "checked"
+              : ""
+          ) +
+          '>' +
+          '<span>' +
+          escapeHtml(
+            song.name
+          ) +
+          (
+            song.artist
+              ? ' <span class="member-info">· ' +
+                escapeHtml(
+                  song.artist
+                ) +
+                '</span>'
+              : ""
+          ) +
+          '</span>' +
+          '</label>'
+      )
+      .join("");
+
+}
+
+
+function getSelectedRehearsalSongIds() {
+
+  return Array.from(
+    document.querySelectorAll(
+      "#rehearsalSongsPicker input[type='checkbox']:checked"
+    )
+  ).map(
+    input =>
+      input.value
+  );
+
+}
+
+
+function showRehearsalForm(
+  rehearsal
+) {
+
+  editingRehearsalId =
+    rehearsal?.id ||
+    null;
+
+  const form =
+    document.getElementById(
+      "rehearsalForm"
+    );
+
+  form.reset();
+
+  document.getElementById(
+    "rehearsalTitle"
+  ).value =
+    rehearsal?.title ||
+    "";
+
+  document.getElementById(
+    "rehearsalDate"
+  ).value =
+    rehearsal?.rehearsal_date ||
+    "";
+
+  document.getElementById(
+    "rehearsalTime"
+  ).value =
+    formatRehearsalTime(
+      rehearsal?.rehearsal_time
+    );
+
+  document.getElementById(
+    "rehearsalMode"
+  ).value =
+    rehearsal?.mode ||
+    "Planificado";
+
+  document.getElementById(
+    "rehearsalAgenda"
+  ).value =
+    rehearsal?.agenda ||
+    "";
+
+  document.getElementById(
+    "rehearsalNotes"
+  ).value =
+    rehearsal?.notes ||
+    "";
+
+  renderRehearsalSongPicker(
+    rehearsal
+      ? rehearsalSongsMap[
+          rehearsal.id
+        ] || []
+      : []
+  );
+
+  document.getElementById(
+    "showRehearsalFormBtn"
+  ).textContent =
+    rehearsal
+      ? "Editando ensayo"
+      : "+ Nuevo ensayo";
+
+  form.classList.remove(
+    "hidden"
+  );
+
+  document.getElementById(
+    "rehearsalTitle"
+  ).focus();
+
+}
+
+
+function hideRehearsalForm() {
+
+  editingRehearsalId =
+    null;
+
+  document.getElementById(
+    "rehearsalForm"
+  ).classList.add(
+    "hidden"
+  );
+
+  document.getElementById(
+    "rehearsalForm"
+  ).reset();
+
+  document.getElementById(
+    "rehearsalMode"
+  ).value =
+    "Planificado";
+
+  document.getElementById(
+    "showRehearsalFormBtn"
+  ).textContent =
+    "+ Nuevo ensayo";
+
+}
+
+
+document.getElementById(
+  "showRehearsalFormBtn"
+).addEventListener(
+  "click",
+  function() {
+    showRehearsalForm();
+  }
+);
+
+
+document.getElementById(
+  "cancelRehearsalBtn"
+).addEventListener(
+  "click",
+  hideRehearsalForm
+);
+
+
+document.getElementById(
+  "rehearsalForm"
+).addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    if (
+      !currentBand ||
+      !currentUser
+    ) {
+      return;
+    }
+
+    const title =
+      document.getElementById(
+        "rehearsalTitle"
+      ).value.trim();
+
+    if (!title) {
+
+      showNotice(
+        "El título del ensayo es obligatorio.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    const rehearsalData = {
+      title,
+      rehearsal_date:
+        document.getElementById(
+          "rehearsalDate"
+        ).value ||
+        null,
+      rehearsal_time:
+        document.getElementById(
+          "rehearsalTime"
+        ).value ||
+        null,
+      mode:
+        document.getElementById(
+          "rehearsalMode"
+        ).value,
+      agenda:
+        document.getElementById(
+          "rehearsalAgenda"
+        ).value.trim() ||
+        null,
+      notes:
+        document.getElementById(
+          "rehearsalNotes"
+        ).value.trim() ||
+        null
+    };
+
+    const selectedIds =
+      getSelectedRehearsalSongIds();
+
+    let rehearsalId =
+      editingRehearsalId;
+
+    if (editingRehearsalId) {
+
+      const {
+        data,
+        error
+      } =
+        await updateRehearsal(
+          supabaseClient,
+          editingRehearsalId,
+          rehearsalData
+        );
+
+      if (error) {
+
+        showNotice(
+          error.message,
+          "error"
+        );
+
+        return;
+
+      }
+
+      rehearsalId =
+        data.id;
+
+      showNotice(
+        "Ensayo actualizado.",
+        "success"
+      );
+
+    } else {
+
+      const {
+        data,
+        error
+      } =
+        await createRehearsal(
+          supabaseClient,
+          {
+            ...rehearsalData,
+            band_id:
+              currentBand.id,
+            created_by:
+              currentUser.id
+          }
+        );
+
+      if (error) {
+
+        showNotice(
+          error.message,
+          "error"
+        );
+
+        return;
+
+      }
+
+      rehearsalId =
+        data.id;
+
+      showNotice(
+        "Ensayo creado.",
+        "success"
+      );
+
+    }
+
+    const {
+      error: songsError
+    } =
+      await replaceRehearsalSongs(
+        supabaseClient,
+        rehearsalId,
+        selectedIds
+      );
+
+    if (songsError) {
+
+      showNotice(
+        "El ensayo se guardó, pero no se pudieron actualizar sus canciones: " +
+        songsError.message,
+        "error"
+      );
+
+      return;
+
+    }
+
+    hideRehearsalForm();
+
+    await loadRehearsals();
+
+  }
+);
+
+
+function bindRehearsalEvents() {
+
+  document
+    .querySelectorAll(
+      "[data-edit-rehearsal]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          function() {
+
+            const rehearsal =
+              currentRehearsals.find(
+                item =>
+                  item.id ===
+                  button.dataset.editRehearsal
+              );
+
+            if (!rehearsal) {
+              return;
+            }
+
+            showRehearsalForm(
+              rehearsal
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-delete-rehearsal]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          async function() {
+
+            const rehearsal =
+              currentRehearsals.find(
+                item =>
+                  item.id ===
+                  button.dataset.deleteRehearsal
+              );
+
+            if (!rehearsal) {
+              return;
+            }
+
+            const confirmed =
+              window.confirm(
+                "¿Eliminar el ensayo \"" +
+                rehearsal.title +
+                "\"?"
+              );
+
+            if (!confirmed) {
+              return;
+            }
+
+            const {
+              error
+            } =
+              await deleteRehearsal(
+                supabaseClient,
+                rehearsal.id
+              );
+
+            if (error) {
+
+              showNotice(
+                error.message,
+                "error"
+              );
+
+              return;
+
+            }
+
+            showNotice(
+              "Ensayo eliminado.",
+              "success"
+            );
+
+            await loadRehearsals();
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+/* ============================================================
    COMENTARIOS GENERALES
 ============================================================ */
 
@@ -8604,11 +9767,13 @@ function showSection(
 
   }
 
-  if (sectionName === "propuestas") {
 
-    void loadProposals();
+  if (sectionName === "ensayos") {
+
+    void loadRehearsals();
 
   }
+
 
   if (sectionName === "inicio") {
 
