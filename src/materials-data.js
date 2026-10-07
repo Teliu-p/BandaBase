@@ -5,6 +5,20 @@ const MATERIAL_COLUMNS = `
   type,
   name,
   url,
+  content,
+  created_by,
+  created_at
+`;
+
+
+const ATTACHMENT_COLUMNS = `
+  id,
+  material_id,
+  kind,
+  name,
+  url,
+  storage_path,
+  mime_type,
   created_by,
   created_at
 `;
@@ -32,6 +46,35 @@ async function getMaterialsBySongId(
 }
 
 
+async function getMaterialAttachments(
+  supabaseClient,
+  materialIds
+) {
+
+  if (!materialIds.length) {
+    return {
+      data: [],
+      error: null
+    };
+  }
+
+  return await supabaseClient
+    .from("material_attachments")
+    .select(ATTACHMENT_COLUMNS)
+    .in(
+      "material_id",
+      materialIds
+    )
+    .order(
+      "created_at",
+      {
+        ascending: true
+      }
+    );
+
+}
+
+
 async function createMaterial(
   supabaseClient,
   materialData
@@ -40,9 +83,8 @@ async function createMaterial(
   const {
     band_id,
     song_id,
-    type,
     name,
-    url,
+    content,
     created_by
   } =
     materialData;
@@ -52,9 +94,9 @@ async function createMaterial(
     .insert({
       band_id,
       song_id,
-      type,
+      type: "Texto",
       name,
-      url,
+      content,
       created_by
     })
     .select(MATERIAL_COLUMNS)
@@ -70,18 +112,16 @@ async function updateMaterial(
 ) {
 
   const {
-    type,
     name,
-    url
+    content
   } =
     materialData;
 
   return await supabaseClient
     .from("materials")
     .update({
-      type,
       name,
-      url
+      content
     })
     .eq(
       "id",
@@ -102,6 +142,38 @@ async function deleteMaterial(
     .eq(
       "id",
       materialId
+    );
+
+}
+
+
+async function createMaterialAttachment(
+  supabaseClient,
+  attachmentData
+) {
+
+  return await supabaseClient
+    .from("material_attachments")
+    .insert(
+      attachmentData
+    )
+    .select(ATTACHMENT_COLUMNS)
+    .single();
+
+}
+
+
+async function deleteMaterialAttachment(
+  supabaseClient,
+  attachmentId
+) {
+
+  return await supabaseClient
+    .from("material_attachments")
+    .delete()
+    .eq(
+      "id",
+      attachmentId
     );
 
 }
