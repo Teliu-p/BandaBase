@@ -134,6 +134,7 @@ async function refreshBandListData() {
   };
 }
 
+
 function syncSongsRepertoireFromLists() {
   if (!Array.isArray(allSongs)) {
     return;
@@ -419,13 +420,7 @@ async function loadBandLists() {
   }
 
   renderBandLists();
-
-  if (
-    typeof renderSongs ===
-    "function"
-  ) {
-    renderSongs();
-  }
+  renderSongs();
 }
 
 function selectedListManagers() {
@@ -708,9 +703,10 @@ function renderBandListDetailContent(
       "listDetailContent"
     );
 
-  if (!content) {
-    return;
-  }
+  const repertoire =
+    getListSongs(
+      list.id
+    );
 
   const members =
     items
@@ -751,6 +747,34 @@ function renderBandListDetailContent(
     );
 
   let html =
+    '<section class="list-detail-section">' +
+      "<h3>Repertorio</h3>";
+
+  if (repertoire.length) {
+    html +=
+      '<div class="list-detail-list">';
+
+    html +=
+      repertoire
+        .map(
+          renderRepertoireSong
+        )
+        .join("");
+
+    html +=
+      "</div>";
+  } else {
+    html +=
+      '<div class="list-repertoire-empty">' +
+      "Todavía no hay canciones asignadas a esta lista. " +
+      "Podés agregarlas desde Canciones con “Agregar a lista”." +
+      "</div>";
+  }
+
+  html +=
+    "</section>";
+
+  html +=
     '<section class="list-detail-section">' +
       "<h3>Integrantes</h3>" +
       '<p class="list-form-help">' +
@@ -908,39 +932,6 @@ function renderBandListDetailContent(
   html +=
     "</section>";
 
-  const repertoire =
-    getListSongs(
-      list.id
-    );
-
-  html +=
-    '<section class="list-detail-section">' +
-      "<h3>Repertorio</h3>";
-
-  if (repertoire.length) {
-    html +=
-      '<div class="list-detail-list">';
-
-    html +=
-      repertoire
-        .map(
-          renderRepertoireSong
-        )
-        .join("");
-
-    html +=
-      "</div>";
-  } else {
-    html +=
-      '<div class="list-repertoire-empty">' +
-      "Todavía no hay canciones asignadas a esta lista. " +
-      "Podés agregarlas desde Canciones con “Agregar a lista”." +
-      "</div>";
-  }
-
-  html +=
-    "</section>";
-
   if (list.notes) {
     html +=
       '<section class="list-detail-section">' +
@@ -958,7 +949,6 @@ function renderBandListDetailContent(
 
   bindBandListParticipantEvents();
 }
-
 
 async function saveBandList() {
   if (
