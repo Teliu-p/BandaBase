@@ -13,13 +13,92 @@ function getBandListItems(listId) {
   return bandListItemsMap?.[listId] || [];
 }
 
-function getRepertoireSongs() {
-  return (allSongs || [])
-    .filter(song => song.list_status === "Lista")
-    .slice()
-    .sort((a, b) =>
-      String(a.name || "").localeCompare(String(b.name || ""), "es")
-    );
+function getListSongs(listId) {
+  const songIds = getBandListItems(listId)
+    .filter(item => item.item_type === "song" && item.song_id)
+    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
+    .map(item => item.song_id);
+
+  const songsById = Object.fromEntries(
+    (allSongs || []).map(song => [song.id, song])
+  );
+
+  return songIds
+    .map(songId => songsById[songId])
+    .filter(Boolean);
+}
+
+function getSongListIds(songId) {
+  return (currentBandLists || [])
+    .filter(list =>
+      getBandListItems(list.id).some(
+        item =>
+          item.item_type === "song" &&
+          item.song_id === songId
+      )
+    )
+    .map(list => list.id);
+}
+
+function getSongListCount(songId) {
+  return getSongListIds(songId).length;
+}
+
+function getNextSongPosition(listId, songIdToIgnore = null) {
+  return getBandListItems(listId)
+    .filter(
+      item =>
+        item.item_type === "song" &&
+        item.song_id &&
+        item.song_id !== songIdToIgnore
+    )
+    .reduce(
+      (max, item) =>
+        Math.max(max, Number.isInteger(item.position) ? item.position : -1),
+      -1
+    ) + 1;
+}
+
+async function refreshBandListData() {
+  if (!currentBand) {
+    return { data: [], error: null };
+  }
+
+  const result = await getBandListsByBandId(
+    supabaseClient,
+    currentBand.id
+  );
+
+  if (result.error) {
+    return result;
+  }
+
+  currentBandLists = result.data || [];
+
+  const ids = currentBandLists.map(item => item.id);
+  const itemsResult = await getBandListItemsByListIds(
+    supabaseClient,
+    ids
+  );
+
+  if (itemsResult.error) {
+    return itemsResult;
+  }
+
+  bandListItemsMap = {};
+
+  (itemsResult.data || []).forEach(item => {
+    if (!bandListItemsMap[item.list_id]) {
+      bandListItemsMap[item.list_id] = [];
+    }
+
+    bandListItemsMap[item.list_id].push(item);
+  });
+
+  return {
+    data: currentBandLists,
+    error: null
+  };
 }
 
 function formatSongInfo(song) {
@@ -74,7 +153,7 @@ function renderRepertoireSong(song) {
 
 function renderBandListCard(list) {
   const items = getBandListItems(list.id);
-  const repertoire = getRepertoireSongs();
+  const repertoire = getListSongs(list.id);
   const memberCount = items.filter(item => item.item_type === "member").length;
 
   let html = '<article class="list-card">';
@@ -136,48 +215,17 @@ async function loadBandLists() {
 
   container.innerHTML = '<div class="empty-state">Cargando listas...</div>';
 
-  const result = await getBandListsByBandId(
-    supabaseClient,
-    currentBand.id
-  );
+  const result = await refreshBandListData();
 
   if (result.error) {
     container.innerHTML =
-      '<div class="empty-state">No se pudieron cargar las listas.<br>' +
+      '<div class="empty-state">No se pudo cargar el contenido de las listas.<br>' +
       escapeHtml(result.error.message) +
       '</div>';
 
     showNotice(result.error.message, "error");
     return;
   }
-
-  currentBandLists = result.data || [];
-
-  const ids = currentBandLists.map(item => item.id);
-  const itemsResult = await getBandListItemsByListIds(
-    supabaseClient,
-    ids
-  );
-
-  if (itemsResult.error) {
-    container.innerHTML =
-      '<div class="empty-state">No se pudo cargar el contenido de las listas.<br>' +
-      escapeHtml(itemsResult.error.message) +
-      '</div>';
-
-    showNotice(itemsResult.error.message, "error");
-    return;
-  }
-
-  bandListItemsMap = {};
-
-  (itemsResult.data || []).forEach(item => {
-    if (!bandListItemsMap[item.list_id]) {
-      bandListItemsMap[item.list_id] = [];
-    }
-
-    bandListItemsMap[item.list_id].push(item);
-  });
 
   renderBandLists();
 }
@@ -334,7 +382,7 @@ function openBandListDetail(listId) {
 
 function renderBandListDetailContent(list, items) {
   const content = document.getElementById("listDetailContent");
-  const repertoire = getRepertoireSongs();
+  const repertoire = getListSongs(list.id);
 
   let html =
     '<section class="list-detail-section">' +
@@ -347,8 +395,8 @@ function renderBandListDetailContent(list, items) {
   } else {
     html +=
       '<div class="list-repertoire-empty">' +
-      'Todavía no hay canciones añadidas al repertorio. ' +
-      'Podés agregarlas desde la sección Canciones.' +
+      'Todavía no hay canciones asignadas a esta lista. ' +
+      'Podés agregarlas desde Canciones con “Agregar a lista”.' +
       '</div>';
   }
 
