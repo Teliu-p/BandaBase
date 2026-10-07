@@ -424,6 +424,61 @@
       gap: 6px;
       flex-wrap: wrap;
     }
+
+    .songs-list.compact {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .songs-list.compact .song-card {
+      min-width: 980px;
+      display: grid;
+      grid-template-columns:
+        minmax(180px, 2fr)
+        minmax(150px, 1.6fr)
+        minmax(125px, 1.2fr)
+        minmax(120px, 1.2fr)
+        minmax(190px, 2fr)
+        minmax(180px, auto);
+      align-items: center;
+      gap: 14px;
+      padding: 11px 14px;
+      cursor: pointer;
+    }
+
+    .songs-list.compact .song-title,
+    .songs-list.compact .song-artist,
+    .songs-list.compact .song-meta,
+    .songs-list.compact .song-genre,
+    .songs-list.compact .song-singers {
+      margin: 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .songs-list.compact .song-title {
+      font-size: 15px;
+    }
+
+    .songs-list.compact .song-artist,
+    .songs-list.compact .song-meta,
+    .songs-list.compact .song-genre,
+    .songs-list.compact .song-singers {
+      font-size: 12px;
+    }
+
+    .songs-list.compact .song-statuses {
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
+
+    .songs-list.compact .song-repertoire-toggle,
+    .songs-list.compact .song-list-manage,
+    .songs-list.compact .status {
+      white-space: nowrap;
+    }
     .song-repertoire-toggle {
       display: inline-flex;
       align-items: center;
@@ -1697,13 +1752,25 @@
 
         </div>
 
-        <button
-          id="showCreateSongBtn"
-          type="button"
-          class="btn btn-subtle"
-        >
-          + Agregar canción
-        </button>
+        <div class="detail-actions">
+
+          <button
+            id="toggleSongsViewBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            Vista compacta
+          </button>
+
+          <button
+            id="showCreateSongBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            + Agregar canción
+          </button>
+
+        </div>
 
       </div>
 
@@ -6796,6 +6863,28 @@ function renderSongs() {
   const songs =
     getFilteredSongs();
 
+  const compact =
+    localStorage.getItem(
+      "bandabase.songsCompactView"
+    ) === "true";
+
+  container.classList.toggle(
+    "compact",
+    compact
+  );
+
+  const toggleButton =
+    document.getElementById(
+      "toggleSongsViewBtn"
+    );
+
+  if (toggleButton) {
+    toggleButton.textContent =
+      compact
+        ? "Vista completa"
+        : "Vista compacta";
+  }
+
   renderSongCards(
     container,
     songs,
@@ -6831,6 +6920,32 @@ function renderSongs() {
     );
 
 });
+
+
+document.getElementById(
+  "toggleSongsViewBtn"
+).addEventListener(
+  "click",
+  function() {
+
+    const compact =
+      !(
+        localStorage.getItem(
+          "bandabase.songsCompactView"
+        ) === "true"
+      );
+
+    localStorage.setItem(
+      "bandabase.songsCompactView",
+      compact
+        ? "true"
+        : "false"
+    );
+
+    renderSongs();
+
+  }
+);
 
 
 /* ============================================================
