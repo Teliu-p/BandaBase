@@ -79,7 +79,7 @@ function renderSongCards(
               type="checkbox"
               class="song-repertoire-checkbox"
               data-song-repertoire="${escapeHtml(song.id)}"
-              ${song.list_status === "Lista" ? "checked" : ""}
+              ${song.in_repertoire ? "checked" : ""}
             >
             <span>Repertorio</span>
           </label>
@@ -97,6 +97,13 @@ function renderSongCards(
           `;
         }
 
+
+        const readinessStatus =
+          song.status === "Lista"
+            ? '<span class="status active">Lista</span>'
+            : '<span class="status pending">Pendiente</span>';
+
+        statuses += readinessStatus;
 
         if (
           song.active_status ===
