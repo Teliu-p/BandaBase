@@ -240,10 +240,17 @@ function readSongFormFields(
       fieldIds.listStatus
     ).value || "Pendiente";
 
+  const repertoireInput =
+    fieldIds.repertoire
+      ? document.getElementById(
+          fieldIds.repertoire
+        )
+      : null;
+
   const inRepertoire =
-    document.getElementById(
-      fieldIds.repertoire
-    ).checked;
+    Boolean(
+      repertoireInput?.checked
+    );
 
   const activeStatus =
     document.getElementById(
