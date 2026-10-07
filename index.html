@@ -1659,58 +1659,6 @@
 
         </form>
 
-        <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--border);">
-
-          <div style="margin-bottom:12px;">
-
-            <strong style="font-size:15px;">
-              Correo de acceso
-            </strong>
-
-            <p class="form-help" style="margin:5px 0 0;">
-              Correo actual:
-              <span id="profileCurrentEmail"></span>
-            </p>
-
-          </div>
-
-          <form id="profileEmailForm">
-
-            <div class="form-group">
-
-              <label for="profileNewEmail">
-                Nuevo correo
-              </label>
-
-              <input
-                id="profileNewEmail"
-                type="email"
-                required
-                autocomplete="email"
-                placeholder="tu@correo.com"
-              >
-
-            </div>
-
-            <p class="form-help" style="margin:8px 0 0;">
-              Supabase enviará un correo de confirmación para completar el cambio.
-            </p>
-
-            <div class="form-actions" style="margin-top:14px;">
-
-              <button
-                type="submit"
-                class="btn"
-              >
-                Cambiar correo
-              </button>
-
-            </div>
-
-          </form>
-
-        </div>
-
       </div>
 
 
@@ -3847,11 +3795,6 @@ async function loadCurrentProfile() {
   updateProfileSummary();
   setProfileEditing(false);
 
-  const profileCurrentEmail = document.getElementById("profileCurrentEmail");
-  if (profileCurrentEmail) {
-    profileCurrentEmail.textContent = currentUser.email || "—";
-  }
-
   await loadMembers();
 
 }
@@ -4238,88 +4181,6 @@ document.getElementById(
     updateProfileSummary();
 
     await loadMembers();
-
-  }
-);
-
-
-document.getElementById(
-  "profileEmailForm"
-).addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
-
-    if (!currentUser) {
-      return;
-    }
-
-    const input =
-      document.getElementById(
-        "profileNewEmail"
-      );
-
-    const newEmail =
-      input.value.trim();
-
-    const currentEmail =
-      (currentUser.email || "")
-        .trim();
-
-    if (!newEmail) {
-      return;
-    }
-
-    if (
-      newEmail.toLowerCase() ===
-      currentEmail.toLowerCase()
-    ) {
-
-      showNotice(
-        "Ese ya es tu correo actual.",
-        "error"
-      );
-
-      return;
-
-    }
-
-    const redirectUrl =
-      window.location.origin +
-      window.location.pathname;
-
-    const {
-      error
-    } =
-      await supabaseClient.auth.updateUser(
-        {
-          email:
-            newEmail
-        },
-        {
-          emailRedirectTo:
-            redirectUrl
-        }
-      );
-
-    if (error) {
-
-      showNotice(
-        error.message,
-        "error"
-      );
-
-      return;
-
-    }
-
-    input.value = "";
-
-    showNotice(
-      "Solicitud enviada. Revisá tu correo para confirmar el cambio.",
-      "success"
-    );
 
   }
 );
