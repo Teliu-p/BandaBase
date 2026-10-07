@@ -1,6 +1,7 @@
 let currentProposals = [];
 let proposalOptionsMap = {};
 let proposalVotesMap = {};
+let proposalVoteStatsMap = {};
 let proposalProfilesMap = {};
 let proposalAttachmentsMap = {};
 let proposalBlocksMap = {};
@@ -1010,6 +1011,15 @@ function getProposalOptionVotes(proposalId, optionId) {
   );
 }
 
+function getProposalVoteStats(proposalId) {
+  return (
+    proposalVoteStatsMap[proposalId] || {
+      totalVoters: 0,
+      byOption: {}
+    }
+  );
+}
+
 function getMyProposalOptionIds(proposalId) {
   return getProposalVotes(proposalId)
     .filter(
@@ -1074,15 +1084,13 @@ function renderProposalResults(proposal) {
   const votes =
     getProposalVotes(proposal.id);
 
-  const voterIds =
-    new Set(
-      votes
-        .map(vote => vote.user_id)
-        .filter(Boolean)
+  const stats =
+    getProposalVoteStats(
+      proposal.id
     );
 
   const totalVoters =
-    voterIds.size;
+    Number(stats.totalVoters || 0);
 
   return `
     <div class="proposal-results">
@@ -1095,14 +1103,12 @@ function renderProposalResults(proposal) {
         options.length
           ? options
               .map(option => {
-                const optionVotes =
-                  getProposalOptionVotes(
-                    proposal.id,
-                    option.id
-                  );
-
                 const count =
-                  optionVotes.length;
+                  Number(
+                    stats.byOption?.[
+                      option.id
+                    ] || 0
+                  );
 
                 const percent =
                   totalVoters
@@ -1116,26 +1122,36 @@ function renderProposalResults(proposal) {
 
                 if (
                   proposal.voting_visibility !==
-                  "anonymous" &&
-                  optionVotes.length
+                    "anonymous" &&
+                  votes.length
                 ) {
-                  const names =
-                    Array.from(
-                      new Set(
-                        optionVotes.map(
-                          vote =>
-                            getProposalVoterName(
-                              vote.user_id
-                            )
-                        )
-                      )
+                  const optionVotes =
+                    getProposalOptionVotes(
+                      proposal.id,
+                      option.id
                     );
 
-                  votersHtml =
-                    '<div class="proposal-voter-list">' +
-                    "Votan: " +
-                    escapeHtml(names.join(", ")) +
-                    "</div>";
+                  if (optionVotes.length) {
+                    const names =
+                      Array.from(
+                        new Set(
+                          optionVotes.map(
+                            vote =>
+                              getProposalVoterName(
+                                vote.user_id
+                              )
+                          )
+                        )
+                      );
+
+                    votersHtml =
+                      '<div class="proposal-voter-list">' +
+                      "Votan: " +
+                      escapeHtml(
+                        names.join(", ")
+                      ) +
+                      "</div>";
+                  }
                 }
 
                 return `
@@ -1532,6 +1548,7 @@ async function loadProposals() {
 
   proposalOptionsMap = {};
   proposalVotesMap = {};
+  proposalVoteStatsMap = {};
   proposalProfilesMap = {};
   proposalAttachmentsMap = {};
   proposalBlocksMap = {};
@@ -1743,7 +1760,8 @@ async function loadProposals() {
 
   const [
     optionsResult,
-    votesResult
+    votesResult,
+    voteStatsResult
   ] = await Promise.all([
     getProposalOptionsByProposalIds(
       supabaseClient,
@@ -1752,12 +1770,17 @@ async function loadProposals() {
     getProposalVotesByProposalIds(
       supabaseClient,
       proposalIds
+    ),
+    getProposalVoteStatsByProposalIds(
+      supabaseClient,
+      proposalIds
     )
   ]);
 
   const combinedError =
     optionsResult.error ||
-    votesResult.error;
+    votesResult.error ||
+    voteStatsResult.error;
 
   if (combinedError) {
     showNotice(
@@ -1783,6 +1806,36 @@ async function loadProposals() {
           vote.proposal_id
         ] ||= []
       ).push(vote);
+    });
+
+  (voteStatsResult.data || [])
+    .forEach(stat => {
+      const proposalStats =
+        (
+          proposalVoteStatsMap[
+            stat.proposal_id
+          ] ||= {
+            totalVoters: Number(
+              stat.voter_count || 0
+            ),
+            byOption: {}
+          }
+        );
+
+      proposalStats.totalVoters =
+        Math.max(
+          proposalStats.totalVoters,
+          Number(
+            stat.voter_count || 0
+          )
+        );
+
+      proposalStats.byOption[
+        stat.option_id
+      ] =
+        Number(
+          stat.vote_count || 0
+        );
     });
 
   const publicProposalIds =
