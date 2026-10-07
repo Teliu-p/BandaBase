@@ -5,7 +5,8 @@ function renderSongCards(
   escapeHtml,
   formatDuration,
   onOpenSong,
-  onToggleRepertoire
+  onToggleRepertoire,
+  onManageSongLists
 ) {
 
   if (!songs.length) {
@@ -84,6 +85,18 @@ function renderSongCards(
           </label>
         `;
 
+        if (typeof onManageSongLists === "function") {
+          statuses += `
+            <button
+              type="button"
+              class="btn btn-subtle song-list-manage"
+              data-song-lists="${escapeHtml(song.id)}"
+            >
+              Agregar a lista
+            </button>
+          `;
+        }
+
 
         if (
           song.active_status ===
@@ -150,6 +163,20 @@ function renderSongCards(
       })
       .join("");
 
+
+  container
+    .querySelectorAll(
+      ".song-list-manage"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        function(event) {
+          event.stopPropagation();
+          void onManageSongLists(button.dataset.songLists);
+        }
+      );
+    });
 
   container
     .querySelectorAll(

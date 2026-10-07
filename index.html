@@ -443,6 +443,95 @@
       margin: 0;
     }
 
+    .song-list-manage {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+
+    .song-lists-dialog {
+      width: min(520px, calc(100vw - 32px));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0;
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    }
+
+    .song-lists-dialog::backdrop {
+      background: rgba(17,24,39,.45);
+    }
+
+    .song-lists-dialog-inner {
+      padding: 20px;
+    }
+
+    .song-lists-dialog-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 6px;
+    }
+
+    .song-lists-dialog-title {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .song-lists-dialog-song {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .song-lists-picker {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .song-list-option {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 11px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .song-list-option:hover {
+      background: #f9fafb;
+    }
+
+    .song-list-option input {
+      width: auto;
+      margin: 0;
+    }
+
+    .song-list-option-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .song-list-option-status {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .song-lists-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
 
     .status {
       display: inline-flex;
@@ -2979,6 +3068,53 @@
 </div>
 
 
+<dialog
+  id="songListsDialog"
+  class="song-lists-dialog"
+  aria-labelledby="songListsDialogTitle"
+>
+  <div class="song-lists-dialog-inner">
+    <div class="song-lists-dialog-header">
+      <h3 id="songListsDialogTitle" class="song-lists-dialog-title">
+        Agregar a lista
+      </h3>
+      <button
+        id="closeSongListsBtn"
+        type="button"
+        class="btn btn-subtle"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+    </div>
+
+    <p id="songListsDialogSong" class="song-lists-dialog-song"></p>
+
+    <div
+      id="songListsPicker"
+      class="song-lists-picker"
+    ></div>
+
+    <div class="song-lists-dialog-actions">
+      <button
+        id="cancelSongListsBtn"
+        type="button"
+        class="btn"
+      >
+        Cancelar
+      </button>
+
+      <button
+        id="saveSongListsBtn"
+        type="button"
+        class="btn btn-primary"
+      >
+        Guardar
+      </button>
+    </div>
+  </div>
+</dialog>
+
 <div id="notice"></div>
 
 
@@ -3088,6 +3224,7 @@ let editingBandListId = null;
 
 let selectedNewSongColor = null;
 let selectedDetailSongColor = null;
+let editingSongListsSongId = null;
 
 
 /* ============================================================
@@ -3447,6 +3584,23 @@ supabaseClient.auth.onAuthStateChange(
    INICIALIZACIÓN
 ============================================================ */
 
+function initializeSongListsDialogUI() {
+  document
+    .getElementById("closeSongListsBtn")
+    .addEventListener("click", closeSongListsDialog);
+
+  document
+    .getElementById("cancelSongListsBtn")
+    .addEventListener("click", closeSongListsDialog);
+
+  document
+    .getElementById("saveSongListsBtn")
+    .addEventListener("click", () => {
+      void saveSongListAssignments();
+    });
+}
+
+
 async function initializeApp() {
 
   await loadCurrentBand();
@@ -3455,6 +3609,8 @@ async function initializeApp() {
 
   setupNavigation();
   initializeBandListsUI();
+  initializeSongListsDialogUI();
+  await refreshBandListData();
 
   showSection("inicio");
 
@@ -6392,6 +6548,174 @@ async function toggleSongRepertoire(songId, checked) {
   }
 }
 
+
+async function openSongListsDialog(songId) {
+  const song = (allSongs || []).find(item => item.id === songId);
+  if (!song) return;
+
+  editingSongListsSongId = songId;
+
+  const dialog = document.getElementById("songListsDialog");
+  const title = document.getElementById("songListsDialogTitle");
+  const subtitle = document.getElementById("songListsDialogSong");
+  const picker = document.getElementById("songListsPicker");
+  const saveButton = document.getElementById("saveSongListsBtn");
+
+  title.textContent = "Agregar a lista";
+  subtitle.textContent = song.artist
+    ? (song.name + " · " + song.artist)
+    : song.name;
+
+  picker.innerHTML = '<div class="empty-state">Cargando listas...</div>';
+  saveButton.disabled = true;
+
+  const refreshResult = await refreshBandListData();
+
+  if (refreshResult.error) {
+    picker.innerHTML =
+      '<div class="empty-state">No se pudieron cargar las listas.<br>' +
+      escapeHtml(refreshResult.error.message) +
+      '</div>';
+    return;
+  }
+
+  const assignedIds = new Set(getSongListIds(songId));
+
+  if (!currentBandLists.length) {
+    picker.innerHTML =
+      '<div class="empty-state">Todavía no hay listas creadas. ' +
+      'Creá una desde la sección Listas.</div>';
+    return;
+  }
+
+  picker.innerHTML = currentBandLists
+    .slice()
+    .sort((a, b) =>
+      String(a.title || "").localeCompare(
+        String(b.title || ""),
+        "es"
+      )
+    )
+    .map(list => {
+      const checked = assignedIds.has(list.id);
+
+      return '<label class="song-list-option">' +
+        '<input type="checkbox" data-song-list="' +
+        escapeHtml(list.id) + '"' +
+        (checked ? " checked" : "") +
+        '>' +
+        '<span class="song-list-option-name">' +
+          escapeHtml(list.title || "Lista") +
+        '</span>' +
+        '<span class="song-list-option-status">' +
+          escapeHtml(list.status || "Planificada") +
+        '</span>' +
+      '</label>';
+    })
+    .join("");
+
+  saveButton.disabled = false;
+
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "");
+  }
+}
+
+function selectedSongListIds() {
+  return Array.from(
+    document.querySelectorAll(
+      "#songListsPicker input[data-song-list]:checked"
+    )
+  ).map(input => input.dataset.songList);
+}
+
+async function saveSongListAssignments() {
+  const songId = editingSongListsSongId;
+  const song = (allSongs || []).find(item => item.id === songId);
+
+  if (!song) {
+    closeSongListsDialog();
+    return;
+  }
+
+  const selected = new Set(selectedSongListIds());
+  const current = new Set(getSongListIds(songId));
+
+  const toAdd = Array.from(selected).filter(
+    listId => !current.has(listId)
+  );
+
+  const toRemove = Array.from(current).filter(
+    listId => !selected.has(listId)
+  );
+
+  for (const listId of toRemove) {
+    const result = await removeSongFromBandList(
+      supabaseClient,
+      listId,
+      songId
+    );
+
+    if (result.error) {
+      await refreshBandListData();
+      renderSongs();
+      showNotice(result.error.message, "error");
+      return;
+    }
+  }
+
+  for (const listId of toAdd) {
+    const position = getNextSongPosition(listId, songId);
+    const result = await addSongToBandList(
+      supabaseClient,
+      listId,
+      song,
+      position
+    );
+
+    if (result.error) {
+      await refreshBandListData();
+      renderSongs();
+      showNotice(result.error.message, "error");
+      return;
+    }
+  }
+
+  await refreshBandListData();
+
+  if (currentBandList) {
+    renderBandListDetailContent(
+      currentBandList,
+      getBandListItems(currentBandList.id)
+    );
+  }
+
+  renderBandLists();
+  renderSongs();
+  closeSongListsDialog();
+
+  showNotice(
+    toAdd.length || toRemove.length
+      ? "Listas de la canción actualizadas."
+      : "No hubo cambios en las listas.",
+    "success"
+  );
+}
+
+function closeSongListsDialog() {
+  const dialog = document.getElementById("songListsDialog");
+
+  if (dialog?.open && typeof dialog.close === "function") {
+    dialog.close();
+  } else if (dialog) {
+    dialog.removeAttribute("open");
+  }
+
+  editingSongListsSongId = null;
+}
+
 /* ============================================================
    RENDER CANCIONES
 ============================================================ */
@@ -6413,7 +6737,8 @@ function renderSongs() {
     escapeHtml,
     formatDuration,
     openSong,
-    toggleSongRepertoire
+    toggleSongRepertoire,
+    openSongListsDialog
   );
 
 }

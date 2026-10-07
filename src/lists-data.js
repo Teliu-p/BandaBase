@@ -122,3 +122,40 @@ async function replaceBandListItems(
     .insert(rows)
     .select(BAND_LIST_ITEM_COLUMNS);
 }
+
+
+async function addSongToBandList(
+  supabaseClient,
+  listId,
+  song,
+  position
+) {
+  return await supabaseClient
+    .from("band_list_items")
+    .insert({
+      list_id: listId,
+      item_type: "song",
+      title: song.name || "Canción",
+      details: null,
+      song_id: song.id,
+      member_user_id: null,
+      status: null,
+      position: Number.isInteger(position) && position >= 0 ? position : 0,
+      created_by: currentUser?.id || null
+    })
+    .select(BAND_LIST_ITEM_COLUMNS)
+    .single();
+}
+
+async function removeSongFromBandList(
+  supabaseClient,
+  listId,
+  songId
+) {
+  return await supabaseClient
+    .from("band_list_items")
+    .delete()
+    .eq("list_id", listId)
+    .eq("item_type", "song")
+    .eq("song_id", songId);
+}
