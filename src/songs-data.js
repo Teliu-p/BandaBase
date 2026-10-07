@@ -55,7 +55,9 @@ const SONG_COLUMNS = `
   original_bpm,
   original_key,
   original_duration,
-  original_meter
+  original_meter,
+  deleted_at,
+  deleted_by
 `;
 
 
@@ -71,6 +73,7 @@ async function getSongsByBand(
       "band_id",
       bandId
     )
+    .is("deleted_at", null)
     .order(
       "name",
       {
@@ -93,6 +96,7 @@ async function getSongById(
       "id",
       songId
     )
+    .is("deleted_at", null)
     .single();
 
 }
@@ -209,7 +213,8 @@ async function setSongRepertoireStatus(
 
 async function deleteSongs(
   supabaseClient,
-  songIds
+  songIds,
+  deletedBy = currentUser?.id || null
 ) {
   const ids = [
     ...new Set(
@@ -218,132 +223,14 @@ async function deleteSongs(
   ];
 
   if (!ids.length) {
-    return {
-      error: null
-    };
-  }
-
-  const [
-    materialsResult,
-    commentsResult
-  ] = await Promise.all([
-    supabaseClient
-      .from("materials")
-      .select("id")
-      .in("song_id", ids),
-    supabaseClient
-      .from("comments")
-      .select("id")
-      .in("song_id", ids)
-  ]);
-
-  if (materialsResult.error) {
-    return {
-      error:
-        materialsResult.error
-    };
-  }
-
-  if (commentsResult.error) {
-    return {
-      error:
-        commentsResult.error
-    };
-  }
-
-  const materialIds =
-    (materialsResult.data || [])
-      .map(
-        material =>
-          material.id
-      );
-
-  const commentIds =
-    (commentsResult.data || [])
-      .map(
-        comment =>
-          comment.id
-      );
-
-  const [
-    materialAttachmentsResult,
-    commentAttachmentsResult
-  ] = await Promise.all([
-    materialIds.length
-      ? supabaseClient
-          .from("material_attachments")
-          .select("id, storage_path, kind")
-          .in(
-            "material_id",
-            materialIds
-          )
-      : {
-          data: [],
-          error: null
-        },
-    commentIds.length
-      ? supabaseClient
-          .from("comment_attachments")
-          .select("id, storage_path, kind")
-          .in(
-            "comment_id",
-            commentIds
-          )
-      : {
-          data: [],
-          error: null
-        }
-  ]);
-
-  if (materialAttachmentsResult.error) {
-    return {
-      error:
-        materialAttachmentsResult.error
-    };
-  }
-
-  if (commentAttachmentsResult.error) {
-    return {
-      error:
-        commentAttachmentsResult.error
-    };
-  }
-
-  const storagePaths = [
-    ...(materialAttachmentsResult.data || []),
-    ...(commentAttachmentsResult.data || [])
-  ]
-    .filter(
-      attachment =>
-        attachment.kind === "file" &&
-        attachment.storage_path
-    )
-    .map(
-      attachment =>
-        attachment.storage_path
-    );
-
-  if (storagePaths.length) {
-    const {
-      error: storageError
-    } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .remove(
-          storagePaths
-        );
-
-    if (storageError) {
-      return {
-        error:
-          storageError
-      };
-    }
+    return { error: null };
   }
 
   return await supabaseClient
     .from("songs")
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy
+    })
     .in("id", ids);
 }
