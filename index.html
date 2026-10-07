@@ -17,6 +17,7 @@
   <script src="src/comments-data.js"></script>
   <script src="src/rehearsals-data.js"></script>
   <script src="src/lists-data.js"></script>
+  <script src="src/lists-view.js"></script>
 
   <style>
     :root {
@@ -7536,6 +7537,11 @@ async function loadRehearsals() {
 
   if (error) {
 
+    list.innerHTML =
+      '<div class="empty-state">No se pudieron cargar los ensayos.<br>' +
+      escapeHtml(error.message) +
+      '</div>';
+
     showNotice(
       error.message,
       "error"
@@ -7564,6 +7570,11 @@ async function loadRehearsals() {
     );
 
   if (songsError) {
+
+    list.innerHTML =
+      '<div class="empty-state">No se pudo cargar el contenido de los ensayos.<br>' +
+      escapeHtml(songsError.message) +
+      '</div>';
 
     showNotice(
       songsError.message,
@@ -9522,6 +9533,13 @@ function showSection(
     salvo que ya estemos editando
     una canción.
   */
+
+  if (sectionName === "listas") {
+
+    void loadBandLists();
+
+  }
+
 
   if (sectionName === "ensayos") {
 
