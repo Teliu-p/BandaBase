@@ -219,7 +219,7 @@ function renderProposals() {
   }
 
   list.innerHTML = currentProposals.map(proposal => `
-    <article class="proposal-card">
+    <article class="proposal-card" data-proposal-id="${escapeHtml(proposal.id)}">
       <div class="proposal-card-header">
         <div>
           <h3>${escapeHtml(proposal.title)}</h3>
@@ -264,8 +264,7 @@ function renderProposals() {
 
 function bindProposalEvents() {
   document.querySelectorAll(".proposal-card").forEach(card => {
-    const title = card.querySelector("h3")?.textContent || "";
-    const proposal = currentProposals.find(item => item.title === title);
+    const proposal = currentProposals.find(item => item.id === card.dataset.proposalId);
     if (!proposal) return;
 
     const saveButton = card.querySelector(".proposal-save-vote");
@@ -285,7 +284,13 @@ function bindProposalEvents() {
       await loadProposals();
     });
 
-    card.querySelector(".proposal-edit")?.addEventListener("click", () => openProposalForm(proposal));
+    card.querySelector(".proposal-edit")?.addEventListener("click", () => {
+      if (getProposalVotes(proposal.id).length) {
+        showNotice("No se puede editar una propuesta que ya tiene votos.", "error");
+        return;
+      }
+      openProposalForm(proposal);
+    });
 
     card.querySelector(".proposal-delete")?.addEventListener("click", async () => {
       if (!window.confirm("¿Eliminar esta propuesta?")) return;
