@@ -1,5 +1,5 @@
 const PROPOSAL_COLUMNS =
-  "id, band_id, title, detail, status, voting_type, voting_visibility, created_by, created_at, decided_at";
+  "id, band_id, title, detail, status, voting_type, voting_visibility, created_by, created_at, decided_at, deleted_at, deleted_by";
 
 const PROPOSAL_ATTACHMENT_COLUMNS =
   "id, proposal_id, band_id, kind, title, file_name, storage_path, url, mime_type, file_size, created_by, created_at";
@@ -52,6 +52,7 @@ async function getProposalsByBandId(client, bandId) {
     .from("proposals")
     .select(PROPOSAL_COLUMNS)
     .eq("band_id", bandId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 }
 
@@ -182,75 +183,18 @@ async function setProposalStatus(client, proposalId, status) {
     .eq("id", proposalId);
 }
 
-async function deleteProposal(client, proposalId) {
-  const { data: attachments, error: attachmentsFetchError } =
-    await client
-      .from("proposal_attachments")
-      .select("id, storage_path, kind")
-      .eq("proposal_id", proposalId);
-
-  if (attachmentsFetchError) {
-    return { error: attachmentsFetchError };
-  }
-
-  const storagePaths =
-    (attachments || [])
-      .filter(
-        attachment =>
-          attachment.kind === "file" &&
-          attachment.storage_path
-      )
-      .map(
-        attachment =>
-          attachment.storage_path
-      );
-
-  if (storagePaths.length) {
-    const { error: storageError } =
-      await client
-        .storage
-        .from("materials")
-        .remove(storagePaths);
-
-    if (storageError) {
-      return { error: storageError };
-    }
-  }
-
-  const { error: attachmentDeleteError } =
-    await client
-      .from("proposal_attachments")
-      .delete()
-      .eq("proposal_id", proposalId);
-
-  if (attachmentDeleteError) {
-    return { error: attachmentDeleteError };
-  }
-
-  const { error: votesError } = await client
-    .from("proposal_votes")
-    .delete()
-    .eq("proposal_id", proposalId);
-
-  if (votesError) {
-    return { error: votesError };
-  }
-
-  const { error: optionsError } = await client
-    .from("proposal_options")
-    .delete()
-    .eq("proposal_id", proposalId);
-
-  if (optionsError) {
-    return { error: optionsError };
-  }
-
-  const { error } = await client
+async function deleteProposal(
+  client,
+  proposalId,
+  deletedBy = currentUser?.id || null
+) {
+  return await client
     .from("proposals")
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy
+    })
     .eq("id", proposalId);
-
-  return { error };
 }
 
 async function deleteProposals(
