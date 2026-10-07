@@ -1055,6 +1055,14 @@
         Propuestas
       </button>
 
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="comentarios"
+      >
+        Comentarios
+      </button>
+
     </div>
 
   </nav>
@@ -1093,6 +1101,33 @@
           Desde acá podés acceder a las canciones, la banda,
           listas, ensayos y propuestas.
         </p>
+
+      </div>
+
+
+      <div class="form-card">
+
+        <div class="section-header" style="margin-bottom:18px;">
+
+          <div>
+
+            <h3 style="margin:0;">
+              Comentarios recientes
+            </h3>
+
+            <p style="margin-top:4px;">
+              Últimos comentarios generales de la banda.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="recentCommentsList"
+          class="comment-list"
+        ></div>
 
       </div>
 
@@ -2237,6 +2272,78 @@
       <div class="placeholder">
         Esta sección se va a desarrollar posteriormente.
       </div>
+
+    </section>
+
+
+    <section
+      id="section-comentarios"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Comentarios</h2>
+
+          <p>
+            Comentarios generales de la banda.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <form
+        id="generalCommentForm"
+        class="comments-form"
+      >
+
+        <div class="form-group">
+
+          <label for="generalCommentContent">
+            Comentario
+          </label>
+
+          <textarea
+            id="generalCommentContent"
+            maxlength="5000"
+            placeholder="Escribí algo para la banda..."
+            required
+          ></textarea>
+
+        </div>
+
+
+        <div class="form-actions">
+
+          <button
+            id="cancelGeneralCommentBtn"
+            type="button"
+            class="btn hidden"
+          >
+            Cancelar
+          </button>
+
+          <button
+            id="saveGeneralCommentBtn"
+            type="submit"
+            class="btn btn-primary"
+          >
+            Publicar comentario
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div
+        id="generalCommentsList"
+        class="comment-list"
+      ></div>
 
     </section>
 
@@ -5781,6 +5888,588 @@ document.getElementById(
 
 
 /* ============================================================
+   COMENTARIOS GENERALES
+============================================================ */
+
+let generalComments = [];
+let generalEditingCommentId = null;
+let generalCommentProfilesMap = {};
+
+
+function getGeneralCommentAuthorName(
+  comment
+) {
+
+  if (
+    comment.user_id ===
+    currentUser?.id
+  ) {
+
+    const currentName =
+      currentProfile?.full_name ||
+      currentProfile?.display_name;
+
+    if (currentName) {
+      return currentName;
+    }
+
+  }
+
+  const profile =
+    generalCommentProfilesMap[
+      comment.user_id
+    ];
+
+  return (
+    profile?.full_name ||
+    profile?.display_name ||
+    "Usuario"
+  );
+
+}
+
+
+async function loadGeneralComments() {
+
+  const list =
+    document.getElementById(
+      "generalCommentsList"
+    );
+
+  if (!list || !currentBand) {
+    return;
+  }
+
+  list.innerHTML =
+    "Cargando...";
+
+  const {
+    data: comments,
+    error
+  } =
+    await getGeneralCommentsByBandId(
+      supabaseClient,
+      currentBand.id,
+      50
+    );
+
+  if (error) {
+
+    showNotice(
+      error.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  generalComments =
+    comments || [];
+
+  await loadGeneralCommentProfiles();
+
+  renderGeneralComments();
+
+}
+
+
+async function loadRecentGeneralComments() {
+
+  const list =
+    document.getElementById(
+      "recentCommentsList"
+    );
+
+  if (!list || !currentBand) {
+    return;
+  }
+
+  list.innerHTML =
+    "Cargando...";
+
+  const {
+    data: comments,
+    error
+  } =
+    await getGeneralCommentsByBandId(
+      supabaseClient,
+      currentBand.id,
+      5
+    );
+
+  if (error) {
+
+    showNotice(
+      error.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  generalComments =
+    comments || [];
+
+  await loadGeneralCommentProfiles();
+
+  renderRecentGeneralComments();
+
+}
+
+
+async function loadGeneralCommentProfiles() {
+
+  generalCommentProfilesMap = {};
+
+  const userIds =
+    Array.from(
+      new Set(
+        generalComments
+          .map(
+            comment =>
+              comment.user_id
+          )
+          .filter(Boolean)
+      )
+    );
+
+  if (!userIds.length) {
+    return;
+  }
+
+  const {
+    data: profiles,
+    error
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select(
+        "user_id, display_name, full_name"
+      )
+      .in(
+        "user_id",
+        userIds
+      );
+
+  if (error) {
+
+    showNotice(
+      error.message,
+      "error"
+    );
+
+    return;
+
+  }
+
+  (profiles || []).forEach(
+    profile => {
+
+      generalCommentProfilesMap[
+        profile.user_id
+      ] =
+        profile;
+
+    }
+  );
+
+}
+
+
+function renderGeneralCommentCard(
+  comment,
+  showActions = true
+) {
+
+  let html =
+    '<article class="comment-card">';
+
+  html +=
+    '<div class="comment-header">' +
+    '<div>' +
+    '<div class="comment-author">' +
+    escapeHtml(
+      getGeneralCommentAuthorName(
+        comment
+      )
+    ) +
+    '</div>' +
+    '<div class="comment-date">' +
+    escapeHtml(
+      formatCommentDate(
+        comment.created_at
+      )
+    ) +
+    '</div>' +
+    '</div>';
+
+  if (
+    showActions &&
+    comment.user_id ===
+      currentUser?.id
+  ) {
+
+    html +=
+      '<div class="comment-actions">' +
+      '<button type="button" class="btn btn-subtle" data-edit-general-comment="' +
+      escapeHtml(comment.id) +
+      '">Editar</button>' +
+      '<button type="button" class="btn btn-subtle btn-danger" data-delete-general-comment="' +
+      escapeHtml(comment.id) +
+      '">Eliminar</button>' +
+      '</div>';
+
+  }
+
+  html +=
+    '</div>' +
+    '<div class="comment-content">' +
+    escapeHtml(
+      comment.content
+    ) +
+    '</div>' +
+    '</article>';
+
+  return html;
+
+}
+
+
+function renderGeneralComments() {
+
+  const list =
+    document.getElementById(
+      "generalCommentsList"
+    );
+
+  if (!list) {
+    return;
+  }
+
+  if (!generalComments.length) {
+
+    list.innerHTML =
+      '<div class="empty-state">' +
+      'Todavía no hay comentarios generales.<br>' +
+      'Sé el primero en dejar uno.' +
+      '</div>';
+
+    return;
+
+  }
+
+  list.innerHTML =
+    generalComments
+      .map(
+        comment =>
+          renderGeneralCommentCard(
+            comment,
+            true
+          )
+      )
+      .join("");
+
+  bindGeneralCommentEvents();
+
+}
+
+
+function renderRecentGeneralComments() {
+
+  const list =
+    document.getElementById(
+      "recentCommentsList"
+    );
+
+  if (!list) {
+    return;
+  }
+
+  if (!generalComments.length) {
+
+    list.innerHTML =
+      '<div class="empty-state">' +
+      'Todavía no hay comentarios generales.' +
+      '</div>';
+
+    return;
+
+  }
+
+  list.innerHTML =
+    generalComments
+      .map(
+        comment =>
+          renderGeneralCommentCard(
+            comment,
+            false
+          )
+      )
+      .join("");
+
+}
+
+
+function bindGeneralCommentEvents() {
+
+  document
+    .querySelectorAll(
+      "[data-edit-general-comment]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          function() {
+
+            const comment =
+              generalComments.find(
+                item =>
+                  item.id ===
+                  button.dataset.editGeneralComment
+              );
+
+            if (!comment) {
+              return;
+            }
+
+            generalEditingCommentId =
+              comment.id;
+
+            document.getElementById(
+              "generalCommentContent"
+            ).value =
+              comment.content || "";
+
+            document.getElementById(
+              "saveGeneralCommentBtn"
+            ).textContent =
+              "Guardar cambios";
+
+            document.getElementById(
+              "cancelGeneralCommentBtn"
+            ).classList.remove(
+              "hidden"
+            );
+
+            document.getElementById(
+              "generalCommentContent"
+            ).focus();
+
+          }
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-delete-general-comment]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          async function() {
+
+            const comment =
+              generalComments.find(
+                item =>
+                  item.id ===
+                  button.dataset.deleteGeneralComment
+              );
+
+            if (!comment) {
+              return;
+            }
+
+            const confirmed =
+              window.confirm(
+                "¿Eliminar este comentario?"
+              );
+
+            if (!confirmed) {
+              return;
+            }
+
+            const {
+              error
+            } =
+              await deleteComment(
+                supabaseClient,
+                comment.id
+              );
+
+            if (error) {
+
+              showNotice(
+                error.message,
+                "error"
+              );
+
+              return;
+
+            }
+
+            showNotice(
+              "Comentario eliminado.",
+              "success"
+            );
+
+            await loadGeneralComments();
+            await loadRecentGeneralComments();
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+function resetGeneralCommentForm() {
+
+  generalEditingCommentId =
+    null;
+
+  const form =
+    document.getElementById(
+      "generalCommentForm"
+    );
+
+  if (form) {
+    form.reset();
+  }
+
+  document.getElementById(
+    "cancelGeneralCommentBtn"
+  ).classList.add(
+    "hidden"
+  );
+
+  document.getElementById(
+    "saveGeneralCommentBtn"
+  ).textContent =
+    "Publicar comentario";
+
+}
+
+
+document.getElementById(
+  "cancelGeneralCommentBtn"
+).addEventListener(
+  "click",
+  resetGeneralCommentForm
+);
+
+
+document.getElementById(
+  "generalCommentForm"
+).addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    if (
+      !currentBand ||
+      !currentUser
+    ) {
+      return;
+    }
+
+    const content =
+      document.getElementById(
+        "generalCommentContent"
+      ).value.trim();
+
+    if (!content) {
+
+      showNotice(
+        "El comentario no puede estar vacío.",
+        "error"
+      );
+
+      return;
+
+    }
+
+    if (generalEditingCommentId) {
+
+      const {
+        error
+      } =
+        await updateComment(
+          supabaseClient,
+          generalEditingCommentId,
+          content
+        );
+
+      if (error) {
+
+        showNotice(
+          error.message,
+          "error"
+        );
+
+        return;
+
+      }
+
+      showNotice(
+        "Comentario actualizado.",
+        "success"
+      );
+
+    } else {
+
+      const {
+        error
+      } =
+        await createComment(
+          supabaseClient,
+          {
+            band_id:
+              currentBand.id,
+            user_id:
+              currentUser.id,
+            content
+          }
+        );
+
+      if (error) {
+
+        showNotice(
+          error.message,
+          "error"
+        );
+
+        return;
+
+      }
+
+      showNotice(
+        "Comentario publicado.",
+        "success"
+      );
+
+    }
+
+    resetGeneralCommentForm();
+    await loadGeneralComments();
+    await loadRecentGeneralComments();
+
+  }
+);
+
+
+/* ============================================================
    COMENTARIOS DE LA CANCIÓN
 ============================================================ */
 
@@ -6386,6 +7075,20 @@ function showSection(
     salvo que ya estemos editando
     una canción.
   */
+
+  if (sectionName === "inicio") {
+
+    void loadRecentGeneralComments();
+
+  }
+
+
+  if (sectionName === "comentarios") {
+
+    void loadGeneralComments();
+
+  }
+
 
   if (
     sectionName === "canciones" &&
