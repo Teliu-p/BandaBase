@@ -1104,6 +1104,61 @@
       gap: 10px;
     }
 
+    .proposal-attachments {
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    .proposal-attachments-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .proposal-attachments-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .proposal-attachment {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      background: #fafafa;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .proposal-attachment:hover {
+      background: #f3f4f6;
+    }
+
+    .proposal-attachment span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .proposal-attachment small {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .proposal-attachments-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .proposal-file-input {
+      padding: 8px;
+    }
+
     .proposal-results {
       margin-top: 10px;
     }
@@ -3182,6 +3237,53 @@
               maxlength="5000"
               placeholder="Explicá la propuesta o el contexto..."
             ></textarea>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label>
+              Adjuntos y enlaces
+            </label>
+
+            <div class="proposal-attachments-form">
+
+              <div class="form-group">
+
+                <label for="proposalFiles">
+                  Archivos
+                </label>
+
+                <input
+                  id="proposalFiles"
+                  class="proposal-file-input"
+                  type="file"
+                  multiple
+                >
+
+                <p class="form-help">
+                  Podés seleccionar varios archivos. Límite recomendado: 25 MB por archivo.
+                </p>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="proposalLinks">
+                  Enlaces
+                </label>
+
+                <textarea
+                  id="proposalLinks"
+                  maxlength="5000"
+                  placeholder="Pegá un enlace por línea. Ej.: https://drive.google.com/..."
+                ></textarea>
+
+              </div>
+
+            </div>
 
           </div>
 
