@@ -132,6 +132,8 @@ function renderSongCards(
             class="song-card"
             style="${borderStyle}"
             data-song-id="${escapeHtml(song.id)}"
+            data-context-delete="song"
+            data-context-delete-id="${escapeHtml(song.id)}"
           >
 
             <div class="song-title">
