@@ -1209,6 +1209,77 @@
       overflow-wrap: anywhere;
     }
 
+    .proposal-composer-toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    .proposal-composer-editor {
+      min-height: 150px;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      line-height: 1.5;
+      outline: none;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .proposal-composer-editor:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+
+    .proposal-inline-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin: 2px 2px;
+      padding: 3px 7px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #f3f4f6;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+
+    .proposal-inline-attachment .inline-remove {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 2px;
+      line-height: 1;
+    }
+
+    .proposal-inline-attachment .inline-remove:hover {
+      color: var(--danger);
+    }
+
+    .proposal-inline-content {
+      margin-top: 7px;
+    }
+
+    .proposal-inline-resource {
+      display: inline-block;
+      color: var(--primary);
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    .proposal-inline-resource:hover {
+      text-decoration: underline;
+    }
+
+    .proposal-inline-muted {
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     /* =========================
        COMENTARIOS
     ========================= */
@@ -3228,62 +3299,48 @@
 
           <div class="form-group full">
 
-            <label for="proposalDetail">
+            <label for="proposalComposerEditor">
               Descripción
             </label>
 
-            <textarea
-              id="proposalDetail"
-              maxlength="5000"
-              placeholder="Explicá la propuesta o el contexto..."
-            ></textarea>
+            <div class="list-textarea-help">
+              Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+            </div>
 
-          </div>
+            <div class="proposal-composer-toolbar">
 
+              <button
+                type="button"
+                id="insertProposalFileBtn"
+                class="btn btn-subtle"
+              >
+                📎 Adjuntar archivo
+              </button>
 
-          <div class="form-group full">
-
-            <label>
-              Adjuntos y enlaces
-            </label>
-
-            <div class="proposal-attachments-form">
-
-              <div class="form-group">
-
-                <label for="proposalFiles">
-                  Archivos
-                </label>
-
-                <input
-                  id="proposalFiles"
-                  class="proposal-file-input"
-                  type="file"
-                  multiple
-                >
-
-                <p class="form-help">
-                  Podés seleccionar varios archivos. Límite recomendado: 25 MB por archivo.
-                </p>
-
-              </div>
-
-
-              <div class="form-group">
-
-                <label for="proposalLinks">
-                  Enlaces
-                </label>
-
-                <textarea
-                  id="proposalLinks"
-                  maxlength="5000"
-                  placeholder="Pegá un enlace por línea. Ej.: https://drive.google.com/..."
-                ></textarea>
-
-              </div>
+              <button
+                type="button"
+                id="insertProposalLinkBtn"
+                class="btn btn-subtle"
+              >
+                🔗 Añadir enlace
+              </button>
 
             </div>
+
+            <div
+              id="proposalComposerEditor"
+              class="proposal-composer-editor"
+              contenteditable="true"
+              role="textbox"
+              aria-multiline="true"
+              spellcheck="true"
+            ></div>
+
+            <input
+              id="proposalPendingFile"
+              type="file"
+              class="hidden"
+            >
 
           </div>
 
