@@ -1637,6 +1637,38 @@
       margin-top: 12px;
     }
 
+    .home-recent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .home-recent-panel {
+      min-width: 0;
+    }
+
+    .home-recent-panel .form-card {
+      height: 100%;
+      margin-bottom: 0;
+    }
+
+    .home-recent-panel .section-header {
+      align-items: flex-start;
+    }
+
+    .home-recent-empty {
+      padding: 16px 0 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .home-recent-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* =========================
        BANDA
     ========================= */
@@ -1960,29 +1992,96 @@
       </div>
 
 
-      <div class="form-card">
+      <div class="home-recent-grid">
 
-        <div class="section-header" style="margin-bottom:18px;">
+        <section class="home-recent-panel">
 
-          <div>
+          <div class="form-card">
 
-            <h3 style="margin:0;">
-              Comentarios recientes
-            </h3>
+            <div class="section-header" style="margin-bottom:18px;">
 
-            <p style="margin-top:4px;">
-              Últimos comentarios generales de la banda.
-            </p>
+              <div>
+
+                <h3 style="margin:0;">
+                  Listas recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimas listas creadas en la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentListsPreview"
+              class="comment-list"
+            ></div>
 
           </div>
 
-        </div>
+        </section>
 
 
-        <div
-          id="recentCommentsList"
-          class="comment-list"
-        ></div>
+        <section class="home-recent-panel">
+
+          <div class="form-card">
+
+            <div class="section-header" style="margin-bottom:18px;">
+
+              <div>
+
+                <h3 style="margin:0;">
+                  Propuestas recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimas propuestas de la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentProposalsPreview"
+              class="comment-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <section class="home-recent-panel">
+
+          <div class="form-card">
+
+            <div class="section-header" style="margin-bottom:18px;">
+
+              <div>
+
+                <h3 style="margin:0;">
+                  Comentarios recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimos comentarios generales de la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentCommentsList"
+              class="comment-list"
+            ></div>
+
+          </div>
+
+        </section>
 
       </div>
 
@@ -8689,7 +8788,7 @@ function showSection(
 
   if (sectionName === "inicio") {
 
-    void loadRecentGeneralComments();
+    void loadHomeRecentData();
 
   }
 
@@ -8722,6 +8821,180 @@ function showSection(
 
 }
 
+
+/* ============================================================
+   INICIO - VISTAS PREVIAS
+============================================================ */
+
+function renderRecentListsPreview() {
+  const container =
+    document.getElementById(
+      "recentListsPreview"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  const lists =
+    (currentBandLists || [])
+      .slice()
+      .sort(
+        (a, b) =>
+          (Date.parse(b.created_at || "") || 0) -
+          (Date.parse(a.created_at || "") || 0)
+      )
+      .slice(0, 5);
+
+  if (!lists.length) {
+    container.innerHTML =
+      '<div class="home-recent-empty">Todavía no hay listas.</div>';
+    return;
+  }
+
+  container.innerHTML =
+    lists
+      .map(list => {
+        const songCount =
+          getBandListItems(list.id)
+            .filter(
+              item =>
+                item.item_type === "song" &&
+                item.song_id
+            )
+            .length;
+
+        return (
+          '<div class="list-detail-item">' +
+            "<strong>" +
+              escapeHtml(
+                list.title || "Lista"
+              ) +
+            "</strong>" +
+            '<div class="comment-meta">' +
+              escapeHtml(
+                list.status || "Planificada"
+              ) +
+              " · " +
+              songCount +
+              " canción" +
+              (songCount === 1 ? "" : "es") +
+            "</div>" +
+            (
+              list.notes
+                ? '<div class="comment-text">' +
+                    escapeHtml(list.notes) +
+                  "</div>"
+                : ""
+            ) +
+          "</div>"
+        );
+      })
+      .join("");
+}
+
+
+async function loadRecentProposalsPreview() {
+  const container =
+    document.getElementById(
+      "recentProposalsPreview"
+    );
+
+  if (!container || !currentBand) {
+    return;
+  }
+
+  try {
+    const {
+      data,
+      error
+    } =
+      await getProposalsByBandId(
+        supabaseClient,
+        currentBand.id
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    const proposals =
+      (data || []).slice(0, 5);
+
+    if (!proposals.length) {
+      container.innerHTML =
+        '<div class="home-recent-empty">Todavía no hay propuestas.</div>';
+      return;
+    }
+
+    container.innerHTML =
+      proposals
+        .map(
+          proposal =>
+            '<div class="list-detail-item">' +
+              "<strong>" +
+                escapeHtml(
+                  proposal.title || "Propuesta"
+                ) +
+              "</strong>" +
+              '<div class="comment-meta">' +
+                escapeHtml(
+                  proposal.status || "Abierta"
+                ) +
+                " · " +
+                escapeHtml(
+                  proposalTypeLabel(
+                    proposal.voting_type
+                  )
+                ) +
+              "</div>" +
+              (
+                proposal.detail
+                  ? '<div class="comment-text">' +
+                      escapeHtml(
+                        proposal.detail
+                      ).slice(0, 220) +
+                      (
+                        proposal.detail.length > 220
+                          ? "…"
+                          : ""
+                      ) +
+                    "</div>"
+                  : ""
+              ) +
+            "</div>"
+        )
+        .join("");
+  } catch (error) {
+    container.innerHTML =
+      '<div class="home-recent-empty">No se pudieron cargar las propuestas.</div>';
+  }
+}
+
+
+async function loadHomeRecentData() {
+  const listRefresh =
+    await refreshBandListData();
+
+  if (!listRefresh?.error) {
+    renderRecentListsPreview();
+  } else {
+    const container =
+      document.getElementById(
+        "recentListsPreview"
+      );
+
+    if (container) {
+      container.innerHTML =
+        '<div class="home-recent-empty">No se pudieron cargar las listas.</div>';
+    }
+  }
+
+  await Promise.all([
+    loadRecentProposalsPreview(),
+    loadRecentGeneralComments()
+  ]);
+}
 
 /* ============================================================
    INICIO
