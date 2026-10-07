@@ -70,16 +70,21 @@ function renderSongCards(
             : "";
 
 
+        const inRepertoire =
+          typeof getSongListCount === "function"
+            ? getSongListCount(song.id) > 0
+            : Boolean(song.in_repertoire);
+
         let statuses = `
           <label
             class="song-repertoire-toggle"
-            title="Agregar o quitar del repertorio"
+            title="Se activa automáticamente cuando la canción pertenece a una lista"
           >
             <input
               type="checkbox"
               class="song-repertoire-checkbox"
-              data-song-repertoire="${escapeHtml(song.id)}"
-              ${song.in_repertoire ? "checked" : ""}
+              ${inRepertoire ? "checked" : ""}
+              disabled
             >
             <span>Repertorio</span>
           </label>
@@ -193,31 +198,6 @@ function renderSongCards(
       );
     });
 
-  container
-    .querySelectorAll(
-      ".song-repertoire-checkbox"
-    )
-    .forEach(checkbox => {
-
-      checkbox.addEventListener(
-        "click",
-        function(event) {
-          event.stopPropagation();
-        }
-      );
-
-      checkbox.addEventListener(
-        "change",
-        function(event) {
-          event.stopPropagation();
-          void onToggleRepertoire(
-            checkbox.dataset.songRepertoire,
-            checkbox.checked
-          );
-        }
-      );
-
-    });
 
 
   container
@@ -229,10 +209,6 @@ function renderSongCards(
       card.addEventListener(
         "click",
         function(event) {
-
-          if (event.target.closest(".song-repertoire-toggle")) {
-            return;
-          }
 
           const id =
             card.dataset.songId;
