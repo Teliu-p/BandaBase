@@ -151,3 +151,17 @@ async function updateSong(
     );
 
 }
+
+
+async function setSongRepertoireStatus(
+  supabaseClient,
+  songId,
+  listStatus
+) {
+  return await supabaseClient
+    .from("songs")
+    .update({
+      list_status: listStatus
+    })
+    .eq("id", songId);
+}

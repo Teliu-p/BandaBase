@@ -2,8 +2,6 @@ const BAND_LIST_COLUMNS = `
   id,
   band_id,
   title,
-  list_date,
-  list_time,
   status,
   notes,
   created_by,
@@ -32,14 +30,7 @@ async function getBandListsByBandId(
     .from("band_lists")
     .select(BAND_LIST_COLUMNS)
     .eq("band_id", bandId)
-    .order("list_date", {
-      ascending: false,
-      nullsFirst: false
-    })
-    .order("list_time", {
-      ascending: false,
-      nullsFirst: false
-    });
+    .order("created_at", { ascending: false });
 }
 
 async function createBandList(
@@ -91,9 +82,7 @@ async function getBandListItemsByListIds(
     .from("band_list_items")
     .select(BAND_LIST_ITEM_COLUMNS)
     .in("list_id", listIds)
-    .order("position", {
-      ascending: true
-    });
+    .order("position", { ascending: true });
 }
 
 async function replaceBandListItems(

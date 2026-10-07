@@ -4,7 +4,8 @@ function renderSongCards(
   getSongSingers,
   escapeHtml,
   formatDuration,
-  onOpenSong
+  onOpenSong,
+  onToggleRepertoire
 ) {
 
   if (!songs.length) {
@@ -68,28 +69,20 @@ function renderSongCards(
             : "";
 
 
-        let statuses = "";
-
-        if (
-          song.list_status ===
-          "Lista"
-        ) {
-
-          statuses += `
-            <span class="status">
-              Lista
-            </span>
-          `;
-
-        } else {
-
-          statuses += `
-            <span class="status pending">
-              Pendiente
-            </span>
-          `;
-
-        }
+        let statuses = `
+          <label
+            class="song-repertoire-toggle"
+            title="Agregar o quitar del repertorio"
+          >
+            <input
+              type="checkbox"
+              class="song-repertoire-checkbox"
+              data-song-repertoire="${escapeHtml(song.id)}"
+              ${song.list_status === "Lista" ? "checked" : ""}
+            >
+            <span>Repertorio</span>
+          </label>
+        `;
 
 
         if (
@@ -160,13 +153,44 @@ function renderSongCards(
 
   container
     .querySelectorAll(
+      ".song-repertoire-checkbox"
+    )
+    .forEach(checkbox => {
+
+      checkbox.addEventListener(
+        "click",
+        function(event) {
+          event.stopPropagation();
+        }
+      );
+
+      checkbox.addEventListener(
+        "change",
+        function(event) {
+          event.stopPropagation();
+          void onToggleRepertoire(
+            checkbox.dataset.songRepertoire,
+            checkbox.checked
+          );
+        }
+      );
+
+    });
+
+
+  container
+    .querySelectorAll(
       ".song-card"
     )
     .forEach(card => {
 
       card.addEventListener(
         "click",
-        function() {
+        function(event) {
+
+          if (event.target.closest(".song-repertoire-toggle")) {
+            return;
+          }
 
           const id =
             card.dataset.songId;
