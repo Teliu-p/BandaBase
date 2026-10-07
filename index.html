@@ -4285,13 +4285,23 @@ document.getElementById(
 
     }
 
+    const redirectUrl =
+      window.location.origin +
+      window.location.pathname;
+
     const {
       error
     } =
-      await supabaseClient.auth.updateUser({
-        email:
-          newEmail
-      });
+      await supabaseClient.auth.updateUser(
+        {
+          email:
+            newEmail
+        },
+        {
+          emailRedirectTo:
+            redirectUrl
+        }
+      );
 
     if (error) {
 
