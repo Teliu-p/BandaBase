@@ -3801,9 +3801,9 @@ async function loadMembers() {
       .map(member => {
 
         const profile =
-          profileMap.get(
+          bandMemberProfilesMap[
             member.user_id
-          ) || {};
+          ] || {};
 
         const name =
           member.display_name ||
@@ -6124,9 +6124,9 @@ async function saveMaterialDraft() {
     if (uploadError) {
 
       showNotice(
-        "El material se guardó, pero no se pudo subir "" +
+        "El material se guardó, pero no se pudo subir \\"" +
         file.name +
-        "": " +
+        "\\": " +
         uploadError.message,
         "error"
       );
