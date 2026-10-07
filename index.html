@@ -8891,6 +8891,14 @@ function showSection(
   sectionName
 ) {
 
+  if (
+    sectionName === "administracion" &&
+    !window.bandabaseIsAdmin?.()
+  ) {
+    sectionName = "inicio";
+  }
+
+
   document
     .querySelectorAll(
       ".app-section"
