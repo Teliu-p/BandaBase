@@ -751,6 +751,8 @@ function renderProposalCard(proposal) {
           : ""
       }
 
+      ${renderProposalAttachments(proposal)}
+
       <div class="proposal-vote-box">
 
         <div class="proposal-vote-heading">
@@ -1007,6 +1009,7 @@ async function loadProposals() {
   proposalOptionsMap = {};
   proposalVotesMap = {};
   proposalProfilesMap = {};
+  proposalAttachmentsMap = {};
 
   const proposalIds =
     currentProposals.map(
@@ -1025,6 +1028,73 @@ async function loadProposals() {
       )
     ];
 
+
+  const attachmentsResult =
+    await getProposalAttachmentsByProposalIds(
+      supabaseClient,
+      proposalIds
+    );
+
+  if (attachmentsResult.error) {
+    showNotice(
+      attachmentsResult.error.message,
+      "error"
+    );
+    return;
+  }
+
+  const proposalAttachments =
+    attachmentsResult.data || [];
+
+  const fileAttachments =
+    proposalAttachments.filter(
+      attachment =>
+        attachment.kind === "file" &&
+        attachment.storage_path
+    );
+
+  const signedUrlMap = {};
+
+  if (fileAttachments.length) {
+    const { data: signedUrls, error: signedError } =
+      await supabaseClient
+        .storage
+        .from("materials")
+        .createSignedUrls(
+          fileAttachments.map(
+            attachment =>
+              attachment.storage_path
+          ),
+          3600
+        );
+
+    if (signedError) {
+      showNotice(
+        signedError.message,
+        "error"
+      );
+      return;
+    }
+
+    (signedUrls || []).forEach(item => {
+      signedUrlMap[item.path] =
+        item.signedUrl;
+    });
+  }
+
+  proposalAttachments.forEach(attachment => {
+    (
+      proposalAttachmentsMap[
+        attachment.proposal_id
+      ] ||= []
+    ).push({
+      ...attachment,
+      signed_url:
+        signedUrlMap[
+          attachment.storage_path
+        ] || null
+    });
+  });
 
   const [
     optionsResult,
@@ -1255,6 +1325,24 @@ document
           ?.value
           .trim() || "";
 
+      const proposalFiles =
+        document.getElementById(
+          "proposalFiles"
+        )?.files || [];
+
+      const proposalLinks =
+        document
+          .getElementById(
+            "proposalLinks"
+          )
+          ?.value
+          .split("\n")
+          .map(
+            value =>
+              value.trim()
+          )
+          .filter(Boolean) || [];
+
       const votingVisibility =
         document
           .getElementById("proposalVotingVisibility")
@@ -1332,10 +1420,27 @@ document
         return;
       }
 
-      showNotice(
-        "Propuesta publicada.",
-        "success"
-      );
+      const attachmentErrors =
+        await saveProposalAttachments(
+          result.data,
+          proposalFiles,
+          proposalLinks
+        );
+
+      if (attachmentErrors.length) {
+        showNotice(
+          "La propuesta se publicó, pero algunos adjuntos no se pudieron guardar.",
+          "error"
+        );
+        console.error(
+          attachmentErrors.join("\n")
+        );
+      } else {
+        showNotice(
+          "Propuesta publicada.",
+          "success"
+        );
+      }
 
       resetProposalForm();
       await loadProposals();
