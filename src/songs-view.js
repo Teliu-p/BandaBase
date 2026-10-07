@@ -5,7 +5,6 @@ function renderSongCards(
   escapeHtml,
   formatDuration,
   onOpenSong,
-  onToggleRepertoire,
   onManageSongLists
 ) {
 
