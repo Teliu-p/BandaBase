@@ -1703,6 +1703,39 @@ async function loadProposals() {
     });
   });
 
+  Object.values(
+    proposalBlocksMap
+  ).forEach(
+    blocks => {
+      blocks.forEach(
+        block => {
+          if (
+            !block.attachment_id
+          ) {
+            return;
+          }
+
+          const attachmentList =
+            proposalAttachmentsMap[
+              block.proposal_id
+            ] || [];
+
+          const attachment =
+            attachmentList.find(
+              item =>
+                item.id ===
+                block.attachment_id
+            );
+
+          if (attachment) {
+            block.attachment =
+              attachment;
+          }
+        }
+      );
+    }
+  );
+
   const [
     optionsResult,
     votesResult
