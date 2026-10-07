@@ -24,7 +24,7 @@ function bandListTimestamp(item) {
 }
 
 function bandListMemberName(userId) {
-  const member = (window.allBandMembers || []).find(item => item.user_id === userId);
+  const member = (allBandMembers || []).find(item => item.user_id === userId);
   return member
     ? (member.display_name || member.profile?.full_name || "Sin nombre")
     : "Sin nombre";
@@ -41,7 +41,7 @@ function parseBandListLines(value) {
 }
 
 function getBandListItems(listId) {
-  return window.bandListItemsMap?.[listId] || [];
+  return bandListItemsMap?.[listId] || [];
 }
 
 function renderBandListCard(list) {
@@ -86,7 +86,7 @@ function renderBandLists() {
   const upcoming = [];
   const past = [];
 
-  (window.currentBandLists || []).forEach(item => {
+  (currentBandLists || []).forEach(item => {
     const timestamp = bandListTimestamp(item);
     if (timestamp === null || timestamp >= now) upcoming.push(item);
     else past.push(item);
@@ -107,18 +107,18 @@ function renderBandLists() {
 
 async function loadBandLists() {
   const container = document.getElementById("listsList");
-  if (!container || !window.currentBand) return;
+  if (!container || !currentBand) return;
   container.innerHTML = '<div class="empty-state">Cargando listas...</div>';
 
-  const result = await getBandListsByBandId(supabaseClient, window.currentBand.id);
+  const result = await getBandListsByBandId(supabaseClient, currentBand.id);
   if (result.error) {
     container.innerHTML = '<div class="empty-state">No se pudieron cargar las listas.<br>' + escapeHtml(result.error.message) + '</div>';
     showNotice(result.error.message, "error");
     return;
   }
 
-  window.currentBandLists = result.data || [];
-  const ids = window.currentBandLists.map(item => item.id);
+  currentBandLists = result.data || [];
+  const ids = currentBandLists.map(item => item.id);
   const itemsResult = await getBandListItemsByListIds(supabaseClient, ids);
 
   if (itemsResult.error) {
@@ -127,10 +127,10 @@ async function loadBandLists() {
     return;
   }
 
-  window.bandListItemsMap = {};
+  bandListItemsMap = {};
   (itemsResult.data || []).forEach(item => {
-    if (!window.bandListItemsMap[item.list_id]) window.bandListItemsMap[item.list_id] = [];
-    window.bandListItemsMap[item.list_id].push(item);
+    if (!bandListItemsMap[item.list_id]) bandListItemsMap[item.list_id] = [];
+    bandListItemsMap[item.list_id].push(item);
   });
 
   renderBandLists();
@@ -153,7 +153,7 @@ function selectedListMembers() {
 function populateBandListSongsPicker(selectedIds) {
   const picker = document.getElementById("bandListSongsPicker");
   const selected = new Set(selectedIds || []);
-  const songs = (window.allSongs || []).filter(song => song.active_status !== "Inactiva").slice()
+  const songs = (allSongs || []).filter(song => song.active_status !== "Inactiva").slice()
     .sort((a,b) => String(a.name || "").localeCompare(String(b.name || ""), "es"));
 
   picker.innerHTML = songs.length
@@ -167,7 +167,7 @@ function populateBandListSongsPicker(selectedIds) {
 
 function populateBandListMembersPicker(selected) {
   const picker = document.getElementById("bandListMembersPicker");
-  const members = window.allBandMembers || [];
+  const members = allBandMembers || [];
 
   picker.innerHTML = members.length
     ? members.slice().sort((a,b) =>
@@ -192,7 +192,7 @@ function populateBandListMembersPicker(selected) {
 }
 
 function showBandListForm(list) {
-  window.editingBandListId = list?.id || null;
+  editingBandListId = list?.id || null;
   const form = document.getElementById("bandListForm");
   form.reset();
 
@@ -224,7 +224,7 @@ function showBandListForm(list) {
 }
 
 function hideBandListForm() {
-  window.editingBandListId = null;
+  editingBandListId = null;
   const form = document.getElementById("bandListForm");
   form.classList.add("hidden");
   form.reset();
@@ -234,10 +234,10 @@ function hideBandListForm() {
 }
 
 function openBandListDetail(listId) {
-  const list = (window.currentBandLists || []).find(item => item.id === listId);
+  const list = (currentBandLists || []).find(item => item.id === listId);
   if (!list) return;
 
-  window.currentBandList = list;
+  currentBandList = list;
   document.getElementById("listsBrowser").classList.add("hidden");
   document.getElementById("bandListForm").classList.add("hidden");
   document.getElementById("listDetail").classList.remove("hidden");
@@ -275,7 +275,7 @@ function renderBandListDetailContent(list, items) {
           '</strong><span class="status ' + cls + '">' + escapeHtml(status) + '</span></div></div>';
       } else {
         const title = type === "song"
-          ? ((window.allSongs || []).find(song => song.id === item.song_id)?.name || item.title)
+          ? ((allSongs || []).find(song => song.id === item.song_id)?.name || item.title)
           : item.title;
         html += '<div class="list-detail-item">' + escapeHtml(title || "") +
           (item.details ? '<div class="member-info" style="margin-top:3px;">' + escapeHtml(item.details) + '</div>' : "") +
@@ -293,7 +293,7 @@ function renderBandListDetailContent(list, items) {
 }
 
 async function saveBandList() {
-  if (!window.currentBand || !currentUser) return;
+  if (!currentBand || !currentUser) return;
 
   const title = document.getElementById("bandListTitle").value.trim();
   if (!title) {
@@ -310,7 +310,7 @@ async function saveBandList() {
     notes: document.getElementById("bandListNotes").value.trim() || null
   };
 
-  let listId = window.editingBandListId;
+  let listId = editingBandListId;
   if (listId) {
     const result = await updateBandList(supabaseClient, listId, listData);
     if (result.error) {
@@ -320,7 +320,7 @@ async function saveBandList() {
   } else {
     const result = await createBandList(supabaseClient, {
       ...listData,
-      band_id: window.currentBand.id,
+      band_id: currentBand.id,
       created_by: currentUser.id
     });
     if (result.error) {
@@ -337,7 +337,7 @@ async function saveBandList() {
 
   const items = [];
   values.songs.forEach(songId => {
-    const song = (window.allSongs || []).find(item => item.id === songId);
+    const song = (allSongs || []).find(item => item.id === songId);
     items.push({
       item_type: "song",
       title: song?.name || "Canción",
@@ -379,9 +379,9 @@ async function saveBandList() {
     return;
   }
 
-  const wasEditing = Boolean(window.editingBandListId);
+  const wasEditing = Boolean(editingBandListId);
   hideBandListForm();
-  window.currentBandList = null;
+  currentBandList = null;
   showNotice(wasEditing ? "Lista actualizada." : "Lista creada.", "success");
   await loadBandLists();
 }
@@ -393,14 +393,14 @@ function bindBandListEvents() {
 
   document.querySelectorAll("[data-edit-list]").forEach(button => {
     button.addEventListener("click", () => {
-      const list = (window.currentBandLists || []).find(item => item.id === button.dataset.editList);
+      const list = (currentBandLists || []).find(item => item.id === button.dataset.editList);
       if (list) showBandListForm(list);
     });
   });
 
   document.querySelectorAll("[data-delete-list]").forEach(button => {
     button.addEventListener("click", async () => {
-      const list = (window.currentBandLists || []).find(item => item.id === button.dataset.deleteList);
+      const list = (currentBandLists || []).find(item => item.id === button.dataset.deleteList);
       if (!list) return;
       if (!window.confirm('¿Eliminar la lista "' + list.title + '"?')) return;
 
@@ -423,11 +423,11 @@ document.getElementById("bandListForm").addEventListener("submit", event => {
   void saveBandList();
 });
 document.getElementById("backToListsBtn").addEventListener("click", () => {
-  window.currentBandList = null;
+  currentBandList = null;
   document.getElementById("listDetail").classList.add("hidden");
   document.getElementById("listsBrowser").classList.remove("hidden");
   renderBandLists();
 });
 document.getElementById("editListFromDetailBtn").addEventListener("click", () => {
-  if (window.currentBandList) showBandListForm(window.currentBandList);
+  if (currentBandList) showBandListForm(currentBandList);
 });
