@@ -1,55 +1,165 @@
-function populateFilterSelect(
-  select,
-  defaultText,
-  values
-) {
+function getMultiFilterValues(containerId) {
+  const container = document.getElementById(containerId);
 
-  const current =
-    select.value;
-
-  select.innerHTML = "";
-
-  const defaultOption =
-    document.createElement(
-      "option"
-    );
-
-  defaultOption.value = "";
-  defaultOption.textContent =
-    defaultText;
-
-  select.appendChild(
-    defaultOption
-  );
-
-
-  values.forEach(value => {
-
-    const option =
-      document.createElement(
-        "option"
-      );
-
-    option.value =
-      value;
-
-    option.textContent =
-      value;
-
-    select.appendChild(
-      option
-    );
-
-  });
-
-
-  if (
-    values.includes(current)
-  ) {
-    select.value =
-      current;
+  if (!container) {
+    return [];
   }
 
+  return Array.from(
+    container.querySelectorAll('input[type="checkbox"]:checked')
+  ).map(input => input.value);
+}
+
+
+function getMultiFilterSummary(selected, defaultText) {
+  if (!selected.length) {
+    return defaultText;
+  }
+
+  if (selected.length <= 2) {
+    return selected.join(", ");
+  }
+
+  return selected.length + " seleccionados";
+}
+
+
+function bindMultiFilterContainer(container, render) {
+  if (!container || container.dataset.bound === "true") {
+    return;
+  }
+
+  const toggle = container.querySelector(".filter-multi-toggle");
+  const menu = container.querySelector(".filter-multi-menu");
+
+  if (!toggle || !menu) {
+    return;
+  }
+
+  toggle.addEventListener("click", function(event) {
+    event.stopPropagation();
+
+    document.querySelectorAll(".filter-multi.open").forEach(other => {
+      if (other !== container) {
+        other.classList.remove("open");
+      }
+    });
+
+    container.classList.toggle("open");
+  });
+
+  menu.addEventListener("click", function(event) {
+    event.stopPropagation();
+  });
+
+  menu.addEventListener("change", function() {
+    const selected = getMultiFilterValues(container.id);
+    const label = container.querySelector(".filter-multi-label");
+
+    if (label) {
+      label.textContent =
+        getMultiFilterSummary(
+          selected,
+          container.dataset.defaultText || ""
+        );
+    }
+
+    render();
+  });
+
+  container.dataset.bound = "true";
+}
+
+
+function renderMultiFilter(
+  container,
+  defaultText,
+  values,
+  selectedValues,
+  getLabel
+) {
+  if (!container) {
+    return;
+  }
+
+  container.dataset.defaultText = defaultText;
+
+  const menu = container.querySelector(".filter-multi-menu");
+  const label = container.querySelector(".filter-multi-label");
+
+  if (!menu || !label) {
+    return;
+  }
+
+  const selectedSet = new Set(selectedValues || []);
+
+  menu.innerHTML = "";
+
+  values.forEach(value => {
+    const item = document.createElement("label");
+    item.className = "filter-multi-option";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = value;
+    input.checked = selectedSet.has(value);
+
+    const text = document.createElement("span");
+    text.textContent = getLabel(value);
+
+    item.appendChild(input);
+    item.appendChild(text);
+    menu.appendChild(item);
+  });
+
+  if (!values.length) {
+    menu.innerHTML =
+      '<div class="filter-multi-empty">Sin opciones</div>';
+  }
+
+  const selected =
+    Array.from(
+      menu.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      )
+    ).map(input => input.value);
+
+  label.textContent =
+    getMultiFilterSummary(
+      selected,
+      defaultText
+    );
+}
+
+
+function populateMultiSongFilter(
+  containerId,
+  defaultText,
+  values,
+  getLabel
+) {
+  const container =
+    document.getElementById(containerId);
+
+  if (!container) {
+    return;
+  }
+
+  const selected =
+    getMultiFilterValues(containerId);
+
+  renderMultiFilter(
+    container,
+    defaultText,
+    values,
+    selected.filter(value => values.includes(value)),
+    getLabel
+  );
+
+  bindMultiFilterContainer(
+    container,
+    renderSongs
+  );
 }
 
 
@@ -58,7 +168,6 @@ function populateSongFilters(
   getSongSingers,
   uniqueSorted
 ) {
-
   const genres =
     uniqueSorted(
       songs.flatMap(
@@ -72,99 +181,84 @@ function populateSongFilters(
   const artists =
     uniqueSorted(
       songs.map(
-        song => song.artist
+        song =>
+          song.artist
       )
     );
 
   const singers = [];
 
   songs.forEach(song => {
-
-    getSongSingers(song)
-      .forEach(item => {
-
-        if (
-          item.singer &&
-          item.singer.trim()
-        ) {
-          singers.push(
-            item.singer
-          );
-        }
-
-      });
-
+    getSongSingers(song).forEach(item => {
+      if (
+        item.singer &&
+        item.singer.trim()
+      ) {
+        singers.push(item.singer);
+      }
+    });
   });
 
-
-  populateFilterSelect(
-    document.getElementById(
-      "filterGenre"
-    ),
+  populateMultiSongFilter(
+    "filterGenre",
     "Todos los géneros",
-    genres
+    genres,
+    value => value
   );
 
-  populateFilterSelect(
-    document.getElementById(
-      "filterArtist"
-    ),
+  populateMultiSongFilter(
+    "filterArtist",
     "Todos los artistas",
-    artists
+    artists,
+    value => value
   );
 
-  populateFilterSelect(
-    document.getElementById(
-      "filterSinger"
-    ),
+  populateMultiSongFilter(
+    "filterSinger",
     "Todos los cantantes",
-    uniqueSorted(singers)
+    uniqueSorted(singers),
+    value => value
   );
-
 }
 
 
 function getSongFilterValues() {
-
-  const color =
-    document.getElementById(
-      "filterColor"
-    ).value;
-
-  const genre =
-    document.getElementById(
-      "filterGenre"
-    ).value;
-
-  const artist =
-    document.getElementById(
-      "filterArtist"
-    ).value;
-
-  const singer =
-    document.getElementById(
-      "filterSinger"
-    ).value;
-
-  const listStatus =
-    document.getElementById(
-      "filterListStatus"
-    ).value;
-
-  const activeStatus =
-    document.getElementById(
-      "filterActiveStatus"
-    ).value;
-
   return {
-    color,
-    genre,
-    artist,
-    singer,
-    listStatus,
-    activeStatus
-  };
+    color:
+      getMultiFilterValues("filterColor"),
 
+    genre:
+      getMultiFilterValues("filterGenre"),
+
+    artist:
+      getMultiFilterValues("filterArtist"),
+
+    singer:
+      getMultiFilterValues("filterSinger"),
+
+    listStatus:
+      document.getElementById(
+        "filterListStatus"
+      ).value,
+
+    activeStatus:
+      document.getElementById(
+        "filterActiveStatus"
+      ).value
+  };
+}
+
+
+function hasNormalizedValue(
+  values,
+  value,
+  normalizeText
+) {
+  return values.some(
+    item =>
+      normalizeText(item) ===
+      normalizeText(value)
+  );
 }
 
 
@@ -174,7 +268,6 @@ function filterSongs(
   getSongSingers,
   normalizeText
 ) {
-
   const {
     color,
     genre,
@@ -189,28 +282,33 @@ function filterSongs(
     song => {
 
       if (
-        color &&
-        song.color !== color
+        color.length &&
+        !color.includes(song.color)
       ) {
         return false;
       }
 
       if (
-        genre &&
-        !normalizeSongGenres(
-          song.genre
-        ).some(
-          item =>
-            normalizeText(item) ===
-            normalizeText(genre)
+        genre.length &&
+        !genre.some(
+          selected =>
+            hasNormalizedValue(
+              normalizeSongGenres(song.genre),
+              selected,
+              normalizeText
+            )
         )
       ) {
         return false;
       }
 
       if (
-        artist &&
-        song.artist !== artist
+        artist.length &&
+        !hasNormalizedValue(
+          artist,
+          song.artist || "",
+          normalizeText
+        )
       ) {
         return false;
       }
@@ -229,29 +327,29 @@ function filterSongs(
         return false;
       }
 
-      if (singer) {
-
-        const hasSinger =
+      if (singer.length) {
+        const songSingers =
           getSongSingers(song)
-            .some(
+            .map(
               item =>
-                normalizeText(
-                  item.singer
-                ) ===
-                normalizeText(
-                  singer
-                )
+                item.singer
             );
 
-        if (!hasSinger) {
+        if (
+          !singer.some(
+            selected =>
+              hasNormalizedValue(
+                songSingers,
+                selected,
+                normalizeText
+              )
+          )
+        ) {
           return false;
         }
-
       }
 
       return true;
-
     }
   );
-
 }
