@@ -1663,6 +1663,46 @@
       font-size: 13px;
     }
 
+    .home-recent-detail {
+      margin-top: 7px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .home-recent-detail.muted {
+      color: var(--muted);
+    }
+
+    .home-proposal-results {
+      margin-top: 10px;
+    }
+
+    .home-proposal-result {
+      margin-top: 8px;
+    }
+
+    .home-proposal-result-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .home-proposal-result-bar {
+      height: 6px;
+      margin-top: 4px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5e7eb;
+    }
+
+    .home-proposal-result-bar span {
+      display: block;
+      height: 100%;
+      background: #6b7280;
+      border-radius: inherit;
+    }
+
     @media (max-width: 980px) {
       .home-recent-grid {
         grid-template-columns: 1fr;
@@ -1979,18 +2019,6 @@
         </div>
 
       </div>
-
-      <div class="placeholder">
-
-        <strong>BandaBase</strong>
-
-        <p>
-          Desde acá podés acceder a las canciones, la banda,
-          listas, propuestas y comentarios.
-        </p>
-
-      </div>
-
 
       <div class="home-recent-grid">
 
@@ -8855,14 +8883,29 @@ function renderRecentListsPreview() {
   container.innerHTML =
     lists
       .map(list => {
+        const items =
+          getBandListItems(list.id);
+
         const songCount =
-          getBandListItems(list.id)
+          items.filter(
+            item =>
+              item.item_type === "song" &&
+              item.song_id
+          ).length;
+
+        const confirmed =
+          items
             .filter(
               item =>
-                item.item_type === "song" &&
-                item.song_id
+                item.item_type === "member" &&
+                item.status === "Confirmado"
             )
-            .length;
+            .map(
+              item =>
+                bandListMemberName(
+                  item.member_user_id
+                )
+            );
 
         return (
           '<div class="list-detail-item">' +
@@ -8881,6 +8924,16 @@ function renderRecentListsPreview() {
               (songCount === 1 ? "" : "es") +
             "</div>" +
             (
+              confirmed.length
+                ? '<div class="home-recent-detail">' +
+                    "<strong>Confirmados:</strong> " +
+                    escapeHtml(
+                      confirmed.join(", ")
+                    ) +
+                  "</div>"
+                : '<div class="home-recent-detail muted">Sin integrantes confirmados todavía.</div>'
+            ) +
+            (
               list.notes
                 ? '<div class="comment-text">' +
                     escapeHtml(list.notes) +
@@ -8891,6 +8944,105 @@ function renderRecentListsPreview() {
         );
       })
       .join("");
+}
+
+
+function getRecentProposalText(proposalId, fallbackDetail = "") {
+  if (typeof getProposalBlocks === "function") {
+    const blocks =
+      getProposalBlocks(
+        proposalId
+      );
+
+    const text =
+      blocks
+        .filter(
+          block =>
+            block.block_type === "text"
+        )
+        .map(
+          block =>
+            block.content || ""
+        )
+        .join("\n\n")
+        .trim();
+
+    if (text) {
+      return text;
+    }
+  }
+
+  return fallbackDetail || "";
+}
+
+
+function renderRecentProposalResults(
+  proposal,
+  options,
+  votes
+) {
+  const totalVoters =
+    new Set(
+      votes
+        .map(vote => vote.user_id)
+        .filter(Boolean)
+    ).size;
+
+  if (!options.length) {
+    return '<div class="home-recent-detail muted">Sin opciones de votación.</div>';
+  }
+
+  return (
+    '<div class="home-proposal-results">' +
+      '<div class="comment-meta">' +
+        totalVoters +
+        " integrante" +
+        (totalVoters === 1 ? "" : "s") +
+        " votaron" +
+      "</div>" +
+      options
+        .map(option => {
+          const count =
+            votes.filter(
+              vote =>
+                vote.option_id ===
+                option.id
+            ).length;
+
+          const percent =
+            totalVoters
+              ? Math.round(
+                  (count * 100) /
+                    totalVoters
+                )
+              : 0;
+
+          return (
+            '<div class="home-proposal-result">' +
+              '<div class="home-proposal-result-label">' +
+                "<span>" +
+                  escapeHtml(
+                    option.label || "Opción"
+                  ) +
+                "</span>" +
+                "<span>" +
+                  count +
+                  " (" +
+                  percent +
+                  "%)" +
+                "</span>" +
+              "</div>" +
+              '<div class="home-proposal-result-bar">' +
+                '<span style="width:' +
+                percent +
+                '%"></span>' +
+              "</div>" +
+            "</div>"
+          );
+        })
+        .join("") +
+    "</div>"
+  );
 }
 
 
@@ -8927,10 +9079,67 @@ async function loadRecentProposalsPreview() {
       return;
     }
 
+    const ids =
+      proposals.map(
+        proposal =>
+          proposal.id
+      );
+
+    const [
+      optionsResult,
+      votesResult
+    ] = await Promise.all([
+      getProposalOptionsByProposalIds(
+        supabaseClient,
+        ids
+      ),
+      getProposalVotesByProposalIds(
+        supabaseClient,
+        ids
+      )
+    ]);
+
+    if (
+      optionsResult.error ||
+      votesResult.error
+    ) {
+      throw (
+        optionsResult.error ||
+        votesResult.error
+      );
+    }
+
+    const optionsByProposal = {};
+    const votesByProposal = {};
+
+    (optionsResult.data || [])
+      .forEach(option => {
+        (
+          optionsByProposal[
+            option.proposal_id
+          ] ||= []
+        ).push(option);
+      });
+
+    (votesResult.data || [])
+      .forEach(vote => {
+        (
+          votesByProposal[
+            vote.proposal_id
+          ] ||= []
+        ).push(vote);
+      });
+
     container.innerHTML =
       proposals
-        .map(
-          proposal =>
+        .map(proposal => {
+          const text =
+            getRecentProposalText(
+              proposal.id,
+              proposal.detail || ""
+            );
+
+          return (
             '<div class="list-detail-item">' +
               "<strong>" +
                 escapeHtml(
@@ -8949,21 +9158,25 @@ async function loadRecentProposalsPreview() {
                 ) +
               "</div>" +
               (
-                proposal.detail
+                text
                   ? '<div class="comment-text">' +
-                      escapeHtml(
-                        proposal.detail
-                      ).slice(0, 220) +
+                      escapeHtml(text).slice(0, 220) +
                       (
-                        proposal.detail.length > 220
+                        text.length > 220
                           ? "…"
                           : ""
                       ) +
                     "</div>"
                   : ""
               ) +
+              renderRecentProposalResults(
+                proposal,
+                optionsByProposal[proposal.id] || [],
+                votesByProposal[proposal.id] || []
+              ) +
             "</div>"
-        )
+          );
+        })
         .join("");
   } catch (error) {
     container.innerHTML =
