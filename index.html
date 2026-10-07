@@ -1953,14 +1953,29 @@
 
 
             <div class="form-group">
-              <label for="newSongListStatus">Lista / Pendiente</label>
+              <label for="newSongRepertoire">Repertorio</label>
               <label class="inline-check">
                 <input
-                  id="newSongListStatus"
+                  id="newSongRepertoire"
                   type="checkbox"
                 >
-                <span>En lista</span>
+                <span>Añadir al repertorio</span>
               </label>
+            </div>
+
+
+            <div class="form-group">
+              <label for="newSongListStatus">
+                Preparación
+              </label>
+              <select id="newSongListStatus">
+                <option value="Pendiente">
+                  Pendiente
+                </option>
+                <option value="Lista">
+                  Lista
+                </option>
+              </select>
             </div>
 
 
@@ -2318,14 +2333,29 @@
 
 
               <div class="form-group">
-                <label for="detailListStatus">Lista / Pendiente</label>
+                <label for="detailRepertoire">Repertorio</label>
                 <label class="inline-check">
                   <input
-                    id="detailListStatus"
+                    id="detailRepertoire"
                     type="checkbox"
                   >
-                  <span>En lista</span>
+                  <span>En repertorio</span>
                 </label>
+              </div>
+
+
+              <div class="form-group">
+                <label for="detailListStatus">
+                  Preparación
+                </label>
+                <select id="detailListStatus">
+                  <option value="Pendiente">
+                    Pendiente
+                  </option>
+                  <option value="Lista">
+                    Lista
+                  </option>
+                </select>
               </div>
 
 
@@ -6653,10 +6683,10 @@ async function toggleSongRepertoire(songId, checked) {
   const song = allSongs.find(item => item.id === songId);
   if (!song) return;
 
-  const previous = song.list_status;
-  const nextStatus = checked ? "Lista" : "Pendiente";
+  const previous = song.in_repertoire;
+  const nextStatus = Boolean(checked);
 
-  song.list_status = nextStatus;
+  song.in_repertoire = nextStatus;
   renderSongs();
 
   const { error } = await setSongRepertoireStatus(
@@ -6666,17 +6696,17 @@ async function toggleSongRepertoire(songId, checked) {
   );
 
   if (error) {
-    song.list_status = previous;
+    song.in_repertoire = previous;
     renderSongs();
     showNotice(error.message, "error");
     return;
   }
 
   if (currentSong?.id === songId) {
-    currentSong.list_status = nextStatus;
-    const detailCheckbox = document.getElementById("detailListStatus");
+    currentSong.in_repertoire = nextStatus;
+    const detailCheckbox = document.getElementById("detailRepertoire");
     if (detailCheckbox) {
-      detailCheckbox.checked = checked;
+      detailCheckbox.checked = nextStatus;
     }
   }
 }
@@ -7107,6 +7137,7 @@ document.getElementById(
       meter,
       color,
       listStatus,
+      inRepertoire,
       activeStatus,
       singers
     } =
@@ -7165,8 +7196,11 @@ document.getElementById(
 
       color,
 
-      list_status:
+      status:
         listStatus,
+
+      in_repertoire:
+        inRepertoire,
 
       active_status:
         activeStatus,
@@ -7382,9 +7416,15 @@ async function openSong(
 
 
   document.getElementById(
-    "detailListStatus"
+    "detailRepertoire"
   ).checked =
-    song.list_status === "Lista";
+    Boolean(song.in_repertoire);
+
+
+  document.getElementById(
+    "detailListStatus"
+  ).value =
+    song.status || "Pendiente";
 
 
   document.getElementById(
@@ -7481,6 +7521,7 @@ document.getElementById(
       meter,
       color,
       listStatus,
+      inRepertoire,
       activeStatus,
       singers,
       originalBpm,
@@ -7533,8 +7574,11 @@ document.getElementById(
 
       color,
 
-      list_status:
+      status:
         listStatus,
+
+      in_repertoire:
+        inRepertoire,
 
       active_status:
         activeStatus,
