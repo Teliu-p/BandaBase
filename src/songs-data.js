@@ -8,7 +8,9 @@ const SONG_COLUMNS = `
   song_key,
   singer,
   list_status,
+  status,
   active_status,
+  in_repertoire,
   color,
   duration,
   meter,
@@ -72,8 +74,9 @@ async function createSong(
     duration,
     meter,
     color,
-    list_status,
+    status,
     active_status,
+    in_repertoire,
     singer,
     song_key
   } =
@@ -90,8 +93,9 @@ async function createSong(
       duration,
       meter,
       color,
-      list_status,
+      status,
       active_status,
+      in_repertoire,
       singer,
       song_key
     })
@@ -115,8 +119,9 @@ async function updateSong(
     duration,
     meter,
     color,
-    list_status,
+    status,
     active_status,
+    in_repertoire,
     singer,
     song_key,
     original_bpm,
@@ -136,8 +141,9 @@ async function updateSong(
       duration,
       meter,
       color,
-      list_status,
+      status,
       active_status,
+      in_repertoire,
       singer,
       song_key,
       original_bpm,
@@ -161,7 +167,7 @@ async function setSongRepertoireStatus(
   return await supabaseClient
     .from("songs")
     .update({
-      list_status: listStatus
+      in_repertoire: Boolean(listStatus)
     })
     .eq("id", songId);
 }
