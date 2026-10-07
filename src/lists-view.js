@@ -293,7 +293,7 @@ function renderBandListCard(list) {
     "</div>";
 
   html +=
-    "</div><div class="detail-actions">";
+    '</div><div class="detail-actions">';
 
   html +=
     '<span class="status ' +
