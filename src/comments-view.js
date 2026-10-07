@@ -711,8 +711,19 @@ function renderGeneralCommentCard(
   comment,
   showActions = true
 ) {
+  const canContextDelete =
+    comment.user_id === currentUser?.id;
+
   let html =
-    '<article class="comment-card">';
+    '<article class="comment-card"' +
+    (
+      canContextDelete
+        ? ' data-context-delete="generalComment" data-context-delete-id="' +
+          escapeHtml(comment.id) +
+          '"'
+        : ""
+    ) +
+    '>';
 
   html +=
     '<div class="comment-header">' +
@@ -1562,8 +1573,19 @@ function renderComments() {
   list.innerHTML =
     currentComments
       .map(comment => {
+        const canContextDelete =
+          comment.user_id === currentUser?.id;
+
         let html =
-          '<article class="comment-card">';
+          '<article class="comment-card"' +
+          (
+            canContextDelete
+              ? ' data-context-delete="songComment" data-context-delete-id="' +
+                escapeHtml(comment.id) +
+                '"'
+              : ""
+          ) +
+          '>';
 
         html +=
           '<div class="comment-header">' +
