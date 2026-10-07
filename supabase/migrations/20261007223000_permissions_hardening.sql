@@ -9,11 +9,9 @@ begin
 end;
 $$;
 
-revoke execute on function public.create_band(text) from public;
-grant execute on function public.create_band(text) to authenticated;
+revoke execute on function public.create_band(text) from public, anon, authenticated;
 
-revoke execute on function public.enter_bandabase() from public;
-grant execute on function public.enter_bandabase() to authenticated;
+revoke execute on function public.enter_bandabase() from public, anon, authenticated;
 
 revoke execute on function public.is_band_member(uuid) from public;
 grant execute on function public.is_band_member(uuid) to authenticated;
