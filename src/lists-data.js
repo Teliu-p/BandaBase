@@ -344,8 +344,7 @@ async function removeCurrentUserFromBandList(
     .delete()
     .eq("list_id", listId)
     .eq("item_type", "member")
-    .eq("member_user_id", currentUser.id)
-    .eq("status", "Anotado");
+    .eq("member_user_id", currentUser.id);
 }
 
 
