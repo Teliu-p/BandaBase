@@ -970,3 +970,283 @@ assert.ok(
 assert.ok(
   incompleteCleanupErrors.some(message => message.includes("material delete unavailable"))
 );
+
+
+// Simulate the complete save flow with a deterministic Supabase stub.
+async function runMaterialSaveScenario(options = {}) {
+  const calls = [];
+  const notices = [];
+  const originalMaterial = {
+    id: "existing-material",
+    name: "Título anterior",
+    content: "Contenido anterior",
+    attachments: []
+  };
+  const pendingAttachments = options.pendingAttachments || {};
+  let attachmentSequence = 1;
+  const attachmentResponses = [...(options.attachmentResponses || [])];
+  const materialId = options.existing ? originalMaterial.id : "new-material";
+  const storage = {
+    from(bucket) {
+      return {
+        async upload(path, file) {
+          calls.push(["upload", bucket, path, file.name]);
+          return options.uploadError
+            ? { error: { message: options.uploadError } }
+            : { error: null };
+        },
+        async remove(paths) {
+          calls.push(["removeStorage", bucket, [...paths]]);
+          return options.removeStorageError
+            ? { error: { message: options.removeStorageError } }
+            : { error: null };
+        }
+      };
+    }
+  };
+  const context = {
+    currentBand: { id: "band-1" },
+    currentSong: { id: "song-1" },
+    currentUser: { id: "user-1" },
+    editingMaterialId: options.existing ? materialId : null,
+    currentMaterials: options.existing ? [originalMaterial] : [],
+    materialDraftInitialAttachmentIds: new Set(),
+    materialPendingAttachments: pendingAttachments,
+    openMaterialIds: new Set(),
+    supabaseClient: { storage },
+    crypto: { randomUUID: () => "test-uuid" },
+    document: {
+      getElementById(id) {
+        if (id === "materialName") {
+          return { value: options.name || "Material de prueba" };
+        }
+        return { addEventListener() {} };
+      }
+    },
+    collectMaterialComposerBlocks: () => options.blocks || [
+      { block_type: "text", content: "Texto de prueba" }
+    ],
+    collectMaterialLegacyText: blocks => blocks
+      .filter(block => block.block_type === "text")
+      .map(block => block.content || "")
+      .join("\\n\\n")
+      .trim(),
+    createMaterial: async (_client, data) => {
+      calls.push(["createMaterial", data]);
+      return { data: { id: materialId }, error: null };
+    },
+    updateMaterial: async (_client, id, data) => {
+      calls.push(["updateMaterial", id, data]);
+      return options.updateError
+        ? { error: { message: options.updateError } }
+        : { error: null };
+    },
+    createMaterialAttachment: async (_client, data) => {
+      calls.push(["createAttachment", data]);
+      if (attachmentResponses.length) {
+        return attachmentResponses.shift();
+      }
+      const id = "attachment-" + attachmentSequence++;
+      return { data: { id }, error: null };
+    },
+    deleteMaterialAttachment: async (_client, id) => {
+      calls.push(["deleteAttachment", id]);
+      return options.deleteAttachmentError
+        ? { error: { message: options.deleteAttachmentError } }
+        : { error: null };
+    },
+    deleteMaterial: async (_client, id) => {
+      calls.push(["deleteMaterial", id]);
+      return options.deleteMaterialError
+        ? { error: { message: options.deleteMaterialError } }
+        : { error: null };
+    },
+    replaceMaterialBlocks: async (_client, id, blocks) => {
+      calls.push(["replaceBlocks", id, blocks]);
+      return options.blocksError
+        ? { error: { message: options.blocksError } }
+        : { error: null };
+    },
+    sanitizeStorageFileName: name => name.replaceAll(" ", "_"),
+    showNotice: (message, type) => notices.push([message, type]),
+    hideMaterialForm: () => calls.push(["hideForm"]),
+    loadMaterials: async () => calls.push(["loadMaterials"]),
+    console,
+    Set
+  };
+
+  vm.runInNewContext(
+    materialSaveSource + "\\nglobalThis.__runMaterialSaveTest = saveMaterialDraft;",
+    context,
+    { filename: "src/materials-save.js" }
+  );
+
+  await context.__runMaterialSaveTest();
+  return { calls, notices, originalMaterial };
+}
+
+const fileBlocks = [
+  { block_type: "text", content: "Antes del archivo" },
+  { block_type: "attachment", pendingKey: "pending-file" },
+  { block_type: "text", content: "Entre los recursos" },
+  { block_type: "attachment", pendingKey: "pending-link" },
+  { block_type: "text", content: "Después del enlace" }
+];
+const successSave = await runMaterialSaveScenario({
+  blocks: fileBlocks,
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "ensayo audio.wav", type: "audio/wav" }
+    },
+    "pending-link": {
+      kind: "link",
+      name: "Video de referencia",
+      url: "https://www.youtube.com/watch?v=ejemplo"
+    }
+  }
+});
+const successPersistedBlocks = successSave.calls.find(
+  call => call[0] === "replaceBlocks"
+)[2];
+assert.equal(successPersistedBlocks.length, 5);
+assert.deepEqual(
+  successPersistedBlocks.map(block => block.position),
+  [0, 1, 2, 3, 4],
+  "Texto, archivo y enlace deben conservar el orden de composición."
+);
+assert.deepEqual(
+  successPersistedBlocks.map(block => block.block_type),
+  ["text", "attachment", "text", "attachment", "text"]
+);
+assert.equal(
+  successSave.calls.filter(call => call[0] === "createAttachment").length,
+  2,
+  "El guardado normal debe registrar tanto el archivo como el enlace."
+);
+assert.equal(
+  successSave.calls.some(call => call[0] === "removeStorage" || call[0] === "deleteMaterial"),
+  false,
+  "Una operación exitosa no debe activar la compensación."
+);
+assert.deepEqual(successSave.notices, [["Material agregado.", "success"]]);
+
+const newSaveRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "text", content: "Texto antes" },
+    { block_type: "attachment", pendingKey: "pending-file" },
+    { block_type: "text", content: "Texto después" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "archivo.wav", type: "audio/wav" }
+    }
+  },
+  blocksError: "WITH ORDINALITY cannot be used with a column definition list"
+});
+assert.ok(newSaveRollback.calls.some(call => call[0] === "removeStorage"));
+assert.deepEqual(
+  newSaveRollback.calls.filter(call => call[0] === "deleteAttachment").map(call => call[1]),
+  ["attachment-1"]
+);
+assert.deepEqual(
+  newSaveRollback.calls.filter(call => call[0] === "deleteMaterial"),
+  [["deleteMaterial", "new-material"]]
+);
+assert.match(newSaveRollback.notices[0][0], /Se revirtieron los cambios parciales/);
+assert.equal(
+  newSaveRollback.calls.some(call => call[0] === "loadMaterials"),
+  false,
+  "No debe recargarse como exitoso un material nuevo cuyo reemplazo de bloques falló."
+);
+
+const editSaveRollback = await runMaterialSaveScenario({
+  existing: true,
+  blocks: [
+    { block_type: "text", content: "Contenido editado" },
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "archivo nuevo.wav", type: "audio/wav" }
+    }
+  },
+  blocksError: "RPC failure"
+});
+assert.equal(
+  editSaveRollback.calls.some(call => call[0] === "deleteMaterial"),
+  false,
+  "Un fallo editando nunca debe eliminar el material existente."
+);
+const editRestore = editSaveRollback.calls.filter(call => call[0] === "updateMaterial").at(-1);
+assert.equal(editRestore[1], "existing-material");
+assert.equal(editRestore[2].name, "Título anterior");
+assert.equal(editRestore[2].content, "Contenido anterior");
+assert.equal(
+  editSaveRollback.calls.filter(call => call[0] === "deleteAttachment").length,
+  1,
+  "Solo se debe limpiar el adjunto creado por el intento fallido."
+);
+
+const uploadFailureRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "fallará.wav", type: "audio/wav" }
+    }
+  },
+  uploadError: "upload rejected"
+});
+assert.ok(
+  uploadFailureRollback.calls.some(call => call[0] === "removeStorage"),
+  "Un fallo al subir debe intentar eliminar cualquier objeto parcial."
+);
+assert.equal(
+  uploadFailureRollback.calls.some(call => call[0] === "createAttachment"),
+  false
+);
+assert.ok(
+  uploadFailureRollback.calls.some(call => call[0] === "deleteMaterial"),
+  "El material nuevo debe borrarse si la subida falla."
+);
+
+const partialLinkFailureRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" },
+    { block_type: "attachment", pendingKey: "pending-link" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "primero.wav", type: "audio/wav" }
+    },
+    "pending-link": {
+      kind: "link",
+      name: "Link roto",
+      url: "https://example.com"
+    }
+  },
+  attachmentResponses: [
+    { data: { id: "first-file-attachment" }, error: null },
+    { data: null, error: { message: "link record rejected" } }
+  ]
+});
+assert.ok(partialLinkFailureRollback.calls.some(call => call[0] === "removeStorage"));
+assert.deepEqual(
+  partialLinkFailureRollback.calls.filter(call => call[0] === "deleteAttachment").map(call => call[1]),
+  ["first-file-attachment"]
+);
+assert.ok(
+  partialLinkFailureRollback.calls.some(call => call[0] === "deleteMaterial"),
+  "Si falla el enlace después de subir un archivo, también deben limpiarse los pasos anteriores."
+);
+assert.equal(
+  partialLinkFailureRollback.calls.some(call => call[0] === "replaceBlocks"),
+  false,
+  "No se debe persistir la secuencia si falló el registro de uno de sus recursos."
+);
