@@ -189,6 +189,12 @@ assert.match(
 
 assertScriptBefore(
   html,
+  "src/app-navigation.js",
+  "src/app-auth.js"
+);
+
+assertScriptBefore(
+  html,
   "src/app-band.js",
   "src/app-auth.js"
 );
