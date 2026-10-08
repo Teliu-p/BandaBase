@@ -352,18 +352,18 @@ assert.equal(formatDuration("abc"), "—");
 
 assert.equal(normalizeText("  Canto "), "canto");
 assert.deepEqual(
-  uniqueSorted(["Guitarra", "voz", " guitarra ", "Voz", "Bajo"]),
+  Array.from(uniqueSorted(["Guitarra", "voz", " guitarra ", "Voz", "Bajo"])),
   ["Bajo", "guitarra", "Voz"]
 );
 
 assert.deepEqual(
-  normalizeBandInstruments([
+  Array.from(normalizeBandInstruments([
     "guitar",
     "voice",
     "guitar",
     "invalid",
     "voice"
-  ]),
+  ])),
   ["guitar", "voice"]
 );
 
@@ -381,12 +381,12 @@ const {
 );
 
 assert.deepEqual(
-  normalizeSongGenres("Rock, Worship, rock,  Worship "),
+  Array.from(normalizeSongGenres("Rock, Worship, rock,  Worship ")),
   ["Rock", "Worship"]
 );
 
 assert.deepEqual(
-  normalizeSongGenres(["Balada", " balada ", "", null, "Rock"]),
+  Array.from(normalizeSongGenres(["Balada", " balada ", "", null, "Rock"])),
   ["Balada", "Rock"]
 );
 
