@@ -7,7 +7,8 @@ const BAND_LIST_COLUMNS = `
   created_by,
   created_at,
   deleted_at,
-  deleted_by
+  deleted_by,
+  instrument_slots
 `;
 
 const BAND_LIST_ITEM_COLUMNS = `
@@ -20,6 +21,7 @@ const BAND_LIST_ITEM_COLUMNS = `
   member_user_id,
   status,
   position,
+  participation_instruments,
   created_by,
   created_at
 `;
@@ -264,8 +266,19 @@ async function replaceBandListManagers(
 
 async function addCurrentUserToBandList(
   supabaseClient,
-  listId
+  listId,
+  participationInstruments = []
 ) {
+  const instruments =
+    normalizeBandInstruments(participationInstruments);
+
+  if (!instruments.length) {
+    return {
+      data: null,
+      error: new Error("Elegí al menos un instrumento.")
+    };
+  }
+
   const existing =
     await supabaseClient
       .from("band_list_items")
@@ -280,13 +293,12 @@ async function addCurrentUserToBandList(
   }
 
   if (existing.data) {
-    if (existing.data.status === "Anotado") {
-      return existing;
-    }
-
     return await supabaseClient
       .from("band_list_items")
-      .update({ status: "Anotado" })
+      .update({
+        status: "Anotado",
+        participation_instruments: instruments
+      })
       .eq("id", existing.data.id)
       .select(BAND_LIST_ITEM_COLUMNS)
       .single();
@@ -297,18 +309,29 @@ async function addCurrentUserToBandList(
     .insert({
       list_id: listId,
       item_type: "member",
-      title: bandListMemberName(
-        currentUser.id
-      ),
+      title: bandListMemberName(currentUser.id),
       details: null,
       song_id: null,
       member_user_id: currentUser.id,
       status: "Anotado",
+      participation_instruments: instruments,
       position: 0,
       created_by: currentUser.id
     })
     .select(BAND_LIST_ITEM_COLUMNS)
     .single();
+}
+
+async function updateCurrentUserBandListParticipation(
+  supabaseClient,
+  listId,
+  participationInstruments
+) {
+  return await addCurrentUserToBandList(
+    supabaseClient,
+    listId,
+    participationInstruments
+  );
 }
 
 
