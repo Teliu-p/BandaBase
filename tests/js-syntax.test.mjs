@@ -131,11 +131,11 @@ assert.ok(
 );
 
 const composerPosition = html.indexOf('<script src="src/rich-text-composer.js"></script>');
-const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
+const composerCommentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
 
 assert.ok(
   composerPosition >= 0 &&
-  commentsViewPosition > composerPosition,
+  composerCommentsViewPosition > composerPosition,
   "El compositor reutilizable debe cargarse antes de comments-view.js."
 );
 
@@ -167,12 +167,12 @@ assert.doesNotMatch(
 
 const appShellPosition = html.indexOf('<script src="src/app-shell.js"></script>');
 const materialsViewPosition = html.indexOf('<script src="src/materials-view.js"></script>');
-const songsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
+const globalSongsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
 
 assert.ok(
   appShellPosition >= 0 &&
   materialsViewPosition > appShellPosition &&
-  songsControllerPosition > materialsViewPosition,
+  globalSongsControllerPosition > materialsViewPosition,
   "Los módulos del shell, materiales y canciones deben cargarse en ese orden."
 );
 
