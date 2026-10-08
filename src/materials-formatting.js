@@ -381,6 +381,20 @@ function renderMaterialAutoLinkedTextHtml(
 }
 
 
+function renderMaterialRichTextTextNode(
+  value,
+  insideAnchor = false
+) {
+  const text = String(value || "");
+
+  if (insideAnchor) {
+    return escapeMaterialHtmlText(text).replaceAll("\n", "<br>");
+  }
+
+  return renderMaterialAutoLinkedTextHtml(text);
+}
+
+
 function serializeMaterialRichTextNode(
   node
 ) {
@@ -582,7 +596,8 @@ function collectMaterialRichTextPlainText(
 
 function appendSanitizedMaterialNode(
   target,
-  node
+  node,
+  insideAnchor = false
 ) {
 
   if (
@@ -590,11 +605,19 @@ function appendSanitizedMaterialNode(
     Node.TEXT_NODE
   ) {
 
-    target.appendChild(
-      document.createTextNode(
-        node.nodeValue || ""
-      )
-    );
+    if (insideAnchor) {
+      target.appendChild(
+        document.createTextNode(
+          node.nodeValue || ""
+        )
+      );
+    } else {
+      target.appendChild(
+        createMaterialAutoLinkFragment(
+          node.nodeValue || ""
+        )
+      );
+    }
 
     return;
 
@@ -648,7 +671,8 @@ function appendSanitizedMaterialNode(
         child =>
           appendSanitizedMaterialNode(
             target,
-            child
+            child,
+            true
           )
       );
 
@@ -722,7 +746,8 @@ function appendSanitizedMaterialNode(
     child =>
       appendSanitizedMaterialNode(
         safeNode,
-        child
+        child,
+        node.tagName === "A" || insideAnchor
       )
   );
 
@@ -793,17 +818,18 @@ function renderMaterialRichTextHtml(
   template.innerHTML =
     html;
 
-  function renderNode(node) {
+  function renderNode(
+    node,
+    insideAnchor = false
+  ) {
 
     if (
       node.nodeType ===
       Node.TEXT_NODE
     ) {
-      return escapeMaterialHtmlText(
-        node.nodeValue || ""
-      ).replaceAll(
-        "\n",
-        "<br>"
+      return renderMaterialRichTextTextNode(
+        node.nodeValue || "",
+        insideAnchor
       );
     }
 
@@ -834,7 +860,7 @@ function renderMaterialRichTextHtml(
           node.childNodes || []
         )
           .map(
-            renderNode
+            child => renderNode(child, true)
           )
           .join("");
       }
@@ -844,7 +870,7 @@ function renderMaterialRichTextHtml(
           node.childNodes || []
         )
           .map(
-            renderNode
+            child => renderNode(child, true)
           )
           .join("");
 
@@ -863,7 +889,7 @@ function renderMaterialRichTextHtml(
         node.childNodes || []
       )
         .map(
-          renderNode
+          child => renderNode(child, insideAnchor)
         )
         .join("");
 
