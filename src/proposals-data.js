@@ -27,24 +27,20 @@ async function replaceProposalBlocks(
   proposalId,
   blocks
 ) {
-  const { error: deleteError } =
-    await client
-      .from("proposal_blocks")
-      .delete()
-      .eq("proposal_id", proposalId);
-
-  if (deleteError) {
-    return { data: null, error: deleteError };
-  }
-
-  if (!blocks.length) {
-    return { data: [], error: null };
-  }
-
-  return client
-    .from("proposal_blocks")
-    .insert(blocks)
-    .select(PROPOSAL_BLOCK_COLUMNS);
+  return await client.rpc(
+    "replace_proposal_blocks",
+    {
+      p_proposal_id: proposalId,
+      p_blocks: (blocks || []).map(item => ({
+        block_type: item.block_type,
+        content: item.content ?? null,
+        attachment_id: item.attachment_id ?? null,
+        position: Number.isInteger(item.position)
+          ? item.position
+          : null
+      }))
+    }
+  );
 }
 
 async function getProposalsByBandId(client, bandId) {
