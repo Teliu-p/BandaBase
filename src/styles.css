@@ -2995,3 +2995,230 @@
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
+
+/* ============================================================
+   MATERIALES · FORMATO Y RECURSOS
+============================================================ */
+
+.material-composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 9px;
+}
+
+.material-format-group,
+.material-resource-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.material-format-group {
+  padding: 3px;
+  border: 1px solid var(--bb-border);
+  border-radius: 9px;
+  background: var(--bb-surface-inset);
+}
+
+.material-format-btn {
+  min-width: 38px;
+  height: 34px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bb-text-soft);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.material-format-btn:hover {
+  background: var(--bb-surface-raised);
+  border-color: var(--bb-border);
+  color: var(--bb-text);
+}
+
+.material-format-btn:focus-visible {
+  outline: 2px solid var(--bb-accent);
+  outline-offset: 1px;
+}
+
+.material-size-btn {
+  letter-spacing: -.02em;
+}
+
+.material-composer-editor {
+  min-height: 220px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.material-composer-editor strong,
+.material-rich-text strong {
+  font-weight: 700;
+}
+
+.material-composer-editor .material-text-size-1,
+.material-rich-text .material-text-size-1,
+.material-composer-editor font[size="5"] {
+  font-size: 1.25em;
+}
+
+.material-composer-editor .material-text-size-2,
+.material-rich-text .material-text-size-2,
+.material-composer-editor font[size="7"] {
+  font-size: 1.5em;
+}
+
+.material-rich-text {
+  line-height: 1.6;
+}
+
+.material-rich-text .material-text-size-1,
+.material-rich-text .material-text-size-2 {
+  display: inline;
+}
+
+.material-view-attachment {
+  margin: 10px 0 0;
+}
+
+.material-attachment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--bb-border);
+  border-radius: 11px;
+  background: var(--bb-surface-raised);
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+
+.material-attachment-card:hover {
+  border-color: var(--bb-border-strong);
+}
+
+.material-attachment-card-main {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.material-attachment-icon {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--bb-border-strong);
+  background: var(--bb-surface-inset);
+  color: var(--bb-text-soft);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .01em;
+  text-align: center;
+}
+
+.material-attachment-card-main .material-attachment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.material-attachment-name {
+  min-width: 0;
+  color: var(--bb-text);
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.material-attachment-meta {
+  min-width: 0;
+  color: var(--bb-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.material-attachment-open {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.material-attachment-audio {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.material-attachment-audio .material-attachment-card-main {
+  width: 100%;
+}
+
+.material-audio {
+  width: 100%;
+  margin-top: 2px;
+  border-radius: 7px;
+}
+
+.material-inline-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 3px 7px;
+  margin: 0 2px;
+  border: 1px solid var(--bb-border);
+  border-radius: 7px;
+  background: var(--bb-surface-raised);
+  color: var(--bb-text-soft);
+  vertical-align: baseline;
+}
+
+.material-inline-attachment .inline-remove {
+  margin: 0;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--bb-text-muted);
+}
+
+.material-inline-attachment .inline-remove:hover {
+  background: var(--bb-border);
+  color: var(--bb-text);
+}
+
+@media (max-width: 700px) {
+  .material-composer-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .material-format-group,
+  .material-resource-group {
+    width: 100%;
+  }
+
+  .material-resource-group .btn {
+    flex: 1 1 0;
+  }
+
+  .material-attachment-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .material-attachment-open {
+    width: 100%;
+  }
+}

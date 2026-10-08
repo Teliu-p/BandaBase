@@ -1466,21 +1466,85 @@
 
               <div class="material-composer-toolbar">
 
-                <button
-                  type="button"
-                  id="insertMaterialFileBtn"
-                  class="btn btn-subtle"
+                <div
+                  class="material-format-group"
+                  aria-label="Formato del texto"
                 >
-                  📎 Adjuntar archivo
-                </button>
 
-                <button
-                  type="button"
-                  id="insertMaterialLinkBtn"
-                  class="btn btn-subtle"
+                  <button
+                    type="button"
+                    id="materialBoldBtn"
+                    class="material-format-btn"
+                    title="Negrita"
+                    aria-label="Negrita"
+                  >
+                    <strong>B</strong>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialParenthesesBtn"
+                    class="material-format-btn"
+                    title="Encerrar entre paréntesis"
+                    aria-label="Encerrar entre paréntesis"
+                  >
+                    ( )
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialBracketsBtn"
+                    class="material-format-btn"
+                    title="Encerrar entre corchetes"
+                    aria-label="Encerrar entre corchetes"
+                  >
+                    [ ]
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialSize1Btn"
+                    class="material-format-btn material-size-btn"
+                    title="Agrandar una vez"
+                    aria-label="Agrandar una vez"
+                  >
+                    A+
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialSize2Btn"
+                    class="material-format-btn material-size-btn"
+                    title="Agrandar dos veces"
+                    aria-label="Agrandar dos veces"
+                  >
+                    A++
+                  </button>
+
+                </div>
+
+                <div
+                  class="material-resource-group"
+                  aria-label="Recursos"
                 >
-                  🔗 Añadir enlace
-                </button>
+
+                  <button
+                    type="button"
+                    id="insertMaterialFileBtn"
+                    class="btn btn-subtle"
+                  >
+                    📎 Adjuntar archivo
+                  </button>
+
+                  <button
+                    type="button"
+                    id="insertMaterialLinkBtn"
+                    class="btn btn-subtle"
+                  >
+                    🔗 Añadir enlace
+                  </button>
+
+                </div>
 
               </div>
 
@@ -2282,6 +2346,7 @@
 
 <script src="src/app-shell.js"></script>
 <script src="src/app-band.js"></script>
+<script src="src/materials-formatting.js"></script>
 <script src="src/materials-view.js"></script>
 <script src="src/materials-editor.js"></script>
 <script src="src/materials-save.js"></script>

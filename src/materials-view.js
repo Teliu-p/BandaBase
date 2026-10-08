@@ -56,27 +56,170 @@ function getMaterialAttachmentIcon(
   attachment
 ) {
 
-  if (attachment?.kind === "link") {
-    return "🔗";
+  if (
+    attachment?.kind ===
+    "link"
+  ) {
+    return "↗";
+  }
+
+  const mime =
+    String(
+      attachment?.mime_type || ""
+    ).toLowerCase();
+
+  if (
+    mime.startsWith(
+      "audio/"
+    )
+  ) {
+    return "♫";
   }
 
   if (
-    String(
-      attachment?.mime_type || ""
-    ).startsWith("audio/")
+    mime.includes(
+      "pdf"
+    )
   ) {
-    return "🎧";
+    return "PDF";
   }
 
   if (
-    String(
-      attachment?.mime_type || ""
-    ).includes("pdf")
+    mime.includes(
+      "image/"
+    )
   ) {
-    return "📄";
+    return "IMG";
   }
 
-  return "📎";
+  if (
+    mime.includes(
+      "video/"
+    )
+  ) {
+    return "VID";
+  }
+
+  if (
+    mime.includes(
+      "word"
+    ) ||
+    mime.includes(
+      "document"
+    )
+  ) {
+    return "DOC";
+  }
+
+  if (
+    mime.includes(
+      "sheet"
+    ) ||
+    mime.includes(
+      "excel"
+    )
+  ) {
+    return "XLS";
+  }
+
+  if (
+    mime.includes(
+      "presentation"
+    ) ||
+    mime.includes(
+      "powerpoint"
+    )
+  ) {
+    return "PPT";
+  }
+
+  return "FILE";
+
+}
+
+
+function getAttachmentLabel(
+  attachment
+) {
+
+  if (
+    attachment?.kind ===
+    "link"
+  ) {
+    return "Enlace web";
+  }
+
+  const mime =
+    String(
+      attachment?.mime_type || ""
+    ).toLowerCase();
+
+  if (
+    mime.startsWith(
+      "audio/"
+    )
+  ) {
+    return "Audio";
+  }
+
+  if (
+    mime.includes(
+      "pdf"
+    )
+  ) {
+    return "PDF";
+  }
+
+  if (
+    mime.includes(
+      "image/"
+    )
+  ) {
+    return "Imagen";
+  }
+
+  if (
+    mime.includes(
+      "video/"
+    )
+  ) {
+    return "Video";
+  }
+
+  return "Archivo";
+
+}
+
+
+function getMaterialAttachmentSecondaryText(
+  attachment
+) {
+
+  if (
+    attachment?.kind ===
+    "link"
+  ) {
+
+    try {
+
+      return new URL(
+        attachment.url
+      ).hostname.replace(
+        /^www\./,
+        ""
+      );
+
+    } catch (error) {
+
+      return "Enlace web";
+
+    }
+
+  }
+
+  return getAttachmentLabel(
+    attachment
+  );
 
 }
 
@@ -302,16 +445,26 @@ function renderMaterialViewBlock(
     "text"
   ) {
 
+    const richText =
+      renderMaterialRichTextHtml(
+        block.content || ""
+      );
+
     return (
-      '<div class="material-view-text">' +
+      '<div class="material-view-text material-rich-text">' +
       (
-        block.content
-          ? escapeHtml(
-              block.content
-            )
-          : ""
+        richText !== null
+          ? richText
+          : block.content
+            ? escapeHtml(
+                block.content
+              ).replaceAll(
+                "\n",
+                "<br>"
+              )
+            : ""
       ) +
-      '</div>'
+      "</div>"
     );
 
   }
@@ -328,75 +481,89 @@ function renderMaterialViewBlock(
       attachment
     );
 
+  const secondaryText =
+    getMaterialAttachmentSecondaryText(
+      attachment
+    );
+
+  const actionLabel =
+    attachment.kind ===
+      "link"
+      ? "Abrir enlace"
+      : "Abrir";
+
+
   if (
     attachment.kind ===
       "file" &&
     String(
       attachment.mime_type || ""
-    ).startsWith("audio/")
+    ).startsWith(
+      "audio/"
+    )
   ) {
 
     return (
-      '<div class="material-view-attachment">' +
-      '<strong>' +
-      icon +
-      " " +
-      escapeHtml(
-        attachment.name
-      ) +
-      '</strong>' +
-      '<div class="material-attachment-type">' +
-      escapeHtml(
-        getAttachmentLabel(
-          attachment
-        )
-      ) +
-      '</div>' +
-      '<audio class="material-audio" controls preload="metadata" data-material-audio="' +
-      escapeHtml(
-        attachment.storage_path || ""
-      ) +
-      '"></audio>' +
-      '</div>'
+      '<div class="material-view-attachment material-attachment-card material-attachment-audio">' +
+        '<div class="material-attachment-card-main">' +
+          '<span class="material-attachment-icon" aria-hidden="true">' +
+            escapeHtml(icon) +
+          "</span>" +
+          '<div class="material-attachment-info">' +
+            '<strong class="material-attachment-name">' +
+              escapeHtml(
+                attachment.name ||
+                "Audio"
+              ) +
+            "</strong>" +
+            '<span class="material-attachment-meta">' +
+              escapeHtml(
+                secondaryText
+              ) +
+            "</span>" +
+          "</div>" +
+        "</div>" +
+        '<audio class="material-audio" controls preload="metadata" data-material-audio="' +
+          escapeHtml(
+            attachment.storage_path || ""
+          ) +
+        '"></audio>' +
+      "</div>"
     );
 
   }
 
+
   return (
-    '<div class="material-view-attachment">' +
-    '<div class="detail-actions" style="align-items:center;">' +
-    '<div style="min-width:0; flex:1;">' +
-    '<strong>' +
-    icon +
-    " " +
-    escapeHtml(
-      attachment.name
-    ) +
-    '</strong>' +
-    '<div class="material-attachment-type">' +
-    escapeHtml(
-      getAttachmentLabel(
-        attachment
-      )
-    ) +
-    (
-      attachment.kind === "link" &&
-      attachment.url
-        ? " · " +
-          escapeHtml(
-            attachment.url
-          )
-        : ""
-    ) +
-    '</div>' +
-    '</div>' +
-    '<button type="button" class="btn btn-subtle" data-open-attachment="' +
-    escapeHtml(
-      attachment.id
-    ) +
-    '">Abrir</button>' +
-    '</div>' +
-    '</div>'
+    '<div class="material-view-attachment material-attachment-card">' +
+      '<div class="material-attachment-card-main">' +
+        '<span class="material-attachment-icon" aria-hidden="true">' +
+          escapeHtml(icon) +
+        "</span>" +
+        '<div class="material-attachment-info">' +
+          '<strong class="material-attachment-name">' +
+            escapeHtml(
+              attachment.name ||
+              "Archivo"
+            ) +
+          "</strong>" +
+          '<span class="material-attachment-meta">' +
+            escapeHtml(
+              secondaryText
+            ) +
+          "</span>" +
+        "</div>" +
+      "</div>" +
+      '<button type="button" class="material-attachment-open btn btn-subtle" data-open-attachment="' +
+        escapeHtml(
+          attachment.id
+        ) +
+      '">' +
+        escapeHtml(
+          actionLabel
+        ) +
+      "</button>" +
+    "</div>"
   );
 
 }

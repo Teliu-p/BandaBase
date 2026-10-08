@@ -194,6 +194,71 @@ assertScriptBefore(
   "src/app-auth.js"
 );
 
+assertScriptBefore(
+  html,
+  "src/materials-formatting.js",
+  "src/materials-view.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/materials-formatting.js",
+  "src/materials-editor.js"
+);
+
+assert.match(
+  html,
+  /id="materialBoldBtn"/,
+  "El editor de Materiales debe incluir el botón de negrita."
+);
+
+assert.match(
+  html,
+  /id="materialParenthesesBtn"/,
+  "El editor de Materiales debe incluir el botón de paréntesis."
+);
+
+assert.match(
+  html,
+  /id="materialBracketsBtn"/,
+  "El editor de Materiales debe incluir el botón de corchetes."
+);
+
+assert.match(
+  html,
+  /id="materialSize1Btn"/,
+  "El editor de Materiales debe incluir el primer tamaño de texto."
+);
+
+assert.match(
+  html,
+  /id="materialSize2Btn"/,
+  "El editor de Materiales debe incluir el segundo tamaño de texto."
+);
+
+const materialFormattingSource = readFileSync(
+  join(srcDir, "materials-formatting.js"),
+  "utf8"
+);
+
+assert.match(
+  materialFormattingSource,
+  /BANDABASE_RICH_TEXT_V1:/,
+  "El formato enriquecido de Materiales debe tener un formato persistente identificable."
+);
+
+assert.match(
+  materialFormattingSource,
+  /material-text-size-1/,
+  "Debe existir el primer tamaño enriquecido."
+);
+
+assert.match(
+  materialFormattingSource,
+  /material-text-size-2/,
+  "Debe existir el segundo tamaño enriquecido."
+);
+
 const appNavigationSource = readFileSync(
   join(srcDir, "app-navigation.js"),
   "utf8"
@@ -544,6 +609,29 @@ assert.equal(
 assert.equal(
   getMetronomeClickIntervalSeconds(120, "eighth"),
   0.25
+);
+
+const {
+  isMaterialRichTextContent
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  [
+    "isMaterialRichTextContent"
+  ]
+);
+
+assert.equal(
+  isMaterialRichTextContent(
+    "BANDABASE_RICH_TEXT_V1:<strong>Verso</strong>"
+  ),
+  true
+);
+
+assert.equal(
+  isMaterialRichTextContent(
+    "Verso normal"
+  ),
+  false
 );
 
 const {
