@@ -477,7 +477,7 @@ function renderBandListCard(list) {
     '<span class="list-summary-chip">Anotados: ' +
     annotatedCount +
     "</span>" +
-    '<span class="list-summary-chip">Confirmados: ' +
+    '<span class="list-summary-chip">Participando: ' +
     confirmedCount +
     "</span>" +
     "</div>";
