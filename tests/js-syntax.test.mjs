@@ -118,6 +118,23 @@ assert.equal(
   "songs-detail.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/materials-editor.js").length,
+  1,
+  "materials-editor.js debe cargarse exactamente una vez."
+);
+
+const materialsViewPosition = html.indexOf('<script src="src/materials-view.js"></script>');
+const materialsEditorPosition = html.indexOf('<script src="src/materials-editor.js"></script>');
+const songsComparisonPosition2 = html.indexOf('<script src="src/songs-comparison.js"></script>');
+
+assert.ok(
+  materialsViewPosition >= 0 &&
+  materialsEditorPosition > materialsViewPosition &&
+  songsComparisonPosition2 > materialsEditorPosition,
+  "El editor de Materiales debe cargarse después de su vista y antes de la comparación de canciones."
+);
+
 const songsDetailPosition = html.indexOf('<script src="src/songs-detail.js"></script>');
 const songsControllerLoadPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
 
