@@ -61,6 +61,24 @@ assert.equal(
   "materials-view.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/songs-controller.js").length,
+  1,
+  "songs-controller.js debe cargarse exactamente una vez."
+);
+
+assert.equal(
+  scriptSources.filter(source => source === "src/app-navigation.js").length,
+  1,
+  "app-navigation.js debe cargarse exactamente una vez."
+);
+
+assert.equal(
+  (html.match(/<script>\s*[\s\S]*?<\/script>/g) || []).length,
+  0,
+  "index.html no debe contener scripts JavaScript inline."
+);
+
 assert.doesNotMatch(
   html,
   /<script>\s*<script\s+src=/i,
