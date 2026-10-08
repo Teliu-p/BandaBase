@@ -732,7 +732,8 @@ function appendSanitizedMaterialNode(
       child =>
         appendSanitizedMaterialNode(
           target,
-          child
+          child,
+          insideAnchor
         )
     );
 
