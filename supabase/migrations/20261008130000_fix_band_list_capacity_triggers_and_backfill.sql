@@ -7,7 +7,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.trg_auto_confirm_band_list_items() from anon, authenticated;
+revoke execute on function public.trg_auto_confirm_band_list_items() from public;
 
 create or replace function public.trg_auto_confirm_band_list()
 returns trigger language plpgsql security definer set search_path = public, pg_catalog
@@ -18,7 +18,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.trg_auto_confirm_band_list() from anon, authenticated;
+revoke execute on function public.trg_auto_confirm_band_list() from public;
 
 drop trigger if exists band_list_items_auto_confirm on public.band_list_items;
 create trigger band_list_items_auto_confirm
@@ -43,3 +43,5 @@ where i.item_type = 'member'
 update public.band_lists
 set instrument_slots = jsonb_build_object('guitar',2,'voice',2,'keyboard',1,'bass',1,'drums',1)
 where instrument_slots = '{}'::jsonb and deleted_at is null;
+revoke execute on function public.auto_confirm_band_list_members(uuid) from public;
+drop function if exists public.trg_auto_confirm_band_list_members();
