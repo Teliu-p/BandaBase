@@ -7409,6 +7409,68 @@
   }
 </style>
 
+
+<style id="bandabase-restore-semantic-colors-v12">
+  /* El color de datos vuelve a tener prioridad sobre la paleta de interfaz. */
+  .song-card {
+    border-left-width: 4px !important;
+    border-left-color: #6e7681 !important;
+  }
+
+  /* Los estados conservan significado visual: Lista/Activa = verde,
+     Pendiente = amarillo, Inactiva = rojo. El texto sigue siendo claro. */
+  .status {
+    background: #30363d !important;
+    color: #f0f6fc !important;
+    border-color: #484f58 !important;
+  }
+
+  .status.active {
+    background: #174c2e !important;
+    color: #d1f7de !important;
+    border-color: #238636 !important;
+  }
+
+  .status.inactive {
+    background: #5a1f24 !important;
+    color: #ffd7da !important;
+    border-color: #da3633 !important;
+  }
+
+  .status.pending {
+    background: #4d3b12 !important;
+    color: #ffe8a3 !important;
+    border-color: #9e6a03 !important;
+  }
+
+  /* En Inicio los tres paneles son hermanos: mismo brillo exterior,
+     y el contenido interno queda un nivel por encima. */
+  .home-recent-panel .form-card {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,.18),
+      0 8px 22px rgba(0,0,0,.16) !important;
+  }
+
+  .home-recent-panel .comment-card {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #f0f6fc !important;
+    box-shadow: none !important;
+  }
+
+  .home-recent-panel .comment-date {
+    color: #8b949e !important;
+  }
+
+  .home-recent-panel .empty-state {
+    background: #21262d !important;
+    border-color: #30363d !important;
+    color: #8b949e !important;
+  }
+</style>
+
 </head>
 
 <body>
