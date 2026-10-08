@@ -3362,10 +3362,10 @@
 
           <div class="form-grid">
 
-            <div class="form-group full">
+            <div class="form-group">
 
               <label for="newSongName">
-                Nombre
+                Título
               </label>
 
               <input
@@ -3373,6 +3373,21 @@
                 type="text"
                 required
                 placeholder="Nombre de la canción"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongDuration">
+                Duración
+              </label>
+
+              <input
+                id="newSongDuration"
+                type="text"
+                placeholder="Ej. 4:35"
               >
 
             </div>
@@ -3388,21 +3403,6 @@
                 id="newSongArtist"
                 type="text"
                 placeholder="Artista / grupo"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="newSongGenre">
-                Géneros
-              </label>
-
-              <input
-                id="newSongGenre"
-                type="text"
-                placeholder="Ej. Rock, Balada, Ska..."
               >
 
             </div>
@@ -3427,14 +3427,14 @@
 
             <div class="form-group">
 
-              <label for="newSongDuration">
-                Duración
+              <label for="newSongGenre">
+                Género
               </label>
 
               <input
-                id="newSongDuration"
+                id="newSongGenre"
                 type="text"
-                placeholder="Ej. 4:35"
+                placeholder="Ej. Rock, Balada, Ska..."
               >
 
             </div>
@@ -3504,7 +3504,9 @@
 
 
             <div class="form-group">
+
               <label for="newSongRepertoire">Repertorio</label>
+
               <label class="inline-check">
                 <input
                   id="newSongRepertoire"
@@ -3513,21 +3515,7 @@
                 >
                 <span>Se activa automáticamente al agregar la canción a una lista</span>
               </label>
-            </div>
 
-
-            <div class="form-group">
-              <label for="newSongListStatus">
-                Preparación
-              </label>
-              <select id="newSongListStatus">
-                <option value="Pendiente">
-                  Pendiente
-                </option>
-                <option value="Lista">
-                  Lista
-                </option>
-              </select>
             </div>
 
 
@@ -3545,6 +3533,27 @@
 
                 <option value="Inactiva">
                   Inactiva
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongListStatus">
+                Preparación
+              </label>
+
+              <select id="newSongListStatus">
+
+                <option value="Pendiente">
+                  Pendiente
+                </option>
+
+                <option value="Lista">
+                  Lista
                 </option>
 
               </select>
@@ -3779,10 +3788,10 @@
 
             <div class="form-grid">
 
-              <div class="form-group full">
+              <div class="form-group">
 
                 <label for="detailName">
-                  Nombre
+                  Título
                 </label>
 
                 <input
@@ -3796,13 +3805,14 @@
 
               <div class="form-group">
 
-                <label for="detailArtist">
-                  Artista
+                <label for="detailDuration">
+                  Duración
                 </label>
 
                 <input
-                  id="detailArtist"
+                  id="detailDuration"
                   type="text"
+                  placeholder="Ej. 4:35"
                 >
 
               </div>
@@ -3810,12 +3820,12 @@
 
               <div class="form-group">
 
-                <label for="detailGenre">
-                  Géneros
+                <label for="detailArtist">
+                  Artista
                 </label>
 
                 <input
-                  id="detailGenre"
+                  id="detailArtist"
                   type="text"
                 >
 
@@ -3840,14 +3850,13 @@
 
               <div class="form-group">
 
-                <label for="detailDuration">
-                  Duración
+                <label for="detailGenre">
+                  Género
                 </label>
 
                 <input
-                  id="detailDuration"
+                  id="detailGenre"
                   type="text"
-                  placeholder="Ej. 4:35"
                 >
 
               </div>
@@ -3913,7 +3922,9 @@
 
 
               <div class="form-group">
+
                 <label for="detailRepertoire">Repertorio</label>
+
                 <label class="inline-check">
                   <input
                     id="detailRepertoire"
@@ -3922,21 +3933,7 @@
                   >
                   <span>En repertorio · automático según las listas</span>
                 </label>
-              </div>
 
-
-              <div class="form-group">
-                <label for="detailListStatus">
-                  Preparación
-                </label>
-                <select id="detailListStatus">
-                  <option value="Pendiente">
-                    Pendiente
-                  </option>
-                  <option value="Lista">
-                    Lista
-                  </option>
-                </select>
               </div>
 
 
@@ -3954,6 +3951,27 @@
 
                   <option value="Inactiva">
                     Inactiva
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailListStatus">
+                  Preparación
+                </label>
+
+                <select id="detailListStatus">
+
+                  <option value="Pendiente">
+                    Pendiente
+                  </option>
+
+                  <option value="Lista">
+                    Lista
                   </option>
 
                 </select>
