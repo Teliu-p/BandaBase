@@ -11,52 +11,100 @@ async function cleanupFailedMaterialSave({
   const cleanupErrors = [];
   const storagePaths = [...new Set(uploadedStoragePaths || [])];
 
-  if (storagePaths.length) {
-    const { error } = await supabaseClient
-      .storage
-      .from("materials")
-      .remove(storagePaths);
+  function recordCleanupError(message, error) {
+    cleanupErrors.push(
+      message + ": " + (error?.message || String(error || "Error desconocido"))
+    );
+  }
 
-    if (error) {
-      cleanupErrors.push("No se pudieron quitar algunos archivos del almacenamiento: " + error.message);
+  if (storagePaths.length) {
+    try {
+      const { error } = await supabaseClient
+        .storage
+        .from("materials")
+        .remove(storagePaths);
+
+      if (error) {
+        recordCleanupError(
+          "No se pudieron quitar algunos archivos del almacenamiento",
+          error
+        );
+      }
+    } catch (error) {
+      recordCleanupError(
+        "No se pudieron quitar algunos archivos del almacenamiento",
+        error
+      );
     }
   }
 
   for (const attachmentId of [...(createdAttachmentIds || [])].reverse()) {
-    const { error } = await deleteMaterialAttachment(
-      supabaseClient,
-      attachmentId
-    );
+    try {
+      const { error } = await deleteMaterialAttachment(
+        supabaseClient,
+        attachmentId
+      );
 
-    if (error) {
-      cleanupErrors.push("No se pudo eliminar el registro de un adjunto: " + error.message);
+      if (error) {
+        recordCleanupError(
+          "No se pudo eliminar el registro de un adjunto",
+          error
+        );
+      }
+    } catch (error) {
+      recordCleanupError(
+        "No se pudo eliminar el registro de un adjunto",
+        error
+      );
     }
   }
 
   if (wasNew) {
-    const { error } = await deleteMaterial(
-      supabaseClient,
-      materialId
-    );
+    try {
+      const { error } = await deleteMaterial(
+        supabaseClient,
+        materialId
+      );
 
-    if (error) {
-      cleanupErrors.push("No se pudo eliminar el material incompleto: " + error.message);
+      if (error) {
+        recordCleanupError(
+          "No se pudo eliminar el material incompleto",
+          error
+        );
+      }
+    } catch (error) {
+      recordCleanupError(
+        "No se pudo eliminar el material incompleto",
+        error
+      );
     }
   } else if (originalMaterial) {
-    const { error } = await updateMaterial(
-      supabaseClient,
-      materialId,
-      {
-        name: originalMaterial.name,
-        content: originalMaterial.content
-      }
-    );
+    try {
+      const { error } = await updateMaterial(
+        supabaseClient,
+        materialId,
+        {
+          name: originalMaterial.name,
+          content: originalMaterial.content
+        }
+      );
 
-    if (error) {
-      cleanupErrors.push("No se pudieron restaurar el título y el texto anteriores: " + error.message);
+      if (error) {
+        recordCleanupError(
+          "No se pudieron restaurar el título y el texto anteriores",
+          error
+        );
+      }
+    } catch (error) {
+      recordCleanupError(
+        "No se pudieron restaurar el título y el texto anteriores",
+        error
+      );
     }
   } else {
-    cleanupErrors.push("No se encontró la versión original para restaurar el material editado.");
+    cleanupErrors.push(
+      "No se encontró la versión original para restaurar el material editado."
+    );
   }
 
   return cleanupErrors;
