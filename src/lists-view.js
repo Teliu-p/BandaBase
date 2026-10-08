@@ -238,6 +238,106 @@ function getBandListParticipantStatus(
     )?.status || null;
 }
 
+function getBandMemberInstruments(userId) {
+  const member = (allBandMembers || []).find(item => item.user_id === userId);
+  const profile = member?.profile || {};
+  if (Array.isArray(profile.instruments) && profile.instruments.length) {
+    return normalizeBandInstruments(profile.instruments);
+  }
+  return [];
+}
+
+function getBandListMemberItem(listId, userId) {
+  return getBandListItems(listId).find(item =>
+    item.item_type === "member" &&
+    item.member_user_id === userId
+  ) || null;
+}
+
+function getDefaultBandListSlots() {
+  return {
+    guitar: 2,
+    voice: 2,
+    keyboard: 1,
+    bass: 1,
+    drums: 1
+  };
+}
+
+function getListInstrumentSlots(list) {
+  const slots = list?.instrument_slots || {};
+  return Object.fromEntries(
+    BAND_INSTRUMENT_OPTIONS.map(option => [
+      option.value,
+      Math.max(0, Number.parseInt(slots[option.value], 10) || 0)
+    ])
+  );
+}
+
+function selectedListInstrumentSlots() {
+  const result = {};
+  document.querySelectorAll("[data-list-slot]").forEach(input => {
+    const value = Math.max(0, Number.parseInt(input.value, 10) || 0);
+    if (value > 0) {
+      result[input.dataset.listSlot] = value;
+    }
+  });
+  return result;
+}
+
+function populateBandListInstrumentSlotsPicker(slots) {
+  const picker = document.getElementById("bandListSlotsPicker");
+  if (!picker) return;
+
+  const values = {
+    ...getDefaultBandListSlots(),
+    ...(slots || {})
+  };
+
+  picker.innerHTML = BAND_INSTRUMENT_OPTIONS.map(option => {
+    const value = Math.max(0, Number.parseInt(values[option.value], 10) || 0);
+    return '<label class="list-instrument-slot">' +
+      '<span class="list-instrument-slot-name">' +
+      '<span class="list-instrument-icon">' + option.icon + '</span>' +
+      escapeHtml(option.label) +
+      '</span>' +
+      '<input type="number" min="0" max="99" step="1" data-list-slot="' +
+      escapeHtml(option.value) + '" value="' + value + '">' +
+      '</label>';
+  }).join("");
+}
+
+function renderParticipationInstrumentPicker(listId, selected = []) {
+  const member = getBandListMemberItem(listId, currentUser?.id);
+  const profileInstruments = getBandMemberInstruments(currentUser?.id);
+  const values = normalizeBandInstruments(selected);
+  const available = profileInstruments.length
+    ? profileInstruments
+    : [];
+
+  if (!available.length) {
+    return '<div class="list-form-help">Primero elegí tus instrumentos en <strong>Banda → Mi perfil</strong>.</div>';
+  }
+
+  return '<div class="list-participation-instruments">' +
+    '<div class="list-form-help">Elegí qué querés hacer en esta fecha. Podés elegir más de uno.</div>' +
+    '<div class="list-instrument-choice-grid">' +
+    available.map(value => {
+      const option = getBandInstrumentOption(value);
+      return '<label class="list-instrument-choice">' +
+        '<input type="checkbox" data-list-participation-instrument="' + escapeHtml(value) + '"' +
+        (values.includes(value) ? ' checked' : '') + '>' +
+        '<span>' + option.icon + ' ' + escapeHtml(option.label) + '</span>' +
+      '</label>';
+    }).join("") +
+    '</div></div>';
+}
+
+function selectedParticipationInstruments() {
+  return Array.from(document.querySelectorAll("[data-list-participation-instrument]:checked"))
+    .map(input => input.dataset.listParticipationInstrument);
+}
+
 function formatSongInfo(song) {
   const parts = [];
 
@@ -300,8 +400,7 @@ function renderBandListCard(list) {
       item =>
         item.item_type ===
           "member" &&
-        item.status !==
-          "Confirmado"
+        item.status !== "Confirmado"
     ).length;
 
   const confirmedCount =
@@ -309,8 +408,7 @@ function renderBandListCard(list) {
       item =>
         item.item_type ===
           "member" &&
-        item.status ===
-          "Confirmado"
+        item.status === "Confirmado"
     ).length;
 
   let html =
@@ -586,6 +684,12 @@ function showBandListForm(list) {
     selectedManagers
   );
 
+  populateBandListInstrumentSlotsPicker(
+    list
+      ? getListInstrumentSlots(list)
+      : getDefaultBandListSlots()
+  );
+
   document.getElementById(
     "showListFormBtn"
   ).textContent =
@@ -715,255 +819,115 @@ function renderBandListDetailContent(
   list,
   items
 ) {
-  const content =
-    document.getElementById(
-      "listDetailContent"
-    );
+  const content = document.getElementById("listDetailContent");
+  const repertoire = getListSongs(list.id);
+  const members = items
+    .filter(item => item.item_type === "member")
+    .sort((a,b) => Number(a.position || 0) - Number(b.position || 0));
 
-  const repertoire =
-    getListSongs(
-      list.id
-    );
+  const annotated = members.filter(item => item.status !== "Confirmado");
+  const participating = members.filter(item => item.status === "Confirmado");
+  const selfItem = getBandListMemberItem(list.id, currentUser?.id);
+  const selfStatus = selfItem?.status || null;
+  const canManage = isBandListManager(list);
+  const slots = getListInstrumentSlots(list);
 
-  const members =
-    items
-      .filter(
-        item =>
-          item.item_type ===
-          "member"
-      )
-      .sort(
-        (a, b) =>
-          Number(a.position || 0) -
-          Number(b.position || 0)
-      );
-
-  const annotated =
-    members.filter(
-      item =>
-        item.status !==
-        "Confirmado"
-    );
-
-  const confirmed =
-    members.filter(
-      item =>
-        item.status ===
-        "Confirmado"
-    );
-
-  const selfStatus =
-    getBandListParticipantStatus(
-      list.id,
-      currentUser?.id
-    );
-
-  const canManage =
-    isBandListManager(
-      list
-    );
-
-  let html =
-    '<section class="list-detail-section">' +
-      "<h3>Repertorio</h3>";
-
+  let html = '<section class="list-detail-section"><h3>Repertorio</h3>';
   if (repertoire.length) {
-    html +=
-      '<div class="list-detail-list">';
-
-    html +=
-      repertoire
-        .map(
-          renderRepertoireSong
-        )
-        .join("");
-
-    html +=
-      "</div>";
+    html += '<div class="list-detail-list">' + repertoire.map(renderRepertoireSong).join("") + '</div>';
   } else {
-    html +=
-      '<div class="list-repertoire-empty">' +
-      "Todavía no hay canciones asignadas a esta lista. " +
-      "Podés agregarlas desde Canciones con “Agregar a lista”." +
-      "</div>";
+    html += '<div class="list-repertoire-empty">Todavía no hay canciones asignadas a esta lista. Podés agregarlas desde Canciones con “Agregar a lista”.</div>';
   }
+  html += '</section>';
 
-  html +=
-    "</section>";
-
-  html +=
-    '<section class="list-detail-section">' +
-      "<h3>Integrantes</h3>" +
-      '<p class="list-form-help">' +
-      "Todos pueden ver quiénes se anotaron. " +
-      "El creador y los responsables deciden quién queda confirmado." +
-      "</p>";
+  html += '<section class="list-detail-section"><h3>Integrantes</h3>' +
+    '<p class="list-form-help">Anotado significa que alguien expresó que está disponible. Participando significa que quedó dentro del cupo de esta fecha.</p>';
 
   if (selfStatus === "Anotado") {
-    html +=
-      '<div class="list-self-participation">' +
-        "<strong>Estás anotado.</strong>" +
-        '<button type="button" class="btn btn-subtle" data-list-self-unregister="' +
-        escapeHtml(list.id) +
-        '">Desanotarme</button>' +
-      "</div>";
+    html += '<div class="list-self-participation">' +
+      '<div><strong>Estás anotado.</strong>' + renderParticipationInstrumentPicker(list.id, selfItem.participation_instruments) + '</div>' +
+      '<div class="detail-actions">' +
+      '<button type="button" class="btn btn-primary" data-list-self-save-participation="' + escapeHtml(list.id) + '">Guardar participación</button>' +
+      '<button type="button" class="btn btn-subtle" data-list-self-unregister="' + escapeHtml(list.id) + '">Desanotarme</button>' +
+      '</div></div>';
   } else if (selfStatus === "Confirmado") {
-    html +=
-      '<div class="list-self-participation">' +
-        '<span class="status active">Estás confirmado</span>' +
-      "</div>";
+    html += '<div class="list-self-participation">' +
+      '<div><span class="status active">Estás participando</span>' +
+      renderParticipationInstrumentPicker(list.id, selfItem.participation_instruments) +
+      '</div>' +
+      '<button type="button" class="btn btn-subtle" data-list-self-change-participation="' + escapeHtml(list.id) + '">Cambiar funciones</button>' +
+      '</div>';
   } else {
-    html +=
-      '<div class="list-self-participation">' +
-        "<strong>¿Vas a participar?</strong>" +
-        '<button type="button" class="btn btn-primary" data-list-self-register="' +
-        escapeHtml(list.id) +
-        '">Anotarme</button>' +
-      "</div>";
+    html += '<div class="list-self-participation">' +
+      '<div><strong>¿Vas a participar?</strong>' +
+      renderParticipationInstrumentPicker(list.id, []) +
+      '</div>' +
+      '<button type="button" class="btn btn-primary" data-list-self-register="' + escapeHtml(list.id) + '">Anotarme</button>' +
+      '</div>';
   }
 
-  html +=
-    '<div class="list-participant-columns">';
+  html += '<div class="list-capacity-grid">';
+  BAND_INSTRUMENT_OPTIONS.forEach(option => {
+    const limit = slots[option.value];
+    const count = members.filter(item =>
+      item.status === "Confirmado" &&
+      Array.isArray(item.participation_instruments) &&
+      item.participation_instruments.includes(option.value)
+    ).length;
+    html += '<div class="list-capacity-chip"><span>' + option.icon + ' ' + escapeHtml(option.label) + '</span><strong>' + count + '/' + limit + '</strong></div>';
+  });
+  html += '</div>';
 
-  html +=
-    '<div class="list-participant-group">' +
-      "<h4>Anotados (" +
-      annotated.length +
-      ")</h4>";
+  html += '<div class="list-participant-columns">';
 
+  html += '<div class="list-participant-group"><h4>Anotados (' + annotated.length + ')</h4>';
   if (annotated.length) {
-    html +=
-      '<div class="list-detail-list">';
-
-    annotated.forEach(
-      item => {
-        html +=
-          '<div class="list-detail-item">' +
-            '<div class="list-member-row">' +
-              "<strong>" +
-              escapeHtml(
-                bandListMemberName(
-                  item.member_user_id
-                )
-              ) +
-              "</strong>";
-
-        if (canManage) {
-          html +=
-            '<button type="button" class="btn btn-subtle" data-confirm-list-member="' +
-            escapeHtml(item.id) +
-            '">Confirmar</button>';
-        }
-
-        html +=
-            "</div>" +
-          "</div>";
+    html += '<div class="list-detail-list">';
+    annotated.forEach(item => {
+      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      html += '<div class="list-detail-item"><div class="list-member-row">' +
+        '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
+        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+      if (canManage) {
+        html += '<button type="button" class="btn btn-subtle" data-confirm-list-member="' + escapeHtml(item.id) + '">Marcar participando</button>';
       }
-    );
-
-    html +=
-      "</div>";
+      html += '</div></div>';
+    });
+    html += '</div>';
   } else {
-    html +=
-      '<div class="list-repertoire-empty">' +
-      "Todavía no hay integrantes anotados." +
-      "</div>";
+    html += '<div class="list-repertoire-empty">No hay integrantes esperando cupo.</div>';
   }
+  html += '</div>';
 
-  html +=
-    "</div>";
-
-  html +=
-    '<div class="list-participant-group">' +
-      "<h4>Confirmados (" +
-      confirmed.length +
-      ")</h4>";
-
-  if (confirmed.length) {
-    html +=
-      '<div class="list-detail-list">';
-
-    confirmed.forEach(
-      item => {
-        html +=
-          '<div class="list-detail-item">' +
-            '<div class="list-member-row">' +
-              "<strong>" +
-              escapeHtml(
-                bandListMemberName(
-                  item.member_user_id
-                )
-              ) +
-              "</strong>";
-
-        if (canManage) {
-          html +=
-            '<button type="button" class="btn btn-subtle btn-danger" data-unconfirm-list-member="' +
-            escapeHtml(item.id) +
-            '">Quitar confirmación</button>';
-        }
-
-        html +=
-            "</div>" +
-          "</div>";
+  html += '<div class="list-participant-group"><h4>Participando (' + participating.length + ')</h4>';
+  if (participating.length) {
+    html += '<div class="list-detail-list">';
+    participating.forEach(item => {
+      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      html += '<div class="list-detail-item"><div class="list-member-row">' +
+        '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
+        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+      if (canManage) {
+        html += '<button type="button" class="btn btn-subtle btn-danger" data-unconfirm-list-member="' + escapeHtml(item.id) + '">Quitar participación</button>';
       }
-    );
-
-    html +=
-      "</div>";
+      html += '</div></div>';
+    });
+    html += '</div>';
   } else {
-    html +=
-      '<div class="list-repertoire-empty">' +
-      "Todavía no hay nadie confirmado." +
-      "</div>";
+    html += '<div class="list-repertoire-empty">Todavía no hay nadie participando.</div>';
   }
+  html += '</div></div>';
 
-  html +=
-    "</div>" +
-    "</div>";
-
-  const managers =
-    getBandListManagers(
-      list.id
-    );
-
-  html +=
-    '<div class="list-participant-managers">' +
-      "<strong>Responsables de confirmar:</strong> " +
-      (
-        managers.length
-          ? managers
-              .map(
-                manager =>
-                  escapeHtml(
-                    bandListMemberName(
-                      manager.user_id
-                    )
-                  )
-              )
-              .join(", ")
-          : "Solo quien creó la lista"
-      ) +
-    "</div>";
-
-  html +=
-    "</section>";
+  const managers = getBandListManagers(list.id);
+  html += '<div class="list-participant-managers"><strong>Responsables:</strong> ' +
+    (managers.length ? managers.map(manager => escapeHtml(bandListMemberName(manager.user_id))).join(", ") : "Solo quien creó la lista") +
+    '</div></section>';
 
   if (list.notes) {
-    html +=
-      '<section class="list-detail-section">' +
-        "<h3>Notas generales</h3>" +
-        '<div class="list-notes">' +
-        escapeHtml(
-          list.notes
-        ) +
-        "</div>" +
-      "</section>";
+    html += '<section class="list-detail-section"><h3>Notas generales</h3><div class="list-notes">' + escapeHtml(list.notes) + '</div></section>';
   }
 
-  content.innerHTML =
-    html;
-
+  content.innerHTML = html;
   bindBandListParticipantEvents();
 }
 
@@ -998,7 +962,9 @@ async function saveBandList() {
       document.getElementById(
         "bandListNotes"
       ).value.trim() ||
-      null
+      null,
+    instrument_slots:
+      selectedListInstrumentSlots()
   };
 
   let listId =
@@ -1098,203 +1064,92 @@ async function saveBandList() {
 }
 
 function bindBandListParticipantEvents() {
-  document
-    .querySelectorAll(
-      "[data-list-self-register]"
-    )
-    .forEach(
-      button => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const result =
-              await addCurrentUserToBandList(
-                supabaseClient,
-                button.dataset
-                  .listSelfRegister
-              );
-
-            if (result.error) {
-              showNotice(
-                result.error.message,
-                "error"
-              );
-              return;
-            }
-
-            await loadBandLists();
-            openBandListDetail(
-              button.dataset
-                .listSelfRegister
-            );
-
-            showNotice(
-              "Te anotaste en la lista.",
-              "success"
-            );
-          }
-        );
+  document.querySelectorAll("[data-list-self-register]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const instruments = selectedParticipationInstruments();
+      const result = await addCurrentUserToBandList(
+        supabaseClient,
+        button.dataset.listSelfRegister,
+        instruments
+      );
+      if (result.error) {
+        showNotice(result.error.message, "error");
+        return;
       }
-    );
+      await loadBandLists();
+      openBandListDetail(button.dataset.listSelfRegister);
+      showNotice("Te anotaste en la lista.", "success");
+    });
+  });
 
-  document
-    .querySelectorAll(
-      "[data-list-self-unregister]"
-    )
-    .forEach(
-      button => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const result =
-              await removeCurrentUserFromBandList(
-                supabaseClient,
-                button.dataset
-                  .listSelfUnregister
-              );
-
-            if (result.error) {
-              showNotice(
-                result.error.message,
-                "error"
-              );
-              return;
-            }
-
-            await loadBandLists();
-            openBandListDetail(
-              button.dataset
-                .listSelfUnregister
-            );
-
-            showNotice(
-              "Te desanotaste de la lista.",
-              "success"
-            );
-          }
-        );
+  document.querySelectorAll("[data-list-self-save-participation], [data-list-self-change-participation]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const instruments = selectedParticipationInstruments();
+      if (!instruments.length) {
+        showNotice("Elegí al menos un instrumento.", "error");
+        return;
       }
-    );
-
-  document
-    .querySelectorAll(
-      "[data-confirm-list-member]"
-    )
-    .forEach(
-      button => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const result =
-              await setBandListMemberConfirmation(
-                supabaseClient,
-                button.dataset
-                  .confirmListMember,
-                "Confirmado"
-              );
-
-            if (result.error) {
-              showNotice(
-                result.error.message,
-                "error"
-              );
-              return;
-            }
-
-            await refreshBandListData();
-
-            if (
-              currentBandList
-            ) {
-              currentBandList =
-                (
-                  currentBandLists ||
-                  []
-                ).find(
-                  list =>
-                    list.id ===
-                    currentBandList.id
-                ) ||
-                currentBandList;
-
-              renderBandListDetailContent(
-                currentBandList,
-                getBandListItems(
-                  currentBandList.id
-                )
-              );
-            }
-
-            renderBandLists();
-
-            showNotice(
-              "Integrante confirmado.",
-              "success"
-            );
-          }
-        );
+      const result = await updateCurrentUserBandListParticipation(
+        supabaseClient,
+        button.dataset.listSelfSaveParticipation || button.dataset.listSelfChangeParticipation,
+        instruments
+      );
+      if (result.error) {
+        showNotice(result.error.message, "error");
+        return;
       }
-    );
+      await loadBandLists();
+      openBandListDetail(button.dataset.listSelfSaveParticipation || button.dataset.listSelfChangeParticipation);
+      showNotice("Participación actualizada.", "success");
+    });
+  });
 
-  document
-    .querySelectorAll(
-      "[data-unconfirm-list-member]"
-    )
-    .forEach(
-      button => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const result =
-              await setBandListMemberConfirmation(
-                supabaseClient,
-                button.dataset
-                  .unconfirmListMember,
-                "Anotado"
-              );
-
-            if (result.error) {
-              showNotice(
-                result.error.message,
-                "error"
-              );
-              return;
-            }
-
-            await refreshBandListData();
-
-            if (
-              currentBandList
-            ) {
-              currentBandList =
-                (
-                  currentBandLists ||
-                  []
-                ).find(
-                  list =>
-                    list.id ===
-                    currentBandList.id
-                ) ||
-                currentBandList;
-
-              renderBandListDetailContent(
-                currentBandList,
-                getBandListItems(
-                  currentBandList.id
-                )
-              );
-            }
-
-            renderBandLists();
-
-            showNotice(
-              "Confirmación quitada.",
-              "success"
-            );
-          }
-        );
+  document.querySelectorAll("[data-list-self-unregister]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const result = await removeCurrentUserFromBandList(supabaseClient, button.dataset.listSelfUnregister);
+      if (result.error) {
+        showNotice(result.error.message, "error");
+        return;
       }
-    );
+      await loadBandLists();
+      openBandListDetail(button.dataset.listSelfUnregister);
+      showNotice("Te desanotaste de la lista.", "success");
+    });
+  });
+
+  document.querySelectorAll("[data-confirm-list-member]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const result = await setBandListMemberConfirmation(supabaseClient, button.dataset.confirmListMember, "Confirmado");
+      if (result.error) {
+        showNotice(result.error.message, "error");
+        return;
+      }
+      await refreshBandListData();
+      if (currentBandList) {
+        currentBandList = (currentBandLists || []).find(list => list.id === currentBandList.id) || currentBandList;
+        renderBandListDetailContent(currentBandList, getBandListItems(currentBandList.id));
+      }
+      renderBandLists();
+      showNotice("Integrante marcado como participante.", "success");
+    });
+  });
+
+  document.querySelectorAll("[data-unconfirm-list-member]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const result = await setBandListMemberConfirmation(supabaseClient, button.dataset.unconfirmListMember, "Anotado");
+      if (result.error) {
+        showNotice(result.error.message, "error");
+        return;
+      }
+      await refreshBandListData();
+      if (currentBandList) {
+        currentBandList = (currentBandLists || []).find(list => list.id === currentBandList.id) || currentBandList;
+        renderBandListDetailContent(currentBandList, getBandListItems(currentBandList.id));
+      }
+      renderBandLists();
+      showNotice("Participación quitada.", "success");
+    });
+  });
 }
 
 function bindBandListEvents() {
