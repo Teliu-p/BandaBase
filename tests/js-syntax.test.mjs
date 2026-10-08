@@ -61,5 +61,22 @@ assert.equal(
   "materials-view.js debe cargarse exactamente una vez."
 );
 
+assert.doesNotMatch(
+  html,
+  /<script>\s*<script\s+src=/i,
+  "No debe haber etiquetas <script> anidadas."
+);
+
+const appShellPosition = html.indexOf('<script src="src/app-shell.js"></script>');
+const materialsViewPosition = html.indexOf('<script src="src/materials-view.js"></script>');
+const songsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
+
+assert.ok(
+  appShellPosition >= 0 &&
+  materialsViewPosition > appShellPosition &&
+  songsControllerPosition > materialsViewPosition,
+  "Los módulos del shell, materiales y canciones deben cargarse en ese orden."
+);
+
 console.log(`OK: ${jsFiles.length} archivos JavaScript pasan la comprobación de sintaxis.`);
 console.log(`OK: todas las referencias src/* de index.html apuntan a archivos existentes.`);
