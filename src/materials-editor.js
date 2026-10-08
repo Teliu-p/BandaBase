@@ -494,466 +494,6 @@ function collectMaterialLegacyText(
 
 }
 
-function getLastMaterialTextNode(
-  node
-) {
-
-  if (!node) {
-    return null;
-  }
-
-  if (
-    node.nodeType ===
-    Node.TEXT_NODE
-  ) {
-    return node;
-  }
-
-  for (
-    let index =
-      node.childNodes.length - 1;
-    index >= 0;
-    index -= 1
-  ) {
-
-    const textNode =
-      getLastMaterialTextNode(
-        node.childNodes[index]
-      );
-
-    if (textNode) {
-      return textNode;
-    }
-
-  }
-
-  return null;
-
-}
-
-
-function getMaterialTextNodeBeforeCaret(
-  editor,
-  selection
-) {
-
-  let container =
-    selection.anchorNode;
-
-  let offset =
-    selection.anchorOffset;
-
-  if (
-    container?.nodeType ===
-    Node.TEXT_NODE
-  ) {
-    return container;
-  }
-
-  while (
-    container &&
-    container !== editor
-  ) {
-
-    for (
-      let index =
-        Math.min(
-          offset,
-          container.childNodes.length
-        ) - 1;
-      index >= 0;
-      index -= 1
-    ) {
-
-      const textNode =
-        getLastMaterialTextNode(
-          container.childNodes[index]
-        );
-
-      if (textNode) {
-        return textNode;
-      }
-
-    }
-
-    const parent =
-      container.parentNode;
-
-    if (!parent) {
-      return null;
-    }
-
-    offset =
-      Array.prototype.indexOf.call(
-        parent.childNodes,
-        container
-      );
-
-    container =
-      parent;
-
-  }
-
-  for (
-    let index =
-      Math.min(
-        offset,
-        editor.childNodes.length
-      ) - 1;
-    index >= 0;
-    index -= 1
-  ) {
-
-    const textNode =
-      getLastMaterialTextNode(
-        editor.childNodes[index]
-      );
-
-    if (textNode) {
-      return textNode;
-    }
-
-  }
-
-  return null;
-
-}
-
-
-function autoLinkMaterialUrlInTextNode(
-  textNode,
-  caretOffset = null
-) {
-
-  if (
-    !textNode ||
-    textNode.nodeType !==
-      Node.TEXT_NODE ||
-    textNode.parentElement?.closest("a")
-  ) {
-    return false;
-  }
-
-  const value =
-    textNode.nodeValue || "";
-
-  const offset =
-    caretOffset === null
-      ? value.length
-      : Math.min(
-          Math.max(caretOffset, 0),
-          value.length
-        );
-
-  const beforeCaret =
-    value.slice(0, offset);
-
-  const match =
-    beforeCaret.match(
-      /((?:https?:\/\/|www\.)[^\s<>"']+)(\s*)$/i
-    );
-
-  if (!match) {
-    return false;
-  }
-
-  let candidate =
-    match[1];
-
-  let trailing =
-    "";
-
-  while (
-    /[.,!?;:)\]}]+$/.test(
-      candidate
-    )
-  ) {
-
-    trailing =
-      candidate.slice(-1) +
-      trailing;
-
-    candidate =
-      candidate.slice(0, -1);
-
-  }
-
-  const safeUrl =
-    getMaterialAutoLinkUrl(
-      candidate
-    );
-
-  if (!safeUrl) {
-    return false;
-  }
-
-  const anchor =
-    createMaterialAutoLinkAnchor(
-      candidate,
-      safeUrl
-    );
-
-  if (!anchor) {
-    return false;
-  }
-
-  const parent =
-    textNode.parentNode;
-
-  if (!parent) {
-    return false;
-  }
-
-  const before =
-    value.slice(
-      0,
-      match.index
-    );
-
-  const after =
-    trailing +
-    match[1].slice(candidate.length) +
-    match[2] +
-    value.slice(offset);
-
-  const afterTextNode =
-    document.createTextNode(
-      after
-    );
-
-  const fragment =
-    document.createDocumentFragment();
-
-  if (before) {
-    fragment.appendChild(
-      document.createTextNode(
-        before
-      )
-    );
-  }
-
-  fragment.appendChild(
-    anchor
-  );
-
-  fragment.appendChild(
-    afterTextNode
-  );
-
-  parent.replaceChild(
-    fragment,
-    textNode
-  );
-
-  if (
-    caretOffset !== null
-  ) {
-
-    const selection =
-      window.getSelection();
-
-    if (selection) {
-
-      const range =
-        document.createRange();
-
-      range.setStart(
-        afterTextNode,
-        trailing.length +
-          match[1].slice(candidate.length).length +
-          match[2].length
-      );
-
-      range.collapse(true);
-
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-    }
-
-  }
-
-  return true;
-
-}
-
-
-function autoLinkMaterialUrlNearCaret() {
-
-  const editor =
-    document.getElementById(
-      "materialComposerEditor"
-    );
-
-  const selection =
-    window.getSelection();
-
-  if (
-    !editor ||
-    !selection ||
-    !selection.rangeCount ||
-    !selection.isCollapsed ||
-    !editor.contains(
-      selection.anchorNode
-    )
-  ) {
-    return false;
-  }
-
-  const textNode =
-    getMaterialTextNodeBeforeCaret(
-      editor,
-      selection
-    );
-
-  if (!textNode) {
-    return false;
-  }
-
-  const caretOffset =
-    selection.anchorNode === textNode
-      ? selection.anchorOffset
-      : null;
-
-  if (
-    autoLinkMaterialUrlInTextNode(
-      textNode,
-      caretOffset
-    )
-  ) {
-    return true;
-  }
-
-  const walker =
-    document.createTreeWalker(
-      editor,
-      NodeFilter.SHOW_TEXT
-    );
-
-  let previousTextNode = null;
-
-  while (
-    walker.nextNode()
-  ) {
-
-    const current =
-      walker.currentNode;
-
-    if (current === textNode) {
-      break;
-    }
-
-    previousTextNode =
-      current;
-  }
-
-  if (!previousTextNode) {
-    return false;
-  }
-
-  return autoLinkMaterialUrlInTextNode(
-    previousTextNode
-  );
-
-}
-
-
-function insertMaterialLinkAtSelection(
-  url
-) {
-
-  const editor =
-    document.getElementById(
-      "materialComposerEditor"
-    );
-
-  if (
-    !editor ||
-    !focusMaterialEditorForFormatting()
-  ) {
-    return;
-  }
-
-  const range =
-    materialSelectionRange;
-
-  if (!range) {
-    return;
-  }
-
-  const selection =
-    window.getSelection();
-
-  if (!selection) {
-    return;
-  }
-
-  if (range.collapsed) {
-
-    const anchor =
-      createMaterialAutoLinkAnchor(
-        url,
-        url
-      );
-
-    if (!anchor) {
-      return;
-    }
-
-    range.insertNode(
-      anchor
-    );
-
-    range.setStartAfter(
-      anchor
-    );
-
-    range.collapse(true);
-
-  } else {
-
-    const contents =
-      range.extractContents();
-
-    const anchor =
-      document.createElement("a");
-
-    anchor.href =
-      getMaterialAutoLinkUrl(url);
-
-    anchor.target =
-      "_blank";
-
-    anchor.rel =
-      "noopener noreferrer";
-
-    anchor.append(
-      ...Array.from(
-        contents.childNodes
-      )
-    );
-
-    range.insertNode(
-      anchor
-    );
-
-    range.setStartAfter(
-      anchor
-    );
-
-    range.collapse(true);
-
-  }
-
-  selection.removeAllRanges();
-  selection.addRange(range);
-
-  materialSelectionRange =
-    range.cloneRange();
-
-}
-
-
 function openMaterialEditor(
   material = null
 ) {
@@ -1151,17 +691,64 @@ document
     "materialComposerEditor"
   )
   .addEventListener(
-    "keyup",
-    function(event) {
+    "blur",
+    function() {
 
-      if (
-        event.key !== " " &&
-        event.key !== "Enter"
-      ) {
+      const editor =
+        document.getElementById(
+          "materialComposerEditor"
+        );
+
+      if (!editor) {
         return;
       }
 
-      autoLinkMaterialUrlNearCaret();
+      const walker =
+        document.createTreeWalker(
+          editor,
+          NodeFilter.SHOW_TEXT
+        );
+
+      const textNodes = [];
+
+      while (
+        walker.nextNode()
+      ) {
+        if (
+          !walker.currentNode.parentElement?.closest("a")
+        ) {
+          textNodes.push(
+            walker.currentNode
+          );
+        }
+      }
+
+      textNodes.forEach(
+        textNode => {
+          const fragment =
+            createMaterialAutoLinkFragment(
+              textNode.nodeValue || ""
+            );
+
+          const parent =
+            textNode.parentNode;
+
+          if (
+            parent &&
+            fragment.childNodes.length &&
+            (
+              fragment.childNodes.length !== 1 ||
+              fragment.firstChild !== textNode
+            )
+          ) {
+            parent.replaceChild(
+              fragment,
+              textNode
+            );
+          }
+        }
+      );
+
       rememberMaterialSelection();
 
     }
@@ -1723,7 +1310,9 @@ document
           "https://"
         );
 
-      if (url === null) {
+      if (
+        url === null
+      ) {
         return;
       }
 
@@ -1735,7 +1324,7 @@ document
       if (!safeUrl) {
 
         showNotice(
-          "La URL debe comenzar por http:// o https://.",
+          "La URL debe comenzar con http:// o https://.",
           "error"
         );
 
@@ -1743,9 +1332,46 @@ document
 
       }
 
-      insertMaterialLinkAtSelection(
-        safeUrl
-      );
+      const editor =
+        document.getElementById(
+          "materialComposerEditor"
+        );
+
+      if (
+        !editor ||
+        !focusMaterialEditorForFormatting()
+      ) {
+        return;
+      }
+
+      const selection =
+        window.getSelection();
+
+      if (
+        selection &&
+        selection.rangeCount &&
+        !selection
+          .getRangeAt(0)
+          .collapsed
+      ) {
+
+        document.execCommand(
+          "createLink",
+          false,
+          safeUrl
+        );
+
+      } else {
+
+        insertMaterialNodeAtSelection(
+          createMaterialAutoLinkFragment(
+            safeUrl
+          )
+        );
+
+      }
+
+      rememberMaterialSelection();
 
     }
   );
