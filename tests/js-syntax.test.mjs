@@ -117,6 +117,7 @@ for (const source of scriptSources) {
 }
 
 [
+  "src/app-dom.js",
   "src/app-shell.js",
   "src/app-band.js",
   "src/songs-color.js",
@@ -314,6 +315,21 @@ assertScriptBefore(
   html,
   "src/songs-detail.js",
   "src/app-navigation.js"
+);
+
+const bodyEndPosition = html.indexOf("</body>");
+const appDomPosition = html.indexOf(scriptTagFor("src/app-dom.js"));
+
+assert.ok(
+  bodyEndPosition >= 0 &&
+  appDomPosition > bodyEndPosition,
+  "app-dom.js debe cargarse después de que exista el contenido del body."
+);
+
+assertScriptBefore(
+  html,
+  "src/app-dom.js",
+  "src/rich-text-composer.js"
 );
 
 assert.equal(
