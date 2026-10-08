@@ -1111,12 +1111,12 @@ const successPersistedBlocks = successSave.calls.find(
 )[2];
 assert.equal(successPersistedBlocks.length, 5);
 assert.deepEqual(
-  successPersistedBlocks.map(block => block.position),
+  Array.from(successPersistedBlocks, block => block.position),
   [0, 1, 2, 3, 4],
   "Texto, archivo y enlace deben conservar el orden de composición."
 );
 assert.deepEqual(
-  successPersistedBlocks.map(block => block.block_type),
+  Array.from(successPersistedBlocks, block => block.block_type),
   ["text", "attachment", "text", "attachment", "text"]
 );
 assert.equal(
