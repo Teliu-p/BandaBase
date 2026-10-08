@@ -54,6 +54,22 @@ assert.ok(
   "No se encontraron archivos JavaScript en src/."
 );
 
+const appStateSource = readFileSync(
+  join(srcDir, "app-state.js"),
+  "utf8"
+);
+
+assert.match(
+  appStateSource,
+  /persistSession:\s*true/,
+  "Supabase Auth debe persistir la sesión en el cliente."
+);
+assert.match(
+  appStateSource,
+  /autoRefreshToken:\s*true/,
+  "Supabase Auth debe refrescar automáticamente la sesión."
+);
+
 for (const file of jsFiles) {
   execFileSync(process.execPath, ["--check", file], {
     stdio: "inherit"
@@ -189,8 +205,20 @@ assert.match(
 
 assert.match(
   appAuthSource,
-  /data\?\.session[\s\S]*setTimeout\(\(\) => \{[\s\S]*handleAuthSession\(data\.session\)/,
-  "El login debe usar la sesión devuelta por signInWithPassword para iniciar la aplicación."
+  /data\?\.session[\s\S]*await handleAuthSession\(data\.session\)/,
+  "El login debe usar directamente la sesión devuelta por signInWithPassword para iniciar la aplicación."
+);
+
+assert.match(
+  appAuthSource,
+  /event === "INITIAL_SESSION"[\s\S]*return;/,
+  "El evento INITIAL_SESSION no debe competir con la recuperación explícita de sesión."
+);
+
+assert.match(
+  appAuthSource,
+  /supabaseClient\.auth\.getSession\(\)/,
+  "La autenticación debe recuperar explícitamente la sesión persistida al iniciar la aplicación."
 );
 
 assert.doesNotMatch(

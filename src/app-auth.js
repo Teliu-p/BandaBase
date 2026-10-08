@@ -44,9 +44,7 @@ loginForm.addEventListener(
     loginForm.reset();
 
     if (data?.session) {
-      setTimeout(() => {
-        void handleAuthSession(data.session);
-      }, 0);
+      await handleAuthSession(data.session);
     }
 
   }
@@ -147,9 +145,46 @@ async function handleAuthSession(session) {
 supabaseClient.auth.onAuthStateChange(
   function(event, session) {
 
+    if (event === "INITIAL_SESSION") {
+      return;
+    }
+
     setTimeout(() => {
       void handleAuthSession(session);
     }, 0);
 
   }
 );
+
+
+(async function initializeAuthentication() {
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    await handleAuthSession(
+      data?.session || null
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    showNotice(
+      error.message ||
+      "No se pudo recuperar la sesión.",
+      "error"
+    );
+
+  }
+
+})();
