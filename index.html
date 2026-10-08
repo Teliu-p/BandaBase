@@ -5659,6 +5659,605 @@
   }
 </style>
 
+
+<style id="bandabase-discord-dark-v7">
+  :root {
+    --bb-bg: #1e1f22;
+    --bb-bg-deep: #18191c;
+    --bb-sidebar: #2b2d31;
+    --bb-surface: #313338;
+    --bb-surface-raised: #383a40;
+    --bb-surface-soft: #2b2d31;
+    --bb-surface-inset: #232428;
+
+    --bb-line: #3f4147;
+    --bb-line-soft: #34363c;
+
+    --bb-text: #f2f3f5;
+    --bb-text-soft: #dbdee1;
+    --bb-muted: #949ba4;
+    --bb-muted-strong: #b5bac1;
+
+    --bb-accent: #5865f2;
+    --bb-accent-hover: #4752c4;
+    --bb-accent-soft: #3b427f;
+
+    --bb-success: #23a559;
+    --bb-danger: #da373c;
+    --bb-warning: #f0b232;
+  }
+
+  /* Lienzo oscuro */
+  html {
+    background: var(--bb-bg-deep) !important;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, #202125 0%, var(--bb-bg) 52%, var(--bb-bg-deep) 100%) !important;
+    color: var(--bb-text) !important;
+  }
+
+  /* Header */
+  .topbar {
+    background: #111214 !important;
+    border-bottom: 1px solid #0b0c0e !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,.025) !important;
+    backdrop-filter: none;
+  }
+
+  .topbar-inner {
+    min-height: 68px !important;
+    padding: 12px 24px !important;
+  }
+
+  .brand {
+    color: #ffffff !important;
+    font-size: 21px !important;
+    font-weight: 700;
+    letter-spacing: -.035em;
+  }
+
+  .brand::before {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    background: var(--bb-accent) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(88,101,242,.28) !important;
+  }
+
+  .user-area {
+    color: var(--bb-muted) !important;
+  }
+
+  #currentUserName {
+    min-height: 36px !important;
+    background: #2b2d31 !important;
+    border-color: #3f4147 !important;
+    color: var(--bb-text-soft) !important;
+  }
+
+  .topbar .btn-subtle {
+    background: #2b2d31 !important;
+    border-color: #3f4147 !important;
+    color: #c9ccd1 !important;
+  }
+
+  .topbar .btn-subtle:hover {
+    background: #404249 !important;
+    color: #ffffff !important;
+  }
+
+  /* Navegación */
+  .nav {
+    top: 68px !important;
+    background: #2b2d31 !important;
+    border-bottom: 1px solid #202124 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18) !important;
+    backdrop-filter: none;
+  }
+
+  .nav-inner {
+    min-height: 58px !important;
+    padding: 9px 24px !important;
+    gap: 5px !important;
+  }
+
+  .nav button {
+    min-height: 40px !important;
+    padding: 10px 16px !important;
+    color: #b5bac1 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+  }
+
+  .nav button:hover {
+    color: #f2f3f5 !important;
+    background: #35373c !important;
+  }
+
+  .nav button.active {
+    color: #ffffff !important;
+    background: #404249 !important;
+    box-shadow: none !important;
+  }
+
+  .nav button.active::after {
+    display: block !important;
+    left: 13px !important;
+    right: 13px !important;
+    bottom: 3px !important;
+    height: 2px !important;
+    background: var(--bb-accent) !important;
+    box-shadow: none !important;
+  }
+
+  /* Main */
+  main {
+    max-width: 1320px !important;
+    padding: 32px 24px 78px !important;
+  }
+
+  .section-header h2 {
+    color: #ffffff !important;
+    font-size: clamp(24px, 2vw, 29px) !important;
+    font-weight: 650 !important;
+    letter-spacing: -.03em !important;
+  }
+
+  .section-header h2::before {
+    display: inline-block !important;
+    width: 6px !important;
+    height: 21px !important;
+    margin-right: 10px !important;
+    border-radius: 999px !important;
+    background: var(--bb-accent) !important;
+    box-shadow: none !important;
+  }
+
+  .section-header p,
+  .form-help,
+  .proposal-meta,
+  .proposal-vote-count,
+  .comment-meta,
+  .home-recent-detail,
+  .list-form-help,
+  .list-participant-managers {
+    color: var(--bb-muted) !important;
+  }
+
+  /* Tarjetas principales */
+  .form-card,
+  .lists-form,
+  .comments-form,
+  .materials-form,
+  .proposal-card,
+  .list-card,
+  .list-detail-section,
+  .comment-card,
+  .member,
+  .placeholder,
+  .empty-state,
+  .material-card {
+    background: var(--bb-surface) !important;
+    color: var(--bb-text) !important;
+    border: 1px solid var(--bb-line) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.16) !important;
+  }
+
+  .form-card,
+  .list-detail-section,
+  .proposal-card,
+  .comment-card,
+  .member,
+  .material-card {
+    border-radius: 12px !important;
+  }
+
+  .form-card h3,
+  .list-detail-section h3,
+  .proposal-card-header h3,
+  .list-card-title {
+    color: #f2f3f5 !important;
+  }
+
+  /* Capas internas */
+  .home-recent-panel .list-detail-item,
+  .list-detail-section .list-detail-item,
+  .list-check-option,
+  .list-self-participation,
+  .proposal-vote-option,
+  .proposal-attachment,
+  .comment-view-attachment,
+  .material-attachment,
+  .comparison-row > div,
+  .song-list-option {
+    background: var(--bb-surface-soft) !important;
+    color: var(--bb-text-soft) !important;
+    border-color: var(--bb-line-soft) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+  }
+
+  .list-participant-group,
+  .material-body,
+  .comparison-card {
+    background: var(--bb-surface-inset) !important;
+    border-color: var(--bb-line-soft) !important;
+  }
+
+  /* Inputs */
+  input,
+  select,
+  textarea,
+  .filter-multi-toggle {
+    background: #1f2023 !important;
+    color: var(--bb-text) !important;
+    border: 1px solid #45474e !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #727780 !important;
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover,
+  .filter-multi-toggle:hover {
+    border-color: #5a5d65 !important;
+    background: #232428 !important;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  .filter-multi-toggle:focus-visible {
+    border-color: var(--bb-accent) !important;
+    background: #202126 !important;
+    box-shadow: 0 0 0 2px rgba(88,101,242,.23) !important;
+  }
+
+  .filters {
+    background: var(--bb-surface-soft) !important;
+    border-color: var(--bb-line) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.13) !important;
+  }
+
+  .filter-multi-menu {
+    background: #2b2d31 !important;
+    border-color: #45474e !important;
+    box-shadow: 0 18px 38px rgba(0,0,0,.38) !important;
+  }
+
+  .filter-multi-option {
+    color: #dbdee1 !important;
+  }
+
+  .filter-multi-option:hover {
+    background: #3a3c43 !important;
+  }
+
+  /* Botones */
+  .btn {
+    background: #404249 !important;
+    color: #dbdee1 !important;
+    border: 1px solid #4a4c53 !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+  }
+
+  .btn:hover {
+    background: #4b4d55 !important;
+    border-color: #565961 !important;
+    box-shadow: none !important;
+  }
+
+  .btn-primary {
+    background: var(--bb-accent) !important;
+    border-color: var(--bb-accent) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(88,101,242,.22) !important;
+  }
+
+  .btn-primary:hover {
+    background: var(--bb-accent-hover) !important;
+    border-color: var(--bb-accent-hover) !important;
+  }
+
+  .btn-subtle {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #b5bac1 !important;
+  }
+
+  .btn-subtle:hover {
+    background: #35373c !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+  }
+
+  .btn-danger {
+    color: #f23f42 !important;
+  }
+
+  /* Canciones */
+  .song-card {
+    background: #2b2d31 !important;
+    border: 1px solid #3b3d44 !important;
+    border-left: 4px solid #5865a8 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,.16) !important;
+  }
+
+  .song-card:hover {
+    background: #32343a !important;
+    border-color: #4a4d55 !important;
+    border-left-color: #707bf2 !important;
+    box-shadow: 0 7px 18px rgba(0,0,0,.22) !important;
+  }
+
+  .song-title {
+    color: #f2f3f5 !important;
+  }
+
+  .song-artist,
+  .song-meta,
+  .song-genre {
+    color: #949ba4 !important;
+  }
+
+  .song-singers {
+    color: #c9ccd1 !important;
+  }
+
+  .song-repertoire-toggle {
+    background: #343a78 !important;
+    color: #dfe2ff !important;
+    border-color: #4852a5 !important;
+  }
+
+  .song-list-manage {
+    background: #383a40 !important;
+    color: #c9ccd1 !important;
+    border-color: #4a4c53 !important;
+  }
+
+  /* Estados semáforo, pero en tonos Discord */
+  .status {
+    background: #3a3c43 !important;
+    color: #b5bac1 !important;
+    border-color: #4a4c53 !important;
+  }
+
+  .status.active {
+    background: #174a35 !important;
+    color: #8fdda9 !important;
+    border-color: #25704b !important;
+  }
+
+  .status.inactive {
+    background: #52252a !important;
+    color: #ffb8bb !important;
+    border-color: #79383f !important;
+  }
+
+  .status.pending {
+    background: #4d411b !important;
+    color: #f3d47c !important;
+    border-color: #756127 !important;
+  }
+
+  /* Inicio */
+  .home-recent-panel .form-card {
+    background: #2b2d31 !important;
+    border-color: #3f4147 !important;
+  }
+
+  .home-recent-panel .form-card > .section-header {
+    border-bottom-color: #3f4147 !important;
+  }
+
+  .home-recent-panel .list-detail-item {
+    background: #232428 !important;
+  }
+
+  /* Listas: conserva notas arriba y dos columnas abajo */
+  #listDetailContent.list-detail {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 18px !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section {
+    margin: 0 !important;
+    min-width: 0 !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+    order: 2 !important;
+    flex: 1 1 calc(50% - 9px) !important;
+    background: #303238 !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+    order: 3 !important;
+    flex: 1 1 calc(50% - 9px) !important;
+    background: #2d2f34 !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+    order: 1 !important;
+    flex-basis: 100% !important;
+    background: #292b30 !important;
+  }
+
+  #listDetailContent.list-detail .list-detail-section h3::before {
+    width: 6px !important;
+    height: 6px !important;
+    background: var(--bb-accent) !important;
+  }
+
+  .list-participant-group {
+    background: #25262a !important;
+  }
+
+  .list-self-participation {
+    background: #30333a !important;
+    border-color: #454850 !important;
+  }
+
+  .list-participant-managers {
+    border-top-color: #3f4147 !important;
+  }
+
+  .list-summary-chip,
+  .list-card-summary .list-summary-chip,
+  .list-summary-chip:nth-child(1),
+  .list-summary-chip:nth-child(2),
+  .list-summary-chip:nth-child(3) {
+    background: #3b3d44 !important;
+    color: #c9ccd1 !important;
+    border: 1px solid #4a4c53 !important;
+  }
+
+  .list-card {
+    background: #2b2d31 !important;
+  }
+
+  /* Propuestas */
+  .proposal-card {
+    background: #2b2d31 !important;
+  }
+
+  .proposal-vote-option.selected {
+    background: #343a78 !important;
+    border-color: #5865f2 !important;
+    color: #eef0ff !important;
+  }
+
+  .proposal-result-bar,
+  .home-proposal-result-bar {
+    background: #202126 !important;
+  }
+
+  .proposal-result-bar span,
+  .home-proposal-result-bar span {
+    background: var(--bb-accent) !important;
+  }
+
+  /* Comentarios y materiales */
+  .comment-card {
+    background: #2b2d31 !important;
+  }
+
+  .member {
+    background: #2b2d31 !important;
+  }
+
+  .comments-form,
+  .materials-form {
+    background: #292b30 !important;
+  }
+
+  .material-header:hover {
+    background: #35373c !important;
+  }
+
+  .material-body {
+    background: #232428 !important;
+  }
+
+  .proposal-composer-editor,
+  .comment-composer-editor,
+  .material-composer-editor {
+    background: #1f2023 !important;
+    border-color: #45474e !important;
+    color: #f2f3f5 !important;
+  }
+
+  .proposal-inline-attachment,
+  .comment-inline-attachment,
+  .material-inline-attachment {
+    background: #383a40 !important;
+    border-color: #4a4c53 !important;
+    color: #dbdee1 !important;
+  }
+
+  /* Comparación */
+  .comparison-card {
+    background: #292b30 !important;
+  }
+
+  .comparison-row > div {
+    background: #313338 !important;
+    border-color: #3f4147 !important;
+  }
+
+  /* Vacíos */
+  .empty-state {
+    background: #25262a !important;
+    border-color: #4a4c53 !important;
+    color: #949ba4 !important;
+  }
+
+  /* Selector de color de canciones mantiene sus colores reales */
+  .color-option.selected {
+    border-color: #8c93ff !important;
+    box-shadow: 0 0 0 3px rgba(88,101,242,.22) !important;
+  }
+
+  /* Login */
+  #loginScreen {
+    background:
+      radial-gradient(circle at 20% 10%, rgba(88,101,242,.16), transparent 28%),
+      linear-gradient(180deg, #1e1f22, #111214) !important;
+  }
+
+  .login-card {
+    background: #2b2d31 !important;
+    border-color: #404249 !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.36) !important;
+  }
+
+  .login-card h1 {
+    color: #ffffff !important;
+  }
+
+  .login-card p {
+    color: #b5bac1 !important;
+  }
+
+  @media (max-width: 720px) {
+    .nav {
+      top: 64px !important;
+    }
+
+    .nav-inner {
+      min-height: 54px !important;
+      padding: 8px 16px !important;
+    }
+
+    #listDetailContent.list-detail {
+      flex-direction: column !important;
+      gap: 14px !important;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(1),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(2),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+    }
+  }
+</style>
+
 </head>
 
 <body>
