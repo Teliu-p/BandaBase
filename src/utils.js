@@ -128,3 +128,31 @@ function uniqueSorted(values) {
 }
 
 
+
+
+const BAND_INSTRUMENT_OPTIONS = [
+  { value: "guitar", label: "Guitarra", icon: "🎸" },
+  { value: "voice", label: "Voz", icon: "🎤" },
+  { value: "keyboard", label: "Teclado", icon: "🎹" },
+  { value: "bass", label: "Bajo", icon: "🎸" },
+  { value: "drums", label: "Batería", icon: "🥁" }
+];
+
+function getBandInstrumentOption(value) {
+  return BAND_INSTRUMENT_OPTIONS.find(item => item.value === value) || null;
+}
+
+function formatBandInstruments(values) {
+  return (Array.isArray(values) ? values : [])
+    .map(value => getBandInstrumentOption(value))
+    .filter(Boolean)
+    .map(item => item.icon + " " + item.label)
+    .join(", ");
+}
+
+function normalizeBandInstruments(values) {
+  return [...new Set(
+    (Array.isArray(values) ? values : [])
+      .filter(value => BAND_INSTRUMENT_OPTIONS.some(item => item.value === value))
+  )];
+}
