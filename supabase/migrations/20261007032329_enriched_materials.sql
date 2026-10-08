@@ -1,3 +1,4 @@
+
 alter table public.materials
   add column if not exists content text;
 
