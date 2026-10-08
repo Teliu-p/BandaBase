@@ -2517,6 +2517,22 @@
     background: var(--bb-accent) !important;
   }
 
+  .comparison-card {
+    background: var(--bb-surface) !important;
+    color: var(--bb-text) !important;
+    border-color: var(--bb-border) !important;
+    box-shadow: var(--bb-shadow-card) !important;
+  }
+
+  .comparison-card h4 {
+    color: var(--bb-text) !important;
+  }
+
+  .comparison-card .section-header p,
+  .comparison-card .list-textarea-help {
+    color: var(--bb-text-muted) !important;
+  }
+
   .list-detail-section .list-detail-item,
   .list-check-option,
   .list-self-participation,
@@ -4026,7 +4042,7 @@
           >
 
             <h3>
-              Comparación
+              Comparación con original
             </h3>
 
 
@@ -4035,92 +4051,8 @@
               <div class="comparison-card">
 
                 <h4>
-                  Culto / BandaBase
-                </h4>
-
-                <div class="comparison-row">
-
-                  <div>
-                    <small>BPM</small>
-
-                    <strong id="compareCultoBpm">
-                      —
-                    </strong>
-                  </div>
-
-                  <div>
-                    <small>Tonalidad</small>
-
-                    <strong id="compareCultoKey">
-                      —
-                    </strong>
-                  </div>
-
-                </div>
-
-
-                <div class="comparison-row">
-
-                  <div>
-                    <small>Duración</small>
-
-                    <strong id="compareCultoDuration">
-                      —
-                    </strong>
-                  </div>
-
-                  <div>
-                    <small>Métrica</small>
-
-                    <strong id="compareCultoMeter">
-                      —
-                    </strong>
-                  </div>
-
-                </div>
-
-              </div>
-
-
-              <div class="comparison-card">
-
-                <h4>
                   Original
                 </h4>
-
-
-                <div class="comparison-row">
-
-                  <div class="form-group">
-
-                    <label for="originalBpm">
-                      BPM
-                    </label>
-
-                    <input
-                      id="originalBpm"
-                      type="number"
-                      min="1"
-                      max="400"
-                    >
-
-                  </div>
-
-
-                  <div class="form-group">
-
-                    <label for="originalKey">
-                      Tonalidad
-                    </label>
-
-                    <input
-                      id="originalKey"
-                      type="text"
-                    >
-
-                  </div>
-
-                </div>
 
 
                 <div class="comparison-row">
@@ -4142,6 +4074,26 @@
 
                   <div class="form-group">
 
+                    <label for="originalBpm">
+                      BPM
+                    </label>
+
+                    <input
+                      id="originalBpm"
+                      type="number"
+                      min="1"
+                      max="400"
+                    >
+
+                  </div>
+
+                </div>
+
+
+                <div class="comparison-row">
+
+                  <div class="form-group">
+
                     <label for="originalMeter">
                       Métrica
                     </label>
@@ -4153,18 +4105,27 @@
 
                   </div>
 
+
+                  <div class="form-group">
+
+                    <label for="originalKey">
+                      Tonalidad
+                    </label>
+
+                    <input
+                      id="originalKey"
+                      type="text"
+                    >
+
+                  </div>
+
                 </div>
 
               </div>
 
-            </div>
 
-          </div>
+              <div class="comparison-card">
 
-        </div>
-
-
-        <div class="form-card">
 
           <div class="section-header" style="margin-bottom:18px;">
 
@@ -4288,7 +4249,12 @@
 
           <div id="materialsList"></div>
 
-        </div>
+
+              </div>
+
+            </div>
+
+          </div>
 
 
         <div class="form-card">
