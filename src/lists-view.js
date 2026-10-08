@@ -272,7 +272,7 @@ function formatSongSingers(song) {
 
 function renderRepertoireSong(song) {
   const borderStyle = song.color
-    ? "border-left-color:" + escapeHtml(song.color) + ";"
+    ? "border-left-color:" + escapeHtml(song.color) + " !important;"
     : "";
 
   return '<div class="list-detail-item list-song-detail" style="' + borderStyle + '">' +
