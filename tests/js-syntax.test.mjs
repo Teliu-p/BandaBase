@@ -187,6 +187,12 @@ assert.match(
   "El callback de autenticación debe diferir handleAuthSession para no hacer llamadas Supabase dentro del callback."
 );
 
+assert.match(
+  appAuthSource,
+  /data\?\.session[\s\S]*setTimeout\(\(\) => \{[\s\S]*handleAuthSession\(data\.session\)/,
+  "El login debe usar la sesión devuelta por signInWithPassword para iniciar la aplicación."
+);
+
 assert.doesNotMatch(
   appAuthSource,
   /onAuthStateChange\([\s\S]*function\(event, session\) \{\s*void handleAuthSession\(session\);/,

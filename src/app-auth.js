@@ -23,6 +23,7 @@ loginForm.addEventListener(
     }
 
     const {
+      data,
       error
     } =
       await supabaseClient.auth.signInWithPassword({
@@ -41,6 +42,12 @@ loginForm.addEventListener(
     }
 
     loginForm.reset();
+
+    if (data?.session) {
+      setTimeout(() => {
+        void handleAuthSession(data.session);
+      }, 0);
+    }
 
   }
 );
