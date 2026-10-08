@@ -739,7 +739,7 @@ assert.equal(
 );
 assert.equal(
   renderMaterialRichTextTextNode(
-    "Primero\\nhttps://example.com/video"
+    "Primero\nhttps://example.com/video"
   ),
   'Primero<br><a href="https://example.com/video" target="_blank" rel="noopener noreferrer">https://example.com/video</a>'
 );
