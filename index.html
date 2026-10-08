@@ -6779,6 +6779,535 @@
   }
 </style>
 
+
+<style id="bandabase-midnight-blue-v9">
+  :root {
+    --bb-bg: #000020;
+    --bb-bg-deep: #000018;
+    --bb-surface-1: #07072a;
+    --bb-surface-2: #0c0c35;
+    --bb-surface-3: #111140;
+    --bb-surface-4: #17174a;
+
+    --bb-line: #252553;
+    --bb-line-soft: #1b1b48;
+    --bb-line-strong: #323260;
+
+    --bb-white: #ffffff;
+    --bb-text: #f4f4f6;
+    --bb-text-soft: #d1d1d7;
+    --bb-text-muted: #a0a0ad;
+    --bb-text-faint: #7d7d8b;
+  }
+
+  /* Base */
+  html {
+    background: var(--bb-bg-deep) !important;
+  }
+
+  body {
+    background:
+      linear-gradient(
+        180deg,
+        #02021d 0%,
+        var(--bb-bg) 48%,
+        var(--bb-bg-deep) 100%
+      ) !important;
+    color: var(--bb-text) !important;
+  }
+
+  /* Topbar */
+  .topbar {
+    background: #000018 !important;
+    border-color: #15153d !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,.35) !important;
+  }
+
+  .brand,
+  .brand::before {
+    color: var(--bb-white) !important;
+  }
+
+  .brand::before {
+    background: #11113d !important;
+    border: 1px solid #2c2c59 !important;
+    box-shadow: none !important;
+  }
+
+  .user-area {
+    color: var(--bb-text-muted) !important;
+  }
+
+  #currentUserName {
+    background: var(--bb-surface-2) !important;
+    border-color: var(--bb-line) !important;
+    color: var(--bb-text-soft) !important;
+  }
+
+  .topbar .btn-subtle {
+    background: var(--bb-surface-1) !important;
+    border-color: var(--bb-line) !important;
+    color: var(--bb-text-soft) !important;
+  }
+
+  .topbar .btn-subtle:hover {
+    background: var(--bb-surface-3) !important;
+    color: var(--bb-white) !important;
+  }
+
+  /* Nav */
+  .nav {
+    top: 68px !important;
+    background: #050523 !important;
+    border-color: #15153d !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,.28) !important;
+  }
+
+  .nav button {
+    color: var(--bb-text-muted) !important;
+    background: transparent !important;
+  }
+
+  .nav button:hover {
+    color: var(--bb-white) !important;
+    background: var(--bb-surface-3) !important;
+  }
+
+  .nav button.active {
+    color: var(--bb-white) !important;
+    background: var(--bb-surface-3) !important;
+    box-shadow: inset 0 0 0 1px var(--bb-line-soft) !important;
+  }
+
+  .nav button.active::after {
+    background: #d8d8de !important;
+    box-shadow: none !important;
+  }
+
+  /* Headings and ALL text: white/gray only */
+  .section-header h2,
+  .section-header h2::before {
+    color: var(--bb-white) !important;
+  }
+
+  .section-header h2::before {
+    background: #9e9ea9 !important;
+    box-shadow: none !important;
+  }
+
+  .section-header p,
+  .form-help,
+  .proposal-meta,
+  .proposal-vote-count,
+  .comment-meta,
+  .home-recent-detail,
+  .list-form-help,
+  .list-participant-managers,
+  .color-help,
+  .list-repertoire-empty,
+  .song-artist,
+  .song-meta,
+  .song-genre,
+  .profile-summary-info,
+  .member-info,
+  .song-lists-dialog-song,
+  .song-list-option-status,
+  .list-song-meta,
+  .list-song-genre,
+  .list-song-singers,
+  .list-form-help {
+    color: var(--bb-text-muted) !important;
+  }
+
+  .section-header h3,
+  .form-card h3,
+  .list-detail-section h3,
+  .proposal-card-header h3,
+  .list-card-title,
+  .comment-author,
+  .material-title,
+  .song-title,
+  .song-singers,
+  .list-participant-group h4,
+  .comparison-row strong {
+    color: var(--bb-text) !important;
+  }
+
+  .form-group label,
+  .comment-text,
+  .proposal-detail,
+  .list-notes,
+  .list-member-row,
+  .comparison-row,
+  .material-body,
+  .proposal-voter-list,
+  .home-recent-panel {
+    color: var(--bb-text-soft) !important;
+  }
+
+  /* Main surfaces */
+  .form-card,
+  .lists-form,
+  .comments-form,
+  .materials-form,
+  .proposal-card,
+  .list-card,
+  .list-detail-section,
+  .comment-card,
+  .member,
+  .placeholder,
+  .empty-state,
+  .material-card {
+    background: var(--bb-surface-1) !important;
+    color: var(--bb-text) !important;
+    border-color: var(--bb-line) !important;
+    box-shadow:
+      0 2px 5px rgba(0,0,0,.26),
+      0 12px 28px rgba(0,0,0,.22) !important;
+  }
+
+  /* Inner surfaces */
+  .home-recent-panel .list-detail-item,
+  .list-detail-section .list-detail-item,
+  .list-check-option,
+  .list-self-participation,
+  .proposal-vote-option,
+  .proposal-attachment,
+  .comment-view-attachment,
+  .material-attachment,
+  .comparison-row > div,
+  .song-list-option {
+    background: var(--bb-surface-2) !important;
+    color: var(--bb-text-soft) !important;
+    border-color: var(--bb-line-soft) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+  }
+
+  .list-participant-group,
+  .material-body,
+  .comparison-card {
+    background: var(--bb-bg-deep) !important;
+    color: var(--bb-text-soft) !important;
+    border-color: var(--bb-line-soft) !important;
+  }
+
+  /* Forms */
+  input,
+  select,
+  textarea,
+  .filter-multi-toggle {
+    background: #03031e !important;
+    color: var(--bb-text) !important;
+    border-color: var(--bb-line-strong) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--bb-text-faint) !important;
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover,
+  .filter-multi-toggle:hover {
+    background: #050526 !important;
+    border-color: #40406b !important;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  .filter-multi-toggle:focus-visible {
+    border-color: #888893 !important;
+    background: #050526 !important;
+    box-shadow: 0 0 0 2px rgba(220,220,228,.13) !important;
+  }
+
+  .filters {
+    background: var(--bb-surface-1) !important;
+    border-color: var(--bb-line) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.20) !important;
+  }
+
+  .filter-multi-menu {
+    background: var(--bb-surface-2) !important;
+    border-color: var(--bb-line-strong) !important;
+    box-shadow: 0 18px 40px rgba(0,0,0,.44) !important;
+  }
+
+  .filter-multi-option {
+    color: var(--bb-text-soft) !important;
+  }
+
+  .filter-multi-option:hover {
+    background: var(--bb-surface-3) !important;
+    color: var(--bb-white) !important;
+  }
+
+  /* Buttons: monochrome */
+  .btn {
+    background: var(--bb-surface-3) !important;
+    color: var(--bb-text-soft) !important;
+    border-color: var(--bb-line-strong) !important;
+    box-shadow: none !important;
+  }
+
+  .btn:hover {
+    background: var(--bb-surface-4) !important;
+    color: var(--bb-white) !important;
+    border-color: #42426e !important;
+  }
+
+  .btn-primary {
+    background: #4a4a58 !important;
+    border-color: #666674 !important;
+    color: #ffffff !important;
+    box-shadow: 0 5px 13px rgba(0,0,0,.26) !important;
+  }
+
+  .btn-primary:hover {
+    background: #5b5b69 !important;
+    border-color: #777784 !important;
+  }
+
+  .btn-subtle {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--bb-text-muted) !important;
+  }
+
+  .btn-subtle:hover {
+    background: var(--bb-surface-3) !important;
+    color: var(--bb-white) !important;
+  }
+
+  .btn-danger {
+    color: #d0d0d6 !important;
+  }
+
+  /* Songs */
+  .song-card {
+    background: #0b0b34 !important;
+    color: var(--bb-text) !important;
+    border-color: #20204e !important;
+    border-left-color: #555565 !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,.22) !important;
+  }
+
+  .song-card:hover {
+    background: #10103e !important;
+    border-color: #30305e !important;
+    border-left-color: #777783 !important;
+    box-shadow: 0 7px 18px rgba(0,0,0,.28) !important;
+  }
+
+  .song-repertoire-toggle,
+  .song-list-manage,
+  .status {
+    background: #191946 !important;
+    color: var(--bb-text-soft) !important;
+    border-color: #30305b !important;
+  }
+
+  /* Semantic status: distinguish by gray strength only */
+  .status.active,
+  .status.inactive,
+  .status.pending {
+    color: var(--bb-text-soft) !important;
+    background: #292950 !important;
+    border-color: #3a3a61 !important;
+  }
+
+  /* Home */
+  .home-recent-panel .form-card {
+    background: var(--bb-surface-1) !important;
+  }
+
+  .home-recent-panel .form-card > .section-header {
+    border-bottom-color: var(--bb-line) !important;
+  }
+
+  .home-recent-panel .list-detail-item {
+    background: var(--bb-surface-2) !important;
+  }
+
+  /* Listas: notes above, repertoire left, members right */
+  #listDetailContent.list-detail {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 18px !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section {
+    margin: 0 !important;
+    min-width: 0 !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+    order: 2 !important;
+    flex: 1 1 calc(50% - 9px) !important;
+    background: #10103a !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+    order: 3 !important;
+    flex: 1 1 calc(50% - 9px) !important;
+    background: #0d0d35 !important;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+    order: 1 !important;
+    flex-basis: 100% !important;
+    background: #09092f !important;
+  }
+
+  #listDetailContent.list-detail .list-detail-section h3::before {
+    background: #a3a3ad !important;
+  }
+
+  .list-participant-group {
+    background: #03031f !important;
+  }
+
+  .list-self-participation {
+    background: #18183f !important;
+    border-color: #34345c !important;
+  }
+
+  .list-participant-managers {
+    border-top-color: #28284e !important;
+  }
+
+  .list-summary-chip,
+  .list-card-summary .list-summary-chip,
+  .list-summary-chip:nth-child(1),
+  .list-summary-chip:nth-child(2),
+  .list-summary-chip:nth-child(3) {
+    background: #24244b !important;
+    color: var(--bb-text-soft) !important;
+    border-color: #38385e !important;
+  }
+
+  .list-card {
+    background: #0b0b33 !important;
+  }
+
+  /* Proposals */
+  .proposal-card {
+    background: #0d0d35 !important;
+  }
+
+  .proposal-vote-option.selected {
+    background: #27274f !important;
+    color: var(--bb-white) !important;
+    border-color: #595967 !important;
+  }
+
+  .proposal-result-bar,
+  .home-proposal-result-bar {
+    background: #02021c !important;
+  }
+
+  .proposal-result-bar span,
+  .home-proposal-result-bar span {
+    background: #898994 !important;
+  }
+
+  /* Comments / members / materials */
+  .comment-card,
+  .member {
+    background: #0c0c34 !important;
+  }
+
+  .comments-form,
+  .materials-form {
+    background: #09092f !important;
+  }
+
+  .material-header:hover {
+    background: #15153e !important;
+  }
+
+  .material-body {
+    background: #03031f !important;
+  }
+
+  .proposal-composer-editor,
+  .comment-composer-editor,
+  .material-composer-editor {
+    background: #03031e !important;
+    color: var(--bb-text) !important;
+    border-color: #33335d !important;
+  }
+
+  .proposal-inline-attachment,
+  .comment-inline-attachment,
+  .material-inline-attachment {
+    background: #202047 !important;
+    color: var(--bb-text-soft) !important;
+    border-color: #35355d !important;
+  }
+
+  /* Comparison */
+  .comparison-card {
+    background: #050526 !important;
+  }
+
+  .comparison-row > div {
+    background: #11113d !important;
+    border-color: #2b2b54 !important;
+  }
+
+  .comparison-row small {
+    color: var(--bb-text-faint) !important;
+  }
+
+  .comparison-row strong {
+    color: var(--bb-text) !important;
+  }
+
+  /* Empty */
+  .empty-state {
+    background: #050526 !important;
+    border-color: #38385e !important;
+    color: var(--bb-text-muted) !important;
+  }
+
+  /* Login */
+  #loginScreen {
+    background:
+      radial-gradient(circle at 20% 8%, rgba(70,70,95,.16), transparent 28%),
+      linear-gradient(180deg, #050526, #000018) !important;
+  }
+
+  .login-card {
+    background: #0d0d35 !important;
+    border-color: #38385e !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.48) !important;
+  }
+
+  .login-card h1 {
+    color: var(--bb-white) !important;
+  }
+
+  .login-card p {
+    color: var(--bb-text-muted) !important;
+  }
+
+  @media (max-width: 720px) {
+    .nav {
+      top: 64px !important;
+    }
+
+    #listDetailContent.list-detail {
+      gap: 14px !important;
+    }
+  }
+</style>
+
 </head>
 
 <body>
