@@ -298,6 +298,21 @@
       grid-column: 1 / -1;
     }
 
+    .song-singers-repertoire-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .song-singers-repertoire-grid .singers-section {
+      margin-top: 0;
+    }
+
+    .song-singers-repertoire-grid .song-repertoire-field {
+      height: 100%;
+    }
+
     .form-group label {
       font-size: 13px;
       font-weight: 600;
@@ -3502,24 +3517,7 @@
 
             </div>
 
-
-            <div class="form-group">
-
-              <label for="newSongRepertoire">Repertorio</label>
-
-              <label class="inline-check">
-                <input
-                  id="newSongRepertoire"
-                  type="checkbox"
-                  disabled
-                >
-                <span>Se activa automáticamente al agregar la canción a una lista</span>
-              </label>
-
-            </div>
-
-
-            <div class="form-group">
+<div class="form-group">
 
               <label for="newSongActiveStatus">
                 Estado
@@ -3562,8 +3560,9 @@
 
           </div>
 
+          <div class="song-singers-repertoire-grid">
 
-          <div class="singers-section">
+<div class="singers-section">
 
             <div class="singers-header">
 
@@ -3585,8 +3584,25 @@
 
           </div>
 
+<div class="form-group song-repertoire-field">
 
-          <div class="form-actions">
+              <label for="newSongRepertoire">Repertorio</label>
+
+              <label class="inline-check">
+                <input
+                  id="newSongRepertoire"
+                  type="checkbox"
+                  disabled
+                >
+                <span>Se activa automáticamente al agregar la canción a una lista</span>
+              </label>
+
+            </div>
+
+          </div>
+
+
+<div class="form-actions">
 
             <button
               type="button"
@@ -3920,24 +3936,7 @@
 
               </div>
 
-
-              <div class="form-group">
-
-                <label for="detailRepertoire">Repertorio</label>
-
-                <label class="inline-check">
-                  <input
-                    id="detailRepertoire"
-                    type="checkbox"
-                    disabled
-                  >
-                  <span>En repertorio · automático según las listas</span>
-                </label>
-
-              </div>
-
-
-              <div class="form-group">
+<div class="form-group">
 
                 <label for="detailActiveStatus">
                   Estado
@@ -3980,8 +3979,9 @@
 
             </div>
 
+          <div class="song-singers-repertoire-grid">
 
-            <div class="singers-section">
+<div class="singers-section">
 
               <div class="singers-header">
 
@@ -4003,8 +4003,25 @@
 
             </div>
 
+<div class="form-group song-repertoire-field">
 
-            <div class="form-actions">
+                <label for="detailRepertoire">Repertorio</label>
+
+                <label class="inline-check">
+                  <input
+                    id="detailRepertoire"
+                    type="checkbox"
+                    disabled
+                  >
+                  <span>En repertorio · automático según las listas</span>
+                </label>
+
+              </div>
+
+          </div>
+
+
+<div class="form-actions">
 
               <button
                 type="submit"
