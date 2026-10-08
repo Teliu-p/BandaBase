@@ -132,6 +132,13 @@ assertScriptBefore(
 assertScriptBefore(
   html,
   "src/materials-editor.js",
+  "src/materials-save.js"
+);
+
+
+assertScriptBefore(
+  html,
+  "src/materials-editor.js",
   "src/songs-comparison.js"
 );
 
