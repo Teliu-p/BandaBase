@@ -832,14 +832,6 @@ function renderBandListDetailContent(
   const canManage = isBandListManager(list);
   const slots = getListInstrumentSlots(list);
 
-  let html = '<section class="list-detail-section"><h3>Repertorio</h3>';
-  if (repertoire.length) {
-    html += '<div class="list-detail-list">' + repertoire.map(renderRepertoireSong).join("") + '</div>';
-  } else {
-    html += '<div class="list-repertoire-empty">Todavía no hay canciones asignadas a esta lista. Podés agregarlas desde Canciones con “Agregar a lista”.</div>';
-  }
-  html += '</section>';
-
   html += '<section class="list-detail-section"><h3>Integrantes</h3>' +
     '<p class="list-form-help">Anotado significa que alguien expresó que está disponible. Participando significa que quedó dentro del cupo de esta fecha.</p>';
 
@@ -916,6 +908,14 @@ function renderBandListDetailContent(
     html += '<div class="list-repertoire-empty">Todavía no hay nadie participando.</div>';
   }
   html += '</div></div>';
+
+  let html = '<section class="list-detail-section"><h3>Repertorio</h3>';
+  if (repertoire.length) {
+    html += '<div class="list-detail-list">' + repertoire.map(renderRepertoireSong).join("") + '</div>';
+  } else {
+    html += '<div class="list-repertoire-empty">Todavía no hay canciones asignadas a esta lista. Podés agregarlas desde Canciones con “Agregar a lista”.</div>';
+  }
+  html += '</section>';
 
   const managers = getBandListManagers(list.id);
   html += '<div class="list-participant-managers"><strong>Responsables:</strong> ' +
