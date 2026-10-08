@@ -881,19 +881,16 @@ function insertMaterialLinkAtSelection(
       range.extractContents();
 
     const anchor =
-      createMaterialAutoLinkAnchor(
-        range.toString() ||
-          contents.textContent ||
-          url,
-        url
-      );
+      document.createElement("a");
 
-    if (!anchor) {
-      return;
-    }
+    anchor.href =
+      getMaterialAutoLinkUrl(url);
 
-    anchor.textContent =
-      contents.textContent || url;
+    anchor.target =
+      "_blank";
+
+    anchor.rel =
+      "noopener noreferrer";
 
     anchor.append(
       ...Array.from(
