@@ -627,14 +627,16 @@ const {
   isMaterialRichTextContent,
   materialRichTextHasMarkup,
   getMaterialAutoLinkUrl,
-  serializeMaterialAutoLinkedText
+  serializeMaterialAutoLinkedText,
+  renderMaterialRichTextTextNode
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
     "isMaterialRichTextContent",
     "materialRichTextHasMarkup",
     "getMaterialAutoLinkUrl",
-    "serializeMaterialAutoLinkedText"
+    "serializeMaterialAutoLinkedText",
+    "renderMaterialRichTextTextNode"
   ]
 );
 
@@ -692,6 +694,54 @@ assert.equal(
     "javascript:alert(1)"
   ),
   null
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "data:text/html,<script>alert(1)</script>"
+  ),
+  null
+);
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "file:///etc/passwd"
+  ),
+  null
+);
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "ftp://example.com/resource"
+  ),
+  null
+);
+
+assert.equal(
+  renderMaterialRichTextTextNode(
+    "Texto y https://www.youtube.com/watch?v=ejemplo."
+  ),
+  'Texto y <a href="https://www.youtube.com/watch?v=ejemplo" target="_blank" rel="noopener noreferrer">https://www.youtube.com/watch?v=ejemplo</a>.'
+);
+assert.equal(
+  renderMaterialRichTextTextNode(
+    "https://www.youtube.com/watch?v=ejemplo",
+    true
+  ),
+  "https://www.youtube.com/watch?v=ejemplo",
+  "El texto dentro de un enlace existente no debe generar un enlace anidado."
+);
+assert.equal(
+  renderMaterialRichTextTextNode(
+    "Texto <script>alert(1)</script>",
+    true
+  ),
+  "Texto &lt;script&gt;alert(1)&lt;/script&gt;",
+  "El texto dentro de enlaces debe seguir escapándose como HTML."
+);
+assert.equal(
+  renderMaterialRichTextTextNode(
+    "Primero\\nhttps://example.com/video"
+  ),
+  'Primero<br><a href="https://example.com/video" target="_blank" rel="noopener noreferrer">https://example.com/video</a>'
 );
 
 const materialEditorSource = readFileSync(
