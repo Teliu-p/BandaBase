@@ -934,3 +934,39 @@ assert.equal(
   materialSaveContext.__materialSaveTest.getMaterialSaveFailureNotice("Error original", []),
   "Error original Se revirtieron los cambios parciales."
 );
+
+materialSaveContext.supabaseClient.storage.from = () => ({
+  async remove() {
+    throw new Error("storage unavailable");
+  }
+});
+materialSaveContext.deleteMaterialAttachment = async () => {
+  throw new Error("attachment delete unavailable");
+};
+materialSaveContext.deleteMaterial = async () => {
+  throw new Error("material delete unavailable");
+};
+
+const incompleteCleanupErrors =
+  await materialSaveContext.__materialSaveTest.cleanupFailedMaterialSave({
+    materialId: "failed-new-material",
+    wasNew: true,
+    originalMaterial: null,
+    createdAttachmentIds: ["failed-attachment"],
+    uploadedStoragePaths: ["band/material/failed.wav"]
+  });
+
+assert.equal(
+  incompleteCleanupErrors.length,
+  3,
+  "La compensación debe seguir con los siguientes pasos incluso si almacenamiento o eliminación de registros falla."
+);
+assert.ok(
+  incompleteCleanupErrors.some(message => message.includes("storage unavailable"))
+);
+assert.ok(
+  incompleteCleanupErrors.some(message => message.includes("attachment delete unavailable"))
+);
+assert.ok(
+  incompleteCleanupErrors.some(message => message.includes("material delete unavailable"))
+);
