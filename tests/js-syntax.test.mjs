@@ -126,6 +126,10 @@ assertScriptBefore(
   "src/songs-detail.js"
 );
 
+const appShellSource = readFileSync(
+  join(srcDir, "app-shell.js"),
+  "utf8"
+);
 const songsColorSource = readFileSync(
   join(srcDir, "songs-color.js"),
   "utf8"
@@ -148,10 +152,6 @@ assertScriptBefore(
   "src/app-auth.js"
 );
 
-const appShellSource = readFileSync(
-  join(srcDir, "app-shell.js"),
-  "utf8"
-);
 const appBandSource = readFileSync(
   join(srcDir, "app-band.js"),
   "utf8"
