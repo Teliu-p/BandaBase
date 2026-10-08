@@ -108,6 +108,18 @@ assertScriptBefore(
 assertScriptBefore(
   html,
   "src/comments-view.js",
+  "src/comments-save.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/comments-save.js",
+  "src/comments-general.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/comments-view.js",
   "src/comments-general.js"
 );
 
