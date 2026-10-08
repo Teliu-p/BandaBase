@@ -6084,10 +6084,9 @@ document.getElementById(
     ).value =
       currentProfile.full_name || "";
 
-    document.getElementById(
-      "profileInstrument"
-    ).value =
-      currentProfile.instrument || "";
+    renderProfileInstrumentPicker(
+      currentProfile.instruments
+    );
 
     document.getElementById(
       "profileRole"
