@@ -1,5 +1,77 @@
 /* Persistencia del editor de Materiales. */
 
+/* Compensación de escrituras parciales cuando falla la persistencia de bloques. */
+async function cleanupFailedMaterialSave({
+  materialId,
+  wasNew,
+  originalMaterial,
+  createdAttachmentIds,
+  uploadedStoragePaths
+}) {
+  const cleanupErrors = [];
+  const storagePaths = [...new Set(uploadedStoragePaths || [])];
+
+  if (storagePaths.length) {
+    const { error } = await supabaseClient
+      .storage
+      .from("materials")
+      .remove(storagePaths);
+
+    if (error) {
+      cleanupErrors.push("No se pudieron quitar algunos archivos del almacenamiento: " + error.message);
+    }
+  }
+
+  for (const attachmentId of [...(createdAttachmentIds || [])].reverse()) {
+    const { error } = await deleteMaterialAttachment(
+      supabaseClient,
+      attachmentId
+    );
+
+    if (error) {
+      cleanupErrors.push("No se pudo eliminar el registro de un adjunto: " + error.message);
+    }
+  }
+
+  if (wasNew) {
+    const { error } = await deleteMaterial(
+      supabaseClient,
+      materialId
+    );
+
+    if (error) {
+      cleanupErrors.push("No se pudo eliminar el material incompleto: " + error.message);
+    }
+  } else if (originalMaterial) {
+    const { error } = await updateMaterial(
+      supabaseClient,
+      materialId,
+      {
+        name: originalMaterial.name,
+        content: originalMaterial.content
+      }
+    );
+
+    if (error) {
+      cleanupErrors.push("No se pudieron restaurar el título y el texto anteriores: " + error.message);
+    }
+  } else {
+    cleanupErrors.push("No se encontró la versión original para restaurar el material editado.");
+  }
+
+  return cleanupErrors;
+}
+
+function getMaterialSaveFailureNotice(message, cleanupErrors) {
+  if (!cleanupErrors.length) {
+    return message + " Se revirtieron los cambios parciales.";
+  }
+
+  return message + " La limpieza también encontró problemas: " +
+    cleanupErrors.join(" | ");
+}
+
+
 async function saveMaterialDraft() {
 
   if (
@@ -41,6 +113,9 @@ async function saveMaterialDraft() {
 
   const wasNew =
     !materialId;
+
+  const createdAttachmentIds = [];
+  const uploadedStoragePaths = [];
 
   if (materialId) {
 
@@ -197,16 +272,26 @@ async function saveMaterialDraft() {
         );
 
       if (error) {
+        const cleanupErrors = await cleanupFailedMaterialSave({
+          materialId,
+          wasNew,
+          originalMaterial,
+          createdAttachmentIds,
+          uploadedStoragePaths
+        });
 
         showNotice(
-          "El material se guardó, pero no se pudo registrar el enlace: " +
-          error.message,
+          getMaterialSaveFailureNotice(
+            "No se pudo registrar el enlace: " + error.message,
+            cleanupErrors
+          ),
           "error"
         );
 
         return;
-
       }
+
+      createdAttachmentIds.push(attachment.id);
 
       persistedBlocks.push({
         block_type:
@@ -239,6 +324,8 @@ async function saveMaterialDraft() {
         file.name
       );
 
+    uploadedStoragePaths.push(storagePath);
+
     const {
       error: uploadError
     } =
@@ -258,17 +345,23 @@ async function saveMaterialDraft() {
         );
 
     if (uploadError) {
+      const cleanupErrors = await cleanupFailedMaterialSave({
+        materialId,
+        wasNew,
+        originalMaterial,
+        createdAttachmentIds,
+        uploadedStoragePaths
+      });
 
       showNotice(
-        "El material se guardó, pero no se pudo subir el archivo: " +
-        file.name +
-        ". " +
-        uploadError.message,
+        getMaterialSaveFailureNotice(
+          "No se pudo subir el archivo " + file.name + ": " + uploadError.message,
+          cleanupErrors
+        ),
         "error"
       );
 
       return;
-
     }
 
     const {
@@ -297,23 +390,26 @@ async function saveMaterialDraft() {
       );
 
     if (error) {
-
-      await supabaseClient
-        .storage
-        .from("materials")
-        .remove([
-          storagePath
-        ]);
+      const cleanupErrors = await cleanupFailedMaterialSave({
+        materialId,
+        wasNew,
+        originalMaterial,
+        createdAttachmentIds,
+        uploadedStoragePaths
+      });
 
       showNotice(
-        "El archivo se subió, pero no se pudo registrar: " +
-        error.message,
+        getMaterialSaveFailureNotice(
+          "El archivo se subió, pero no se pudo registrar: " + error.message,
+          cleanupErrors
+        ),
         "error"
       );
 
       return;
-
     }
+
+    createdAttachmentIds.push(attachment.id);
 
     persistedBlocks.push({
       block_type:
@@ -352,15 +448,23 @@ async function saveMaterialDraft() {
     );
 
   if (blocksError) {
+    const cleanupErrors = await cleanupFailedMaterialSave({
+      materialId,
+      wasNew,
+      originalMaterial,
+      createdAttachmentIds,
+      uploadedStoragePaths
+    });
 
     showNotice(
-      "El material se guardó, pero no se pudo guardar el orden de su contenido: " +
-      blocksError.message,
+      getMaterialSaveFailureNotice(
+        "No se pudo guardar el orden del contenido: " + blocksError.message,
+        cleanupErrors
+      ),
       "error"
     );
 
     return;
-
   }
 
   const keptIds =
