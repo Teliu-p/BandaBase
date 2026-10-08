@@ -756,6 +756,65 @@ function executeMaterialTextCommand(
 }
 
 
+function getMaterialCurrentFontSizeCommandValue() {
+
+  try {
+
+    return String(
+      document.queryCommandValue(
+        "fontSize"
+      ) || ""
+    );
+
+  } catch (error) {
+
+    return "";
+
+  }
+
+}
+
+
+function toggleMaterialTextSize(
+  sizeValue
+) {
+
+  if (
+    !focusMaterialEditorForFormatting()
+  ) {
+    return;
+  }
+
+  const currentSize =
+    getMaterialCurrentFontSizeCommandValue();
+
+  const nextSize =
+    currentSize ===
+      String(sizeValue)
+      ? "3"
+      : String(sizeValue);
+
+  try {
+
+    document.execCommand(
+      "fontSize",
+      false,
+      nextSize
+    );
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+  }
+
+  rememberMaterialSelection();
+
+}
+
+
 function insertMaterialWrapper(
   left,
   right
@@ -973,8 +1032,7 @@ function bindMaterialFormattingControls() {
   size1Button?.addEventListener(
     "click",
     function() {
-      executeMaterialTextCommand(
-        "fontSize",
+      toggleMaterialTextSize(
         "5"
       );
     }
@@ -992,8 +1050,7 @@ function bindMaterialFormattingControls() {
   size2Button?.addEventListener(
     "click",
     function() {
-      executeMaterialTextCommand(
-        "fontSize",
+      toggleMaterialTextSize(
         "7"
       );
     }
