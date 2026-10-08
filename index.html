@@ -2792,6 +2792,100 @@
       width: 100% !important;
     }
   }
+
+  .profile-instrument-picker,
+  .list-instrument-slots,
+  .list-instrument-choice-grid {
+    display: grid;
+    gap: 8px;
+  }
+
+  .profile-instrument-picker,
+  .list-instrument-choice-grid {
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  }
+
+  .profile-instrument-option,
+  .list-instrument-slot,
+  .list-instrument-choice {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    border: 1px solid var(--bb-border);
+    border-radius: 9px;
+    padding: 10px 11px;
+    background: var(--bb-surface-raised);
+    color: var(--bb-text-soft);
+    cursor: pointer;
+  }
+
+  .profile-instrument-option:hover,
+  .list-instrument-slot:hover,
+  .list-instrument-choice:hover {
+    border-color: var(--bb-border-strong);
+    color: var(--bb-text);
+  }
+
+  .profile-instrument-option input,
+  .list-instrument-choice input {
+    width: auto;
+    margin: 0;
+  }
+
+  .profile-instrument-option span,
+  .list-instrument-choice span {
+    overflow-wrap: anywhere;
+  }
+
+  .list-instrument-slot {
+    justify-content: space-between;
+  }
+
+  .list-instrument-slot-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .list-instrument-icon {
+    font-size: 18px;
+  }
+
+  .list-instrument-slot input[type="number"] {
+    width: 70px;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .list-capacity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+    gap: 7px;
+    margin: 12px 0 15px;
+  }
+
+  .list-capacity-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--bb-border);
+    border-radius: 8px;
+    background: var(--bb-surface-inset);
+    color: var(--bb-text-soft);
+    font-size: 12px;
+  }
+
+  .list-capacity-chip strong {
+    color: var(--bb-text);
+  }
+
+  .list-self-participation {
+    align-items: flex-start;
+  }
+
 </style>
 </head>
 
