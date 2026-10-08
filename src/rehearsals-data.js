@@ -141,49 +141,12 @@ async function replaceRehearsalSongs(
   rehearsalId,
   songIds
 ) {
-
-  const {
-    error: deleteError
-  } =
-    await supabaseClient
-      .from("rehearsal_songs")
-      .delete()
-      .eq(
-        "rehearsal_id",
-        rehearsalId
-      );
-
-  if (deleteError) {
-    return {
-      data: null,
-      error: deleteError
-    };
-  }
-
-  if (!songIds.length) {
-    return {
-      data: [],
-      error: null
-    };
-  }
-
-  const rows =
-    songIds.map(
-      (songId, index) => ({
-        rehearsal_id:
-          rehearsalId,
-        song_id:
-          songId,
-        position:
-          index
-      })
-    );
-
-  return await supabaseClient
-    .from("rehearsal_songs")
-    .insert(rows)
-    .select(
-      REHEARSAL_SONG_COLUMNS
-    );
-
+  return await supabaseClient.rpc(
+    "replace_rehearsal_songs",
+    {
+      p_rehearsal_id: rehearsalId,
+      p_song_ids: (songIds || []).filter(Boolean)
+    }
+  );
 }
+
