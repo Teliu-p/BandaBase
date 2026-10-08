@@ -215,41 +215,20 @@ async function replaceCommentBlocks(
   commentId,
   blocks
 ) {
-
-  const {
-    error: deleteError
-  } =
-    await supabaseClient
-      .from("comment_blocks")
-      .delete()
-      .eq(
-        "comment_id",
-        commentId
-      );
-
-  if (deleteError) {
-    return {
-      data: null,
-      error: deleteError
-    };
-  }
-
-  if (!blocks.length) {
-    return {
-      data: [],
-      error: null
-    };
-  }
-
-  return await supabaseClient
-    .from("comment_blocks")
-    .insert(
-      blocks
-    )
-    .select(
-      COMMENT_BLOCK_COLUMNS
-    );
-
+  return await supabaseClient.rpc(
+    "replace_comment_blocks",
+    {
+      p_comment_id: commentId,
+      p_blocks: (blocks || []).map(item => ({
+        block_type: item.block_type,
+        content: item.content ?? null,
+        attachment_id: item.attachment_id ?? null,
+        position: Number.isInteger(item.position)
+          ? item.position
+          : null
+      }))
+    }
+  );
 }
 
 
