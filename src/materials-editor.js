@@ -815,9 +815,44 @@ function autoLinkMaterialUrlNearCaret() {
       ? selection.anchorOffset
       : null;
 
+  if (
+    autoLinkMaterialUrlInTextNode(
+      textNode,
+      caretOffset
+    )
+  ) {
+    return true;
+  }
+
+  const walker =
+    document.createTreeWalker(
+      editor,
+      NodeFilter.SHOW_TEXT
+    );
+
+  let previousTextNode = null;
+
+  while (
+    walker.nextNode()
+  ) {
+
+    const current =
+      walker.currentNode;
+
+    if (current === textNode) {
+      break;
+    }
+
+    previousTextNode =
+      current;
+  }
+
+  if (!previousTextNode) {
+    return false;
+  }
+
   return autoLinkMaterialUrlInTextNode(
-    textNode,
-    caretOffset
+    previousTextNode
   );
 
 }
@@ -1681,15 +1716,6 @@ document
   .addEventListener(
     "click",
     function() {
-
-      const selection =
-        window.getSelection();
-
-      const selectedText =
-        selection &&
-        selection.rangeCount
-          ? selection.toString().trim()
-          : "";
 
       const url =
         window.prompt(
