@@ -166,12 +166,12 @@ async function restoreAuditSnapshot(
     }
   });
 
-  return await supabaseClient
-    .from(table)
-    .update(row)
-    .eq("id", id)
-    .select("*")
-    .single();
+  return await supabaseClient.rpc(
+    "restore_band_change",
+    {
+      p_audit_id: auditRow.id
+    }
+  );
 }
 
 async function restoreTrashRecord(
