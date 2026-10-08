@@ -10151,14 +10151,21 @@ function getRecentProposalText(proposalId, fallbackDetail = "") {
 function renderRecentProposalResults(
   proposal,
   options,
-  votes
+  voteStats
 ) {
-  const totalVoters =
-    new Set(
-      votes
-        .map(vote => vote.user_id)
-        .filter(Boolean)
-    ).size;
+  const statsByOption = {};
+
+  (voteStats || []).forEach(stat => {
+    statsByOption[stat.option_id] =
+      Number(stat.vote_count || 0);
+  });
+
+  const totalVoters = Math.max(
+    ...(voteStats || []).map(
+      stat => Number(stat.voter_count || 0)
+    ),
+    0
+  );
 
   if (!options.length) {
     return '<div class="home-recent-detail muted">Sin opciones de votación.</div>';
@@ -10175,11 +10182,7 @@ function renderRecentProposalResults(
       options
         .map(option => {
           const count =
-            votes.filter(
-              vote =>
-                vote.option_id ===
-                option.id
-            ).length;
+            statsByOption[option.id] || 0;
 
           const percent =
             totalVoters
@@ -10259,13 +10262,13 @@ async function loadRecentProposalsPreview() {
 
     const [
       optionsResult,
-      votesResult
+      voteStatsResult
     ] = await Promise.all([
       getProposalOptionsByProposalIds(
         supabaseClient,
         ids
       ),
-      getProposalVotesByProposalIds(
+      getProposalVoteStatsByProposalIds(
         supabaseClient,
         ids
       )
@@ -10273,16 +10276,16 @@ async function loadRecentProposalsPreview() {
 
     if (
       optionsResult.error ||
-      votesResult.error
+      voteStatsResult.error
     ) {
       throw (
         optionsResult.error ||
-        votesResult.error
+        voteStatsResult.error
       );
     }
 
     const optionsByProposal = {};
-    const votesByProposal = {};
+    const voteStatsByProposal = {};
 
     (optionsResult.data || [])
       .forEach(option => {
@@ -10293,13 +10296,13 @@ async function loadRecentProposalsPreview() {
         ).push(option);
       });
 
-    (votesResult.data || [])
-      .forEach(vote => {
+    (voteStatsResult.data || [])
+      .forEach(stat => {
         (
-          votesByProposal[
-            vote.proposal_id
+          voteStatsByProposal[
+            stat.proposal_id
           ] ||= []
-        ).push(vote);
+        ).push(stat);
       });
 
     container.innerHTML =
@@ -10344,7 +10347,7 @@ async function loadRecentProposalsPreview() {
               renderRecentProposalResults(
                 proposal,
                 optionsByProposal[proposal.id] || [],
-                votesByProposal[proposal.id] || []
+                voteStatsByProposal[proposal.id] || []
               ) +
             "</div>"
           );
