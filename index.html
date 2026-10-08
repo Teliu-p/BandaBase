@@ -3893,6 +3893,401 @@
       box-shadow: 0 0 0 3px rgba(70,105,168,.12);
     }
 
+  
+    /* BANDABASE VISUAL REFRESH v4 — MAR NOCTURNO */
+
+    :root {
+      --bb-page: #cbd9ea;
+      --bb-page-deep: #b9cbe1;
+      --bb-surface: #dce7f4;
+      --bb-surface-raised: #e7eff8;
+      --bb-surface-soft: #d2dfed;
+      --bb-surface-inner: #c6d6e7;
+      --bb-border: #aebfd4;
+      --bb-border-soft: #bacbdd;
+      --bb-blue: #355b91;
+      --bb-blue-deep: #294a78;
+      --bb-blue-soft: #b8cce4;
+      --bb-text: #20334d;
+      --bb-muted: #536983;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 15% 0%, rgba(85,123,174,.20), transparent 28%),
+        linear-gradient(180deg, #d8e4f1 0%, #c7d6e7 48%, #b8cbe0 100%);
+      color: var(--bb-text);
+    }
+
+    .nav {
+      background: linear-gradient(180deg, #dce7f3, #c8d7e8);
+      border-bottom-color: #aebfd3;
+      box-shadow: 0 5px 15px rgba(33,58,91,.12);
+    }
+
+    .nav button {
+      color: #526985;
+    }
+
+    .nav button:hover {
+      color: #284b79;
+      background: #b9cce3;
+    }
+
+    .nav button.active {
+      color: #234875;
+      background: #aec4df;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.55),
+        inset 0 0 0 1px rgba(45,77,119,.12);
+    }
+
+    .nav button.active::after {
+      background: #416b9f;
+      box-shadow: 0 2px 6px rgba(48,84,132,.30);
+    }
+
+    .form-card,
+    .lists-form,
+    .comments-form,
+    .materials-form,
+    .proposal-card,
+    .list-card,
+    .list-detail-section,
+    .comment-card,
+    .member,
+    .placeholder,
+    .empty-state,
+    .material-card {
+      background: var(--bb-surface);
+      border-color: var(--bb-border);
+      box-shadow:
+        0 2px 4px rgba(30,55,87,.07),
+        0 12px 26px rgba(30,55,87,.10);
+    }
+
+    .form-card:hover,
+    .list-card:hover,
+    .proposal-card:hover,
+    .comment-card:hover,
+    .member:hover,
+    .material-card:hover {
+      border-color: #9fb4cc;
+      box-shadow:
+        0 4px 8px rgba(30,55,87,.08),
+        0 16px 32px rgba(30,55,87,.13);
+    }
+
+    #section-banda .form-card,
+    #section-canciones .form-card,
+    #section-listas .lists-form,
+    #section-propuestas .form-card,
+    #section-comentarios .comments-form {
+      border-top: 1px solid var(--bb-border);
+      background: var(--bb-surface);
+    }
+
+    .section-header h2::before {
+      background: #466b9f !important;
+      box-shadow: none;
+    }
+
+    .section-header h2 {
+      color: #263e5c;
+    }
+
+    .section-header p,
+    .form-help,
+    .proposal-meta,
+    .proposal-vote-count,
+    .comment-meta,
+    .home-recent-detail,
+    .list-form-help,
+    .list-participant-managers {
+      color: var(--bb-muted);
+    }
+
+    input,
+    select,
+    textarea,
+    .filter-multi-toggle {
+      background: #e7eff8;
+      border-color: #aebfd3;
+      color: var(--bb-text);
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover,
+    .filter-multi-toggle:hover {
+      background: #edf4fb;
+      border-color: #94abc5;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus,
+    .filter-multi-toggle:focus-visible {
+      border-color: #547cab;
+      box-shadow: 0 0 0 4px rgba(63,101,151,.16);
+      background: #edf4fb;
+    }
+
+    .filters {
+      background: rgba(193,208,226,.86);
+      border-color: #aebfd2;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.42),
+        0 7px 18px rgba(30,55,87,.10);
+    }
+
+    .filter-multi-menu {
+      background: #dce7f3;
+      border-color: #aebfd3;
+      box-shadow: 0 18px 38px rgba(30,55,87,.20);
+    }
+
+    .filter-multi-option:hover {
+      background: #c6d7e9;
+    }
+
+    .home-recent-panel .form-card {
+      background: #d6e2ef;
+      border-color: #adbed2;
+    }
+
+    .home-recent-panel .list-detail-item,
+    .list-detail-section .list-detail-item,
+    .list-check-option,
+    .list-self-participation,
+    .proposal-vote-option,
+    .proposal-attachment,
+    .comment-view-attachment,
+    .material-attachment {
+      background: var(--bb-surface-soft);
+      border-color: var(--bb-border-soft);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.38);
+    }
+
+    .home-recent-panel .list-detail-item {
+      background: #c9d8e8;
+    }
+
+    .list-card {
+      background: #d6e2ef;
+    }
+
+    .list-summary-chip,
+    .list-card-summary .list-summary-chip,
+    .list-summary-chip:nth-child(1),
+    .list-summary-chip:nth-child(2),
+    .list-summary-chip:nth-child(3) {
+      background: #bfd1e5;
+      color: #3f5f82;
+      border: 1px solid #aabed5;
+    }
+
+    .song-card {
+      background: #dce7f3;
+      border-color: #acbfd4;
+      border-left-color: #6689b5;
+      box-shadow:
+        0 2px 5px rgba(30,55,87,.07),
+        0 10px 22px rgba(30,55,87,.09);
+    }
+
+    .song-card:hover {
+      background: #e5eef7;
+      border-color: #96aec8;
+      border-left-color: #5279aa;
+      box-shadow:
+        0 4px 8px rgba(30,55,87,.08),
+        0 16px 30px rgba(30,55,87,.13);
+    }
+
+    .song-repertoire-toggle,
+    .song-list-manage {
+      background: #c5d7ea;
+      color: #3b5d83;
+      border-color: #aabed5;
+    }
+
+    .status {
+      border-color: #afc1d5;
+      background: #cbd9e8;
+      color: #536b87;
+    }
+
+    .status.active {
+      background: #c7ded7;
+      border-color: #a9cabe;
+      color: #356b5a;
+    }
+
+    .status.inactive {
+      background: #decfd6;
+      border-color: #cdb5c0;
+      color: #7b5163;
+    }
+
+    .status.pending {
+      background: #ddd8c9;
+      border-color: #c8c0aa;
+      color: #766b50;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+      background: #dce7f2;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+      background: #d5e1ee;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+      background: #ccdbea;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(1),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(2),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+      border-top: 1px solid var(--bb-border);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.40),
+        0 4px 9px rgba(30,55,87,.07),
+        0 13px 27px rgba(30,55,87,.10);
+    }
+
+    #listDetailContent.list-detail .list-detail-section h3::before {
+      background: #6487b2 !important;
+    }
+
+    .list-participant-group {
+      background: rgba(194,210,228,.64);
+      border-color: #b1c4d8;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.34);
+    }
+
+    .list-self-participation {
+      background: #c9dbea;
+      border-color: #adc2d8;
+    }
+
+    .proposal-card,
+    .comment-card,
+    .member {
+      background: #d7e2ef;
+    }
+
+    .proposal-card {
+      border-top: 1px solid var(--bb-border);
+    }
+
+    .proposal-vote-option.selected {
+      background: #bfd3e9;
+      border-color: #9fb7d2;
+    }
+
+    .comments-form,
+    .materials-form {
+      background: #d2dfec;
+    }
+
+    .material-header:hover {
+      background: #c7d7e8;
+    }
+
+    .material-body {
+      border-color: #b4c6d9;
+      background: #c6d7e8;
+    }
+
+    .btn {
+      background: #cbd9e8;
+      border-color: #a8bdd3;
+      color: #385775;
+    }
+
+    .btn:hover {
+      background: #e0eaf4;
+      border-color: #93aac4;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f77a8, #365d92);
+      border-color: #365d92;
+      box-shadow: 0 8px 18px rgba(43,78,124,.25);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #466e9f, #2f5384);
+      border-color: #2f5384;
+      box-shadow: 0 11px 24px rgba(43,78,124,.28);
+    }
+
+    .btn-subtle {
+      color: #526a84;
+    }
+
+    .btn-subtle:hover {
+      background: #c0d3e7;
+      color: #2f527e;
+    }
+
+    .empty-state {
+      background: #cbd9e7;
+      border-color: #aebfd2;
+    }
+
+    .comparison-card {
+      background: #c8d7e6;
+      border-color: #adbed1;
+    }
+
+    .comparison-row > div {
+      background: #dce6f0;
+      border-color: #b8c9da;
+    }
+
+    .proposal-composer-editor,
+    .comment-composer-editor,
+    .material-composer-editor {
+      background: #e2ebf4;
+      border-color: #aebfd2;
+    }
+
+    .proposal-inline-attachment,
+    .comment-inline-attachment,
+    .material-inline-attachment {
+      background: #bfd1e4;
+      border-color: #a7bbd1;
+    }
+
+    .comment-compose-trigger {
+      margin-bottom: 20px;
+      min-height: 44px;
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+
+    #generalCommentForm.hidden {
+      display: none;
+    }
+
+    @media (max-width: 720px) {
+      #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+        order: 3;
+      }
+
+      #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+        order: 2;
+      }
+
+      #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+        order: 1;
+      }
+    }
+
   </style>
 </head>
 
@@ -5551,9 +5946,17 @@
       </div>
 
 
+      <button
+        id="showGeneralCommentFormBtn"
+        type="button"
+        class="btn btn-primary comment-compose-trigger"
+      >
+        ✎ Escribir un comentario
+      </button>
+
       <form
         id="generalCommentForm"
-        class="comments-form"
+        class="comments-form hidden"
       >
         <div class="form-group">
           <label for="generalCommentComposerEditor">
