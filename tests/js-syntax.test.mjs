@@ -734,3 +734,154 @@ assert.equal(
   "Balada, Rock"
 );
 
+
+// Regression coverage for the WITH ORDINALITY migration.
+const ordinalityMigrationPath = join(
+  root,
+  "supabase/migrations/20261008225003_fix_json_recordset_ordinality.sql"
+);
+const ordinalityMigration = readFileSync(
+  ordinalityMigrationPath,
+  "utf8"
+);
+
+for (const functionName of [
+  "replace_material_blocks",
+  "replace_comment_blocks",
+  "replace_proposal_blocks",
+  "replace_band_list_items"
+]) {
+  assert.match(
+    ordinalityMigration,
+    new RegExp("create\\\\s+or\\\\s+replace\\\\s+function\\\\s+public\\\\." + functionName + "\\\\b", "i"),
+    functionName + " debe corregirse en la migración."
+  );
+}
+
+assert.equal(
+  (ordinalityMigration.match(/jsonb_array_elements\\([\\s\\S]*?with ordinality/gi) || []).length,
+  4,
+  "Las cuatro RPC deben obtener la posición mediante jsonb_array_elements WITH ORDINALITY."
+);
+assert.doesNotMatch(
+  ordinalityMigration,
+  /jsonb_to_recordset[\\s\\S]{0,180}with ordinality/i,
+  "La migración no debe conservar el patrón JSON recordset + WITH ORDINALITY inválido."
+);
+assert.match(
+  ordinalityMigration,
+  /revoke execute on function public\\.replace_material_blocks\\(uuid, jsonb\\) from public, anon/i,
+  "La corrección debe conservar el acceso restringido de la RPC de Materiales."
+);
+
+// Exercise the compensation routine with mocked persistence calls.
+const materialSaveSource = readFileSync(
+  join(srcDir, "materials-save.js"),
+  "utf8"
+);
+const materialSaveCalls = [];
+const materialSaveContext = {
+  document: {
+    getElementById() {
+      return { addEventListener() {} };
+    }
+  },
+  supabaseClient: {
+    storage: {
+      from(bucket) {
+        materialSaveCalls.push(["storage.from", bucket]);
+        return {
+          async remove(paths) {
+            materialSaveCalls.push(["storage.remove", [...paths]]);
+            return { error: null };
+          }
+        };
+      }
+    }
+  },
+  deleteMaterialAttachment: async (_client, attachmentId) => {
+    materialSaveCalls.push(["deleteAttachment", attachmentId]);
+    return { error: null };
+  },
+  deleteMaterial: async (_client, materialId) => {
+    materialSaveCalls.push(["deleteMaterial", materialId]);
+    return { error: null };
+  },
+  updateMaterial: async (_client, materialId, patch) => {
+    materialSaveCalls.push(["updateMaterial", materialId, patch]);
+    return { error: null };
+  },
+  console,
+  Set
+};
+vm.runInNewContext(
+  materialSaveSource + "\\nglobalThis.__materialSaveTest = { cleanupFailedMaterialSave, getMaterialSaveFailureNotice };",
+  materialSaveContext,
+  { filename: "src/materials-save.js" }
+);
+
+const newMaterialCleanupErrors =
+  await materialSaveContext.__materialSaveTest.cleanupFailedMaterialSave({
+    materialId: "new-material",
+    wasNew: true,
+    originalMaterial: null,
+    createdAttachmentIds: ["attachment-1", "attachment-2"],
+    uploadedStoragePaths: ["band/material/file-1.wav", "band/material/file-2.wav", "band/material/file-1.wav"]
+  });
+
+assert.deepEqual(Array.from(newMaterialCleanupErrors), []);
+assert.deepEqual(
+  materialSaveCalls.filter(call => call[0] === "storage.remove")[0],
+  ["storage.remove", ["band/material/file-1.wav", "band/material/file-2.wav"]],
+  "La compensación debe deduplicar rutas de almacenamiento antes de eliminarlas."
+);
+assert.deepEqual(
+  materialSaveCalls.filter(call => call[0] === "deleteAttachment").map(call => call[1]),
+  ["attachment-2", "attachment-1"],
+  "La compensación debe eliminar únicamente los adjuntos nuevos en orden inverso."
+);
+assert.deepEqual(
+  materialSaveCalls.filter(call => call[0] === "deleteMaterial"),
+  [["deleteMaterial", "new-material"]],
+  "Si falla un material nuevo, la compensación debe eliminar el registro incompleto."
+);
+
+materialSaveCalls.length = 0;
+const editedMaterialCleanupErrors =
+  await materialSaveContext.__materialSaveTest.cleanupFailedMaterialSave({
+    materialId: "existing-material",
+    wasNew: false,
+    originalMaterial: { name: "Nombre anterior", content: "Texto anterior" },
+    createdAttachmentIds: ["new-attachment"],
+    uploadedStoragePaths: []
+  });
+
+assert.deepEqual(Array.from(editedMaterialCleanupErrors), []);
+assert.deepEqual(
+  materialSaveCalls.filter(call => call[0] === "updateMaterial"),
+  [["updateMaterial", "existing-material", {
+    name: "Nombre anterior",
+    content: "Texto anterior"
+  }]],
+  "Si falla la edición, la compensación debe restaurar nombre y contenido previos."
+);
+assert.equal(
+  materialSaveCalls.some(call => call[0] === "deleteMaterial"),
+  false,
+  "Un fallo editando no debe borrar el material preexistente."
+);
+
+assert.match(
+  materialSaveSource,
+  /uploadedStoragePaths\\.push\\(storagePath\\)/,
+  "Cada archivo nuevo debe rastrearse para limpiar si falla el guardado."
+);
+assert.ok(
+  (materialSaveSource.match(/cleanupFailedMaterialSave\\(\\{/g) || []).length >= 4,
+  "Los errores al registrar enlaces, subir archivos, registrar adjuntos y persistir bloques deben activar compensación."
+);
+
+assert.equal(
+  materialSaveContext.__materialSaveTest.getMaterialSaveFailureNotice("Error original", []),
+  "Error original Se revirtieron los cambios parciales."
+);
