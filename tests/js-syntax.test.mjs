@@ -78,6 +78,7 @@ for (const source of scriptSources) {
 
 [
   "src/app-shell.js",
+  "src/app-band.js",
   "src/app-navigation.js",
   "src/styles.css",
   "src/rich-text-composer.js",
@@ -97,6 +98,38 @@ assertScriptBefore(
   html,
   "src/lists-view.js",
   "src/lists-form.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/app-shell.js",
+  "src/app-band.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/app-band.js",
+  "src/app-auth.js"
+);
+
+const appShellSource = readFileSync(
+  join(srcDir, "app-shell.js"),
+  "utf8"
+);
+const appBandSource = readFileSync(
+  join(srcDir, "app-band.js"),
+  "utf8"
+);
+
+assert.doesNotMatch(
+  appShellSource,
+  /function\s+loadCurrentBand\s*\(/,
+  "app-shell.js no debe contener la gestión de la Banda actual."
+);
+assert.match(
+  appBandSource,
+  /function\s+loadCurrentBand\s*\(/,
+  "app-band.js debe contener la gestión de la Banda actual."
 );
 
 assertScriptBefore(
