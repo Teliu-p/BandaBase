@@ -100,37 +100,27 @@ async function replaceBandListItems(
   listId,
   items
 ) {
-  const {
-    error: deleteError
-  } = await supabaseClient
-    .from("band_list_items")
-    .delete()
-    .eq("list_id", listId);
-
-  if (deleteError) {
-    return {
-      data: null,
-      error: deleteError
-    };
-  }
-
-  if (!items.length) {
-    return {
-      data: [],
-      error: null
-    };
-  }
-
-  const rows = items.map((item, index) => ({
-    ...item,
-    list_id: listId,
-    position: index
-  }));
-
-  return await supabaseClient
-    .from("band_list_items")
-    .insert(rows)
-    .select(BAND_LIST_ITEM_COLUMNS);
+  return await supabaseClient.rpc(
+    "replace_band_list_items",
+    {
+      p_list_id: listId,
+      p_items: (items || []).map(item => ({
+        item_type: item.item_type,
+        title: item.title,
+        details: item.details ?? null,
+        song_id: item.song_id ?? null,
+        member_user_id: item.member_user_id ?? null,
+        status: item.status ?? null,
+        position: Number.isInteger(item.position)
+          ? item.position
+          : null,
+        participation_instruments:
+          normalizeBandInstruments(
+            item.participation_instruments || []
+          )
+      }))
+    }
+  );
 }
 
 
