@@ -854,6 +854,7 @@ function renderBandListDetailContent(
     html += '<div class="list-self-participation">' +
       '<div><span class="status active">Estás participando</span>' +
       '<div class="member-info">' + escapeHtml(formatBandInstruments(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
+      '<button type="button" class="btn btn-subtle btn-danger" data-list-self-unregister="' + escapeHtml(list.id) + '">No voy a participar</button>' +
       '</div>';
   } else {
     html += '<div class="list-self-participation">' +
