@@ -106,6 +106,21 @@ assert.equal(
   "proposals-form-ui.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/songs-comparison.js").length,
+  1,
+  "songs-comparison.js debe cargarse exactamente una vez."
+);
+
+const songsComparisonPosition = html.indexOf('<script src="src/songs-comparison.js"></script>');
+const songsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
+
+assert.ok(
+  songsComparisonPosition >= 0 &&
+  songsControllerPosition > songsComparisonPosition,
+  "La comparación de canciones debe cargarse antes del controlador de canciones."
+);
+
 const proposalsViewPosition = html.indexOf('<script src="src/proposals-view.js"></script>');
 const proposalsFormUiPosition = html.indexOf('<script src="src/proposals-form-ui.js"></script>');
 
