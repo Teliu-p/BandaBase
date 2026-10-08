@@ -634,6 +634,23 @@ assert.equal(
   false
 );
 
+const materialEditorSource = readFileSync(
+  join(srcDir, "materials-editor.js"),
+  "utf8"
+);
+
+assert.match(
+  materialEditorSource,
+  /function\s+toggleMaterialTextSize\s*\(/,
+  "Los tamaños de texto de Materiales deben poder alternarse."
+);
+
+assert.match(
+  materialEditorSource,
+  /currentSize[\s\S]*nextSize[\s\S]*currentSize\s*===/,
+  "El segundo clic debe detectar el tamaño actualmente aplicado."
+);
+
 const {
   normalizeSongGenres,
   formatSongGenres
