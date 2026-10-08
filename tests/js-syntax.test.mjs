@@ -193,6 +193,17 @@ assertScriptBefore(
   "src/app-auth.js"
 );
 
+const appNavigationSource = readFileSync(
+  join(srcDir, "app-navigation.js"),
+  "utf8"
+);
+
+assert.doesNotMatch(
+  appNavigationSource,
+  /handleAuthSession\(/,
+  "app-navigation.js no debe iniciar directamente el flujo de autenticación."
+);
+
 assertScriptBefore(
   html,
   "src/app-band.js",
