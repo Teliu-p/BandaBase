@@ -4288,6 +4288,510 @@
       }
     }
 
+  
+    /* BANDABASE VISUAL REFRESH v4 — SaaS LIMPIO / CAPAS */
+
+    :root {
+      --bb-canvas: #edf2f7;
+      --bb-canvas-strong: #e4ebf4;
+      --bb-surface: #f9fbfd;
+      --bb-surface-raised: #ffffff;
+      --bb-surface-subtle: #eef3f8;
+      --bb-surface-inset: #e7edf5;
+      --bb-border: #d9e1eb;
+      --bb-border-strong: #c9d4e2;
+      --bb-ink: #253247;
+      --bb-ink-soft: #526176;
+      --bb-muted: #77859a;
+      --bb-accent: #635bdb;
+      --bb-accent-deep: #5149c6;
+      --bb-accent-soft: #ebe9ff;
+      --bb-shadow-1: 0 1px 2px rgba(31, 48, 73, .04);
+      --bb-shadow-2: 0 6px 18px rgba(31, 48, 73, .055);
+      --bb-shadow-3: 0 14px 34px rgba(31, 48, 73, .075);
+    }
+
+    /* Lienzo: siempre hay color, pero muy poco */
+    body {
+      background:
+        linear-gradient(180deg, #f1f5fa 0%, var(--bb-canvas) 52%, var(--bb-canvas-strong) 100%);
+      color: var(--bb-ink);
+    }
+
+    /* Barra superior: más parecida a una app moderna que a un panel de administración */
+    .topbar {
+      background: rgba(249, 251, 253, .96);
+      border-bottom: 1px solid var(--bb-border);
+      box-shadow: var(--bb-shadow-1);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      min-height: 68px;
+      padding: 12px 24px;
+    }
+
+    .brand {
+      color: #1f2a3a;
+      font-size: 22px;
+      letter-spacing: -.035em;
+    }
+
+    .brand::before {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: var(--bb-accent-soft);
+      color: var(--bb-accent-deep);
+      box-shadow: none;
+      font-size: 19px;
+    }
+
+    .user-area {
+      color: var(--bb-muted);
+    }
+
+    #currentUserName {
+      min-height: 36px;
+      background: var(--bb-surface-subtle);
+      border-color: var(--bb-border);
+      color: var(--bb-ink-soft);
+    }
+
+    .topbar .btn-subtle {
+      background: transparent;
+      border-color: var(--bb-border);
+      color: var(--bb-ink-soft);
+      box-shadow: none;
+    }
+
+    .topbar .btn-subtle:hover {
+      background: var(--bb-surface-subtle);
+      border-color: var(--bb-border-strong);
+      color: var(--bb-ink);
+    }
+
+    /* Navegación: cómoda, limpia y claramente separada del contenido */
+    .nav {
+      top: 68px;
+      background: rgba(244, 247, 251, .96);
+      border-bottom: 1px solid var(--bb-border);
+      box-shadow: 0 2px 8px rgba(31,48,73,.035);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      min-height: 58px;
+      padding: 9px 24px;
+      gap: 6px;
+    }
+
+    .nav button {
+      min-height: 40px;
+      padding: 10px 16px;
+      color: #69788d;
+      font-size: 13px;
+      font-weight: 650;
+      border-radius: 9px;
+    }
+
+    .nav button:hover {
+      color: var(--bb-ink);
+      background: #e9eef5;
+    }
+
+    .nav button.active {
+      color: var(--bb-accent-deep);
+      background: var(--bb-accent-soft);
+      box-shadow: inset 0 0 0 1px rgba(99,91,219,.08);
+    }
+
+    .nav button.active::after {
+      left: 14px;
+      right: 14px;
+      bottom: 4px;
+      height: 2px;
+      background: var(--bb-accent);
+      box-shadow: none;
+    }
+
+    main {
+      max-width: 1320px;
+      padding: 32px 24px 76px;
+    }
+
+    /* Tipografía: menos "display", más interfaz de producto */
+    .section-header h2 {
+      color: var(--bb-ink);
+      font-size: clamp(24px, 2.1vw, 29px);
+      font-weight: 650;
+      letter-spacing: -.03em;
+    }
+
+    .section-header h2::before {
+      width: 7px;
+      height: 22px;
+      margin-right: 10px;
+      border-radius: 99px;
+      background: var(--bb-accent) !important;
+      box-shadow: none;
+    }
+
+    .section-header p {
+      color: var(--bb-muted);
+    }
+
+    /* Regla principal: las tarjetas son un nivel más claras que el fondo */
+    .form-card,
+    .lists-form,
+    .comments-form,
+    .materials-form,
+    .proposal-card,
+    .list-card,
+    .list-detail-section,
+    .comment-card,
+    .member,
+    .placeholder,
+    .empty-state,
+    .material-card {
+      background: var(--bb-surface);
+      border: 1px solid var(--bb-border);
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-2);
+    }
+
+    .form-card {
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .form-card h3,
+    .list-detail-section h3,
+    .proposal-card-header h3 {
+      color: var(--bb-ink);
+    }
+
+    /* Segundo nivel: recuadros internos más oscuros que la tarjeta */
+    .home-recent-panel .list-detail-item,
+    .list-detail-section .list-detail-item,
+    .list-check-option,
+    .list-self-participation,
+    .proposal-vote-option,
+    .proposal-attachment,
+    .comment-view-attachment,
+    .material-attachment,
+    .comparison-row > div,
+    .song-list-option {
+      background: var(--bb-surface-subtle);
+      border-color: var(--bb-border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+    }
+
+    .home-recent-panel .form-card {
+      background: var(--bb-surface);
+      border-color: var(--bb-border);
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-3);
+    }
+
+    .home-recent-panel .form-card > .section-header {
+      border-bottom-color: var(--bb-border);
+    }
+
+    .home-recent-panel .list-detail-item {
+      background: var(--bb-surface-subtle);
+    }
+
+    /* Formularios */
+    input,
+    select,
+    textarea,
+    .filter-multi-toggle {
+      background: #fbfcfe;
+      border-color: var(--bb-border-strong);
+      color: var(--bb-ink);
+      box-shadow: inset 0 1px 2px rgba(31,48,73,.025);
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover,
+    .filter-multi-toggle:hover {
+      border-color: #b7c4d4;
+      background: #ffffff;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus,
+    .filter-multi-toggle:focus-visible {
+      border-color: #847ce1;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(99,91,219,.11);
+    }
+
+    .filters {
+      background: var(--bb-surface);
+      border-color: var(--bb-border);
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-2);
+    }
+
+    .filter-multi-menu {
+      background: #f8fafd;
+      border-color: var(--bb-border);
+      box-shadow: var(--bb-shadow-3);
+    }
+
+    .filter-multi-option:hover {
+      background: #e9eef5;
+    }
+
+    /* Único acento cromático real: el violeta-azulado de la interacción */
+    .btn {
+      background: var(--bb-surface-raised);
+      border-color: var(--bb-border-strong);
+      color: #425166;
+      box-shadow: var(--bb-shadow-1);
+    }
+
+    .btn:hover {
+      background: #ffffff;
+      border-color: #b8c5d5;
+      box-shadow: var(--bb-shadow-2);
+    }
+
+    .btn-primary {
+      background: var(--bb-accent);
+      border-color: var(--bb-accent);
+      color: #fff;
+      box-shadow: 0 5px 13px rgba(99,91,219,.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--bb-accent-deep);
+      border-color: var(--bb-accent-deep);
+      box-shadow: 0 8px 18px rgba(99,91,219,.22);
+    }
+
+    .btn-subtle {
+      color: #68778b;
+      box-shadow: none;
+    }
+
+    .btn-subtle:hover {
+      background: #e9eef5;
+      color: var(--bb-ink);
+      box-shadow: none;
+    }
+
+    /* Canciones: la tarjeta coloreada por el propio dato, no por la interfaz */
+    .song-card {
+      background: var(--bb-surface);
+      border-color: var(--bb-border);
+      border-left-color: #aab8ca;
+      border-radius: 13px;
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-2);
+    }
+
+    .song-card:hover {
+      background: #ffffff;
+      border-color: #c1ccda;
+      border-left-color: #8f9fb4;
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-3);
+    }
+
+    .song-repertoire-toggle {
+      background: var(--bb-accent-soft);
+      color: var(--bb-accent-deep);
+      border-color: #dcd9ff;
+    }
+
+    .song-list-manage {
+      background: var(--bb-surface-subtle);
+      border-color: var(--bb-border);
+      color: #55657b;
+    }
+
+    .status {
+      background: #e7edf4;
+      color: #5d6d82;
+      border-color: var(--bb-border);
+    }
+
+    .status.active {
+      background: #e1f0e9;
+      color: #39715c;
+      border-color: #cce3d7;
+    }
+
+    .status.inactive {
+      background: #f1e5e9;
+      color: #82586a;
+      border-color: #e2d1d8;
+    }
+
+    .status.pending {
+      background: #eee9dc;
+      color: #7b6c4f;
+      border-color: #dfd5be;
+    }
+
+    /* INICIO: tres tarjetas hermanas, no tres estilos diferentes */
+    .home-recent-panel:nth-child(1) .form-card,
+    .home-recent-panel:nth-child(2) .form-card,
+    .home-recent-panel:nth-child(3) .form-card {
+      border-top: 1px solid var(--bb-border);
+      background: var(--bb-surface);
+    }
+
+    /* LISTAS: una sola familia visual, con niveles de profundidad */
+    #listDetailContent.list-detail {
+      gap: 18px;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(1),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(2),
+    #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+      border-top: 1px solid var(--bb-border);
+      box-shadow: var(--bb-shadow-1), var(--bb-shadow-2);
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+      background: #f6f9fc;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+      background: #f2f6fa;
+    }
+
+    #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+      background: #edf2f7;
+    }
+
+    #listDetailContent.list-detail .list-detail-section h3::before {
+      width: 6px;
+      height: 6px;
+      background: var(--bb-accent) !important;
+    }
+
+    #listDetailContent.list-detail .list-detail-section h3 {
+      color: #334258;
+    }
+
+    .list-participant-group {
+      background: rgba(227,235,244,.64);
+      border-color: var(--bb-border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+    }
+
+    .list-self-participation {
+      background: #e9eef5;
+      border-color: #d2dce8;
+    }
+
+    .list-participant-managers {
+      border-top-color: var(--bb-border);
+    }
+
+    .list-summary-chip,
+    .list-summary-chip:nth-child(1),
+    .list-summary-chip:nth-child(2),
+    .list-summary-chip:nth-child(3) {
+      background: #e7edf5;
+      color: #52657c;
+      border: 1px solid var(--bb-border);
+    }
+
+    .list-card {
+      border-top: 1px solid var(--bb-border);
+    }
+
+    /* Propuestas, comentarios y materiales */
+    .proposal-card,
+    .comment-card,
+    .member {
+      border-top: 1px solid var(--bb-border);
+      border-left: 1px solid var(--bb-border);
+    }
+
+    .proposal-card {
+      background: #f7f9fc;
+    }
+
+    .comment-card,
+    .member {
+      background: #f4f7fb;
+    }
+
+    .comments-form,
+    .materials-form {
+      background: #f1f5f9;
+    }
+
+    .proposal-vote-option.selected {
+      background: var(--bb-accent-soft);
+      border-color: #cbc6f6;
+      color: #3f398e;
+      box-shadow: inset 0 0 0 1px rgba(99,91,219,.06);
+    }
+
+    .proposal-result-bar,
+    .home-proposal-result-bar {
+      background: #dfe6ef;
+    }
+
+    .proposal-result-bar span,
+    .home-proposal-result-bar span {
+      background: var(--bb-accent);
+    }
+
+    .material-header:hover {
+      background: #edf2f7;
+    }
+
+    .material-body {
+      background: var(--bb-surface-inset);
+      border-color: var(--bb-border);
+    }
+
+    .proposal-composer-editor,
+    .comment-composer-editor,
+    .material-composer-editor {
+      background: #f8fafd;
+      border-color: var(--bb-border-strong);
+    }
+
+    .proposal-inline-attachment,
+    .comment-inline-attachment,
+    .material-inline-attachment {
+      background: #e4ebf4;
+      border-color: #d0dbe8;
+    }
+
+    /* Comparación */
+    .comparison-card {
+      background: #edf2f7;
+      border-color: var(--bb-border);
+    }
+
+    .comparison-row > div {
+      background: #f6f9fc;
+    }
+
+    /* Estados vacíos */
+    .empty-state {
+      background: #e8eef5;
+      border-color: #cdd8e5;
+    }
+
+    @media (max-width: 720px) {
+      .nav {
+        top: 64px;
+      }
+
+      #listDetailContent.list-detail {
+        gap: 14px;
+      }
+    }
+
   </style>
 
 <style id="bandabase-night-ocean-v5">
