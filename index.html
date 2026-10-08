@@ -4289,6 +4289,336 @@
     }
 
   </style>
+
+<style id="bandabase-night-ocean-v5">
+  :root {
+    --bb-page: #071a2d;
+    --bb-page-deep: #051323;
+    --bb-surface: #0d2740;
+    --bb-surface-raised: #12314d;
+    --bb-surface-soft: #102b45;
+    --bb-surface-inner: #0a2238;
+    --bb-border: #1d4564;
+    --bb-border-soft: #173b59;
+    --bb-blue: #6d9bc7;
+    --bb-blue-deep: #4f80ad;
+    --bb-blue-soft: #183b5b;
+    --bb-text: #dceaf6;
+    --bb-muted: #91acc3;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, #071a2d 0%, #081e34 52%, #051323 100%);
+    color: var(--bb-text);
+  }
+
+  .topbar,
+  .nav {
+    background: #081d31;
+    border-color: #173b59;
+    box-shadow: 0 5px 18px rgba(0,0,0,.28);
+  }
+
+  .brand,
+  .user-area {
+    color: var(--bb-text);
+  }
+
+  .nav button {
+    color: #8ea9c0;
+  }
+
+  .nav button:hover {
+    color: #dceaf6;
+    background: #0e2a45;
+  }
+
+  .nav button.active {
+    color: #b9d5ee;
+    background: #102e4b;
+    border-bottom-color: #6d9bc7;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  .nav button.active::after,
+  .section-header h2::before,
+  .list-detail-section h3::before {
+    display: none !important;
+  }
+
+  .form-card,
+  .lists-form,
+  .comments-form,
+  .materials-form,
+  .proposal-card,
+  .list-card,
+  .list-detail-section,
+  .comment-card,
+  .member,
+  .placeholder,
+  .empty-state,
+  .material-card {
+    background: var(--bb-surface);
+    color: var(--bb-text);
+    border-color: var(--bb-border);
+    box-shadow:
+      0 2px 5px rgba(0,0,0,.20),
+      0 12px 28px rgba(0,0,0,.22);
+  }
+
+  .section-header h2 {
+    color: #e1edf7;
+  }
+
+  .section-header p,
+  .form-help,
+  .proposal-meta,
+  .proposal-vote-count,
+  .comment-meta,
+  .home-recent-detail,
+  .list-form-help,
+  .list-participant-managers {
+    color: var(--bb-muted);
+  }
+
+  input,
+  select,
+  textarea,
+  .filter-multi-toggle {
+    background: #102d47;
+    border-color: #27506e;
+    color: #dceaf6;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #7894ac;
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover,
+  .filter-multi-toggle:hover {
+    background: #12334f;
+    border-color: #376181;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  .filter-multi-toggle:focus-visible {
+    background: #12334f;
+    border-color: #5d8db9;
+    box-shadow: 0 0 0 3px rgba(93,141,185,.20);
+  }
+
+  .filters {
+    background: #0a2238;
+    border-color: #1d4564;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.03),
+      0 8px 20px rgba(0,0,0,.20);
+  }
+
+  .filter-multi-menu {
+    background: #0d2942;
+    border-color: #27506e;
+    box-shadow: 0 18px 38px rgba(0,0,0,.38);
+  }
+
+  .filter-multi-option:hover {
+    background: #143653;
+  }
+
+  .home-recent-panel .form-card {
+    background: #0d2942;
+    border-color: #214a68;
+  }
+
+  .home-recent-panel .list-detail-item,
+  .list-detail-section .list-detail-item,
+  .list-check-option,
+  .list-self-participation,
+  .proposal-vote-option,
+  .proposal-attachment,
+  .comment-view-attachment,
+  .material-attachment {
+    background: #102b45;
+    border-color: #1b415f;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  }
+
+  .home-recent-panel .list-detail-item {
+    background: #0f2a43;
+  }
+
+  .list-card {
+    background: #0d2942;
+  }
+
+  .list-summary-chip,
+  .list-card-summary .list-summary-chip,
+  .list-summary-chip:nth-child(1),
+  .list-summary-chip:nth-child(2),
+  .list-summary-chip:nth-child(3) {
+    background: #123653;
+    color: #a9c7df;
+    border-color: #28506e;
+  }
+
+  .song-card {
+    background: #0e2a43;
+    border-color: #214963;
+    border-left-color: #3d6f98;
+    box-shadow:
+      0 2px 5px rgba(0,0,0,.20),
+      0 10px 24px rgba(0,0,0,.20);
+  }
+
+  .song-card:hover {
+    background: #12324e;
+    border-color: #2b5875;
+    border-left-color: #5a88b1;
+  }
+
+  .song-meta,
+  .song-genre,
+  .song-singers {
+    color: #a2bad0;
+  }
+
+  .song-repertoire-toggle,
+  .song-list-manage,
+  .status {
+    background: #12334f;
+    color: #a8c4dc;
+    border-color: #28516f;
+  }
+
+  .status.active {
+    background: #153d3a;
+    border-color: #28635a;
+    color: #9fd0c4;
+  }
+
+  .status.inactive {
+    background: #3b2430;
+    border-color: #674151;
+    color: #d3a6b7;
+  }
+
+  .status.pending {
+    background: #3a3422;
+    border-color: #64582f;
+    color: #d1c28c;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(1) {
+    background: #0e2b44;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(2) {
+    background: #0c2942;
+  }
+
+  #listDetailContent.list-detail > .list-detail-section:nth-child(3) {
+    background: #0a253c;
+  }
+
+  .list-participant-group {
+    background: #102f4a;
+    border-color: #204963;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  }
+
+  .proposal-card,
+  .comment-card,
+  .member {
+    background: #0d2942;
+  }
+
+  .proposal-vote-option.selected {
+    background: #153a5b;
+    border-color: #356488;
+  }
+
+  .comments-form,
+  .materials-form {
+    background: #0d2942;
+  }
+
+  .material-header:hover {
+    background: #12344f;
+  }
+
+  .material-body {
+    border-color: #204963;
+    background: #0b263e;
+  }
+
+  .btn {
+    background: #102f4a;
+    border-color: #28516f;
+    color: #bdd4e7;
+  }
+
+  .btn:hover {
+    background: #163955;
+    border-color: #396481;
+  }
+
+  .btn-primary {
+    background: #35658f;
+    border-color: #477da5;
+    box-shadow: 0 8px 18px rgba(0,0,0,.28);
+  }
+
+  .btn-primary:hover {
+    background: #4276a1;
+    border-color: #5a8bb3;
+  }
+
+  .btn-subtle {
+    color: #91acc3;
+  }
+
+  .btn-subtle:hover {
+    background: #12344f;
+    color: #c7dbea;
+  }
+
+  .empty-state {
+    background: #0a253c;
+    border-color: #28506d;
+  }
+
+  .comparison-card {
+    background: #0b263e;
+    border-color: #214963;
+  }
+
+  .comparison-row > div {
+    background: #102d47;
+    border-color: #27506e;
+  }
+
+  .proposal-composer-editor,
+  .comment-composer-editor,
+  .material-composer-editor {
+    background: #102f4a;
+    border-color: #28506e;
+    color: #dceaf6;
+  }
+
+  .proposal-inline-attachment,
+  .comment-inline-attachment,
+  .material-inline-attachment {
+    background: #12344f;
+    border-color: #28516f;
+  }
+</style>
+
 </head>
 
 <body>
