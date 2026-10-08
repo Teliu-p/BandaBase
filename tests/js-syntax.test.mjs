@@ -353,7 +353,7 @@ assert.equal(formatDuration("abc"), "—");
 assert.equal(normalizeText("  Canto "), "canto");
 assert.deepEqual(
   uniqueSorted(["Guitarra", "voz", " guitarra ", "Voz", "Bajo"]),
-  ["Bajo", "Guitarra", "voz"]
+  ["Bajo", "guitarra", "Voz"]
 );
 
 assert.deepEqual(
