@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import vm from "node:vm";
 import { resolve, join } from "node:path";
 
 const root = resolve(".");
@@ -294,3 +295,103 @@ console.log(
 console.log(
   "OK: todas las referencias src/* de index.html apuntan a archivos existentes."
 );
+
+function loadPureFunctions(sourcePath, functionNames) {
+  const source = readFileSync(
+    join(root, sourcePath),
+    "utf8"
+  );
+
+  const exportsExpression = functionNames
+    .map(name => name + ": " + name)
+    .join(", ");
+
+  const context = {};
+  vm.runInNewContext(
+    source +
+      "\n" +
+      "globalThis.__testExports = { " +
+      exportsExpression +
+      " };",
+    context,
+    { filename: sourcePath }
+  );
+
+  return context.__testExports;
+}
+
+const {
+  parseDuration,
+  formatDuration,
+  normalizeText,
+  uniqueSorted,
+  normalizeBandInstruments,
+  formatBandInstruments
+} = loadPureFunctions(
+  "src/utils.js",
+  [
+    "parseDuration",
+    "formatDuration",
+    "normalizeText",
+    "uniqueSorted",
+    "normalizeBandInstruments",
+    "formatBandInstruments"
+  ]
+);
+
+assert.equal(parseDuration("3:05"), 185);
+assert.equal(parseDuration(" 90 "), 90);
+assert.equal(parseDuration("2:70"), 190);
+assert.equal(parseDuration(""), null);
+assert.equal(parseDuration("abc"), null);
+
+assert.equal(formatDuration(185), "3:05");
+assert.equal(formatDuration(90), "1:30");
+assert.equal(formatDuration(null), "—");
+assert.equal(formatDuration("abc"), "—");
+
+assert.equal(normalizeText("  Canto "), "canto");
+assert.deepEqual(
+  Array.from(uniqueSorted(["Guitarra", "voz", " guitarra ", "Voz", "Bajo"])),
+  ["Bajo", "guitarra", "Voz"]
+);
+
+assert.deepEqual(
+  Array.from(normalizeBandInstruments([
+    "guitar",
+    "voice",
+    "guitar",
+    "invalid",
+    "voice"
+  ])),
+  ["guitar", "voice"]
+);
+
+assert.equal(
+  formatBandInstruments(["guitar", "voice", "invalid"]),
+  "🎸 Guitarra, 🎤 Voz"
+);
+
+const {
+  normalizeSongGenres,
+  formatSongGenres
+} = loadPureFunctions(
+  "src/songs-data.js",
+  ["normalizeSongGenres", "formatSongGenres"]
+);
+
+assert.deepEqual(
+  Array.from(normalizeSongGenres("Rock, Worship, rock,  Worship ")),
+  ["Rock", "Worship"]
+);
+
+assert.deepEqual(
+  Array.from(normalizeSongGenres(["Balada", " balada ", "", null, "Rock"])),
+  ["Balada", "Rock"]
+);
+
+assert.equal(
+  formatSongGenres(["Balada", " Rock ", "balada"]),
+  "Balada, Rock"
+);
+
