@@ -1,3 +1,4 @@
+
 create table if not exists public.material_blocks (
   id uuid primary key default gen_random_uuid(),
   material_id uuid not null references public.materials(id) on delete cascade,
