@@ -468,7 +468,7 @@ function loadPureFunctions(sourcePath, functionNames) {
     .map(name => name + ": " + name)
     .join(", ");
 
-  const context = {};
+  const context = { URL };
   vm.runInNewContext(
     source +
       "\n" +
