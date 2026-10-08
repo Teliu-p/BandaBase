@@ -10,6 +10,175 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
   ]);
 
 
+function getMaterialAutoLinkUrl(
+  value
+) {
+
+  const raw =
+    String(value || "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  const normalized =
+    /^www\./i.test(raw)
+      ? "https://" + raw
+      : raw;
+
+  try {
+
+    const parsed =
+      new URL(normalized);
+
+    if (
+      parsed.protocol !== "http:" &&
+      parsed.protocol !== "https:"
+    ) {
+      return null;
+    }
+
+    return parsed.href;
+
+  } catch (error) {
+
+    return null;
+
+  }
+
+}
+
+
+function createMaterialAutoLinkAnchor(
+  label,
+  url
+) {
+
+  const safeUrl =
+    getMaterialAutoLinkUrl(url);
+
+  if (!safeUrl) {
+    return null;
+  }
+
+  const anchor =
+    document.createElement("a");
+
+  anchor.href =
+    safeUrl;
+
+  anchor.target =
+    "_blank";
+
+  anchor.rel =
+    "noopener noreferrer";
+
+  anchor.textContent =
+    label;
+
+  return anchor;
+
+}
+
+
+function createMaterialAutoLinkFragment(
+  text
+) {
+
+  const value =
+    String(text || "");
+
+  const fragment =
+    document.createDocumentFragment();
+
+  const pattern =
+    /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+
+  let lastIndex =
+    0;
+
+  for (
+    const match of
+    value.matchAll(pattern)
+  ) {
+
+    const rawMatch =
+      match[0];
+
+    let candidate =
+      rawMatch;
+
+    let trailing =
+      "";
+
+    while (
+      /[.,!?;:)\]}]+$/.test(
+        candidate
+      )
+    ) {
+
+      trailing =
+        candidate.slice(-1) +
+        trailing;
+
+      candidate =
+        candidate.slice(0, -1);
+
+    }
+
+    const safeUrl =
+      getMaterialAutoLinkUrl(
+        candidate
+      );
+
+    if (!safeUrl) {
+      continue;
+    }
+
+    fragment.appendChild(
+      document.createTextNode(
+        value.slice(
+          lastIndex,
+          match.index
+        )
+      )
+    );
+
+    const anchor =
+      createMaterialAutoLinkAnchor(
+        candidate,
+        safeUrl
+      );
+
+    fragment.appendChild(
+      anchor
+    );
+
+    if (trailing) {
+      fragment.appendChild(
+        document.createTextNode(
+          trailing
+        )
+      );
+    }
+
+    lastIndex =
+      match.index +
+      rawMatch.length;
+
+  }
+
+  fragment.appendChild(
+    document.createTextNode(
+      value.slice(lastIndex)
+    )
+  );
+
+  return fragment;
+
+}
+
+
 function isMaterialRichTextContent(
   content
 ) {
@@ -150,6 +319,29 @@ function serializeMaterialRichTextNode(
         serializeMaterialRichTextNode
       )
       .join("");
+
+  if (
+    node.tagName === "A"
+  ) {
+
+    const safeUrl =
+      getMaterialAutoLinkUrl(
+        node.getAttribute("href")
+      );
+
+    if (!safeUrl) {
+      return children;
+    }
+
+    return (
+      '<a href="' +
+      escapeMaterialHtmlText(safeUrl) +
+      '" target="_blank" rel="noopener noreferrer">' +
+      children +
+      "</a>"
+    );
+
+  }
 
   if (
     node.tagName === "B" ||
@@ -329,6 +521,43 @@ function appendSanitizedMaterialNode(
     null;
 
   if (
+    node.tagName === "A"
+  ) {
+
+    const safeUrl =
+      getMaterialAutoLinkUrl(
+        node.getAttribute("href")
+      );
+
+    if (!safeUrl) {
+      Array.from(
+        node.childNodes || []
+      ).forEach(
+        child =>
+          appendSanitizedMaterialNode(
+            target,
+            child
+          )
+      );
+
+      return;
+    }
+
+    safeNode =
+      document.createElement(
+        "a"
+      );
+
+    safeNode.href =
+      safeUrl;
+
+    safeNode.target =
+      "_blank";
+
+    safeNode.rel =
+      "noopener noreferrer";
+
+  } else if (
     node.tagName === "B" ||
     node.tagName === "STRONG"
   ) {
@@ -477,6 +706,44 @@ function renderMaterialRichTextHtml(
       node.tagName === "BR"
     ) {
       return "<br>";
+    }
+
+    if (
+      node.tagName === "A"
+    ) {
+
+      const safeUrl =
+        getMaterialAutoLinkUrl(
+          node.getAttribute("href")
+        );
+
+      if (!safeUrl) {
+        return Array.from(
+          node.childNodes || []
+        )
+          .map(
+            renderNode
+          )
+          .join("");
+      }
+
+      const children =
+        Array.from(
+          node.childNodes || []
+        )
+          .map(
+            renderNode
+          )
+          .join("");
+
+      return (
+        '<a href="' +
+        escapeMaterialHtmlText(safeUrl) +
+        '" target="_blank" rel="noopener noreferrer">' +
+        children +
+        "</a>"
+      );
+
     }
 
     const children =
