@@ -626,13 +626,15 @@ assert.equal(
 const {
   isMaterialRichTextContent,
   materialRichTextHasMarkup,
-  getMaterialAutoLinkUrl
+  getMaterialAutoLinkUrl,
+  serializeMaterialAutoLinkedText
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
     "isMaterialRichTextContent",
     "materialRichTextHasMarkup",
-    "getMaterialAutoLinkUrl"
+    "getMaterialAutoLinkUrl",
+    "serializeMaterialAutoLinkedText"
   ]
 );
 
@@ -662,6 +664,13 @@ assert.equal(
     "Texto normal"
   ),
   false
+);
+
+assert.equal(
+  serializeMaterialAutoLinkedText(
+    "Mirá https://www.youtube.com/test."
+  ),
+  'Mirá <a href="https://www.youtube.com/test" target="_blank" rel="noopener noreferrer">https://www.youtube.com/test</a>.'
 );
 
 assert.equal(
