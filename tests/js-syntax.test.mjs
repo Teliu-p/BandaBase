@@ -980,7 +980,7 @@ async function runMaterialSaveScenario(options = {}) {
     id: "existing-material",
     name: "Título anterior",
     content: "Contenido anterior",
-    attachments: []
+    attachments: options.existingAttachments || []
   };
   const pendingAttachments = options.pendingAttachments || {};
   let attachmentSequence = 1;
@@ -1010,7 +1010,9 @@ async function runMaterialSaveScenario(options = {}) {
     currentUser: { id: "user-1" },
     editingMaterialId: options.existing ? materialId : null,
     currentMaterials: options.existing ? [originalMaterial] : [],
-    materialDraftInitialAttachmentIds: new Set(),
+    materialDraftInitialAttachmentIds: new Set(
+      (options.existingAttachments || []).map(attachment => attachment.id)
+    ),
     materialPendingAttachments: pendingAttachments,
     openMaterialIds: new Set(),
     supabaseClient: { storage },
@@ -1249,4 +1251,37 @@ assert.equal(
   partialLinkFailureRollback.calls.some(call => call[0] === "replaceBlocks"),
   false,
   "No se debe persistir la secuencia si falló el registro de uno de sus recursos."
+);
+
+
+const failedOldFileCleanup = await runMaterialSaveScenario({
+  existing: true,
+  blocks: [{ block_type: "text", content: "Texto conservado" }],
+  existingAttachments: [{
+    id: "old-file-attachment",
+    kind: "file",
+    name: "archivo anterior.wav",
+    storage_path: "band-1/existing-material/old-file.wav"
+  }],
+  removeStorageError: "storage temporarily unavailable"
+});
+assert.ok(
+  failedOldFileCleanup.calls.some(call => call[0] === "removeStorage"),
+  "La limpieza debe intentar quitar archivos viejos que ya no aparecen en los bloques."
+);
+assert.equal(
+  failedOldFileCleanup.calls.some(
+    call => call[0] === "deleteAttachment" && call[1] === "old-file-attachment"
+  ),
+  false,
+  "Si falla la eliminación del objeto, debe conservarse su registro para reintentar y no perder la ruta."
+);
+assert.match(
+  failedOldFileCleanup.notices.at(-1)[0],
+  /se conservaron sus registros para reintentar la limpieza/,
+  "El aviso final debe informar que la actualización se guardó pero la limpieza quedó pendiente."
+);
+assert.equal(
+  failedOldFileCleanup.notices.at(-1)[1],
+  "error"
 );
