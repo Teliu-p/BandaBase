@@ -1,3 +1,4 @@
+
 alter table public.proposals
   add column if not exists voting_type text not null default 'single'
     check (voting_type in ('yes_no','single','multiple'));
@@ -12,6 +13,7 @@ create table if not exists public.proposal_options (
 
 alter table public.proposal_votes
   add column if not exists option_id uuid references public.proposal_options(id) on delete cascade;
+
 alter table public.proposal_options enable row level security;
 
 drop policy if exists "proposal_options_band_access" on public.proposal_options;
