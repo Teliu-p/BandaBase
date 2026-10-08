@@ -574,34 +574,3 @@ async function loadHomeRecentData() {
     loadRecentGeneralComments()
   ]);
 }
-
-/* ============================================================
-   INICIO
-============================================================ */
-
-(async function() {
-
-  try {
-
-    const {
-      data: {
-        session
-      }
-    } =
-      await supabaseClient.auth.getSession();
-
-    await handleAuthSession(session);
-
-  } catch (error) {
-
-    console.error(error);
-
-    showNotice(
-      error.message ||
-      "No se pudo cargar BandaBase.",
-      "error"
-    );
-
-  }
-
-})();
