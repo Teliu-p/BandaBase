@@ -277,6 +277,110 @@ function getMaterialRichTextSizeClass(
 }
 
 
+function serializeMaterialAutoLinkedText(
+  value
+) {
+
+  const text =
+    String(value || "");
+
+  const pattern =
+    /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+
+  let html =
+    "";
+
+  let lastIndex =
+    0;
+
+  for (
+    const match of
+    text.matchAll(pattern)
+  ) {
+
+    const rawMatch =
+      match[0];
+
+    let candidate =
+      rawMatch;
+
+    let trailing =
+      "";
+
+    while (
+      /[.,!?;:)\]}]+$/.test(
+        candidate
+      )
+    ) {
+
+      trailing =
+        candidate.slice(-1) +
+        trailing;
+
+      candidate =
+        candidate.slice(0, -1);
+
+    }
+
+    const safeUrl =
+      getMaterialAutoLinkUrl(
+        candidate
+      );
+
+    if (!safeUrl) {
+      continue;
+    }
+
+    html +=
+      escapeMaterialHtmlText(
+        text.slice(
+          lastIndex,
+          match.index
+        )
+      );
+
+    html +=
+      '<a href="' +
+      escapeMaterialHtmlText(safeUrl) +
+      '" target="_blank" rel="noopener noreferrer">' +
+      escapeMaterialHtmlText(candidate) +
+      "</a>";
+
+    html +=
+      escapeMaterialHtmlText(
+        trailing
+      );
+
+    lastIndex =
+      match.index +
+      rawMatch.length;
+
+  }
+
+  html +=
+    escapeMaterialHtmlText(
+      text.slice(lastIndex)
+    );
+
+  return html;
+
+}
+
+
+function renderMaterialAutoLinkedTextHtml(
+  value
+) {
+
+  return serializeMaterialAutoLinkedText(
+    value
+  ).replaceAll(
+    "\n",
+    "<br>"
+  );
+
+}
+
+
 function serializeMaterialRichTextNode(
   node
 ) {
@@ -285,7 +389,15 @@ function serializeMaterialRichTextNode(
     node.nodeType ===
     Node.TEXT_NODE
   ) {
-    return escapeMaterialHtmlText(
+    if (
+      node.parentElement?.closest("a")
+    ) {
+      return escapeMaterialHtmlText(
+        node.nodeValue || ""
+      );
+    }
+
+    return serializeMaterialAutoLinkedText(
       node.nodeValue || ""
     );
   }
