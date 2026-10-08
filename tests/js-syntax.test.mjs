@@ -1076,7 +1076,7 @@ async function runMaterialSaveScenario(options = {}) {
   };
 
   vm.runInNewContext(
-    materialSaveSource + "\\nglobalThis.__runMaterialSaveTest = saveMaterialDraft;",
+    materialSaveSource + "\nglobalThis.__runMaterialSaveTest = saveMaterialDraft;",
     context,
     { filename: "src/materials-save.js" }
   );
