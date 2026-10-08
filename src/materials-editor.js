@@ -308,7 +308,7 @@ function renderMaterialComposer(
         } else {
 
           editor.appendChild(
-            document.createTextNode(
+            createMaterialAutoLinkFragment(
               block.content || ""
             )
           );
