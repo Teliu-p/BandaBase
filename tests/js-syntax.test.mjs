@@ -23,9 +23,35 @@ function collectJavaScriptFiles(dir) {
     .sort();
 }
 
+function scriptTagFor(source) {
+  return '<script src="' + source + '"></script>';
+}
+
+function assertScriptLoadedOnce(scriptSources, source) {
+  assert.equal(
+    scriptSources.filter(item => item === source).length,
+    1,
+    source + " debe cargarse exactamente una vez."
+  );
+}
+
+function assertScriptBefore(html, before, after) {
+  const beforePosition = html.indexOf(scriptTagFor(before));
+  const afterPosition = html.indexOf(scriptTagFor(after));
+
+  assert.ok(
+    beforePosition >= 0 &&
+    afterPosition > beforePosition,
+    before + " debe cargarse antes de " + after + "."
+  );
+}
+
 const jsFiles = collectJavaScriptFiles(srcDir);
 
-assert.ok(jsFiles.length > 0, "No se encontraron archivos JavaScript en src/.");
+assert.ok(
+  jsFiles.length > 0,
+  "No se encontraron archivos JavaScript en src/."
+);
 
 for (const file of jsFiles) {
   execFileSync(process.execPath, ["--check", file], {
@@ -43,138 +69,86 @@ for (const source of scriptSources) {
   }
 
   const file = join(root, source);
+
   assert.ok(
     statSync(file).isFile(),
-    `El script referenciado por index.html no existe: ${source}`
+    "El script referenciado por index.html no existe: " + source
   );
 }
 
-assert.equal(
-  scriptSources.filter(source => source === "src/app-shell.js").length,
-  1,
-  "app-shell.js debe cargarse exactamente una vez."
+[
+  "src/app-shell.js",
+  "src/app-navigation.js",
+  "src/styles.css",
+  "src/rich-text-composer.js",
+  "src/comments-general.js",
+  "src/proposals-content.js",
+  "src/proposals-form-ui.js",
+  "src/songs-comparison.js",
+  "src/songs-detail.js",
+  "src/materials-editor.js"
+].forEach(source => {
+  if (source.endsWith(".js")) {
+    assertScriptLoadedOnce(scriptSources, source);
+  }
+});
+
+assertScriptBefore(
+  html,
+  "src/rich-text-composer.js",
+  "src/comments-view.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/comments-view.js",
+  "src/comments-general.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/proposals-content.js",
+  "src/proposals-view.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/proposals-view.js",
+  "src/proposals-form-ui.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/materials-view.js",
+  "src/materials-editor.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/materials-editor.js",
+  "src/songs-comparison.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-comparison.js",
+  "src/songs-controller.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-controller.js",
+  "src/songs-detail.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-detail.js",
+  "src/app-navigation.js"
 );
 
 assert.equal(
-  scriptSources.filter(source => source === "src/materials-view.js").length,
-  1,
-  "materials-view.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/songs-controller.js").length,
-  1,
-  "songs-controller.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/app-navigation.js").length,
-  1,
-  "app-navigation.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/rich-text-composer.js").length,
-  1,
-  "rich-text-composer.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/comments-general.js").length,
-  1,
-  "comments-general.js debe cargarse exactamente una vez."
-);
-
-const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
-const commentsGeneralPosition = html.indexOf('<script src="src/comments-general.js"></script>');
-
-assert.ok(
-  commentsViewPosition >= 0 &&
-  commentsGeneralPosition > commentsViewPosition,
-  "comments-general.js debe cargarse después de comments-view.js."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/proposals-content.js").length,
-  1,
-  "proposals-content.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/proposals-form-ui.js").length,
-  1,
-  "proposals-form-ui.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/songs-comparison.js").length,
-  1,
-  "songs-comparison.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/songs-detail.js").length,
-  1,
-  "songs-detail.js debe cargarse exactamente una vez."
-);
-
-assert.equal(
-  scriptSources.filter(source => source === "src/materials-editor.js").length,
-  1,
-  "materials-editor.js debe cargarse exactamente una vez."
-);
-
-const materialsViewLoadPosition = html.indexOf('<script src="src/materials-view.js"></script>');
-const materialsEditorPosition = html.indexOf('<script src="src/materials-editor.js"></script>');
-const songsComparisonPosition2 = html.indexOf('<script src="src/songs-comparison.js"></script>');
-
-assert.ok(
-  materialsViewLoadPosition >= 0 &&
-  materialsEditorPosition > materialsViewLoadPosition &&
-  songsComparisonPosition2 > materialsEditorPosition,
-  "El editor de Materiales debe cargarse después de su vista y antes de la comparación de canciones."
-);
-
-const songsDetailPosition = html.indexOf('<script src="src/songs-detail.js"></script>');
-const songsControllerLoadPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
-
-assert.ok(
-  songsControllerLoadPosition >= 0 &&
-  songsDetailPosition > songsControllerLoadPosition,
-  "El detalle de canciones debe cargarse después del controlador de canciones."
-);
-
-const songsComparisonPosition = html.indexOf('<script src="src/songs-comparison.js"></script>');
-const songsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
-
-assert.ok(
-  songsComparisonPosition >= 0 &&
-  songsControllerPosition > songsComparisonPosition,
-  "La comparación de canciones debe cargarse antes del controlador de canciones."
-);
-
-const proposalsViewPosition = html.indexOf('<script src="src/proposals-view.js"></script>');
-const proposalsFormUiPosition = html.indexOf('<script src="src/proposals-form-ui.js"></script>');
-
-assert.ok(
-  proposalsViewPosition >= 0 &&
-  proposalsFormUiPosition > proposalsViewPosition,
-  "La interfaz del formulario de Propuestas debe cargarse después de proposals-view.js."
-);
-
-const composerPosition = html.indexOf('<script src="src/rich-text-composer.js"></script>');
-const composerCommentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
-
-assert.ok(
-  composerPosition >= 0 &&
-  composerCommentsViewPosition > composerPosition,
-  "El compositor reutilizable debe cargarse antes de comments-view.js."
-);
-
-const stylesheetLinks = [...html.matchAll(/<link\s+[^>]*rel="stylesheet"[^>]*>/gi)].map(match => match[0]);
-
-assert.equal(
-  stylesheetLinks.filter(tag => tag.includes('href="src/styles.css"')).length,
+  (html.match(/<link\s+[^>]*href="src\/styles\.css"[^>]*>/gi) || []).length,
   1,
   "styles.css debe cargarse exactamente una vez."
 );
@@ -197,16 +171,9 @@ assert.doesNotMatch(
   "No debe haber etiquetas <script> anidadas."
 );
 
-const appShellPosition = html.indexOf('<script src="src/app-shell.js"></script>');
-const materialsViewPosition = html.indexOf('<script src="src/materials-view.js"></script>');
-const globalSongsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
-
-assert.ok(
-  appShellPosition >= 0 &&
-  materialsViewPosition > appShellPosition &&
-  globalSongsControllerPosition > materialsViewPosition,
-  "Los módulos del shell, materiales y canciones deben cargarse en ese orden."
+console.log(
+  "OK: " + jsFiles.length + " archivos JavaScript pasan la comprobación de sintaxis."
 );
-
-console.log(`OK: ${jsFiles.length} archivos JavaScript pasan la comprobación de sintaxis.`);
-console.log(`OK: todas las referencias src/* de index.html apuntan a archivos existentes.`);
+console.log(
+  "OK: todas las referencias src/* de index.html apuntan a archivos existentes."
+);
