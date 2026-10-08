@@ -79,6 +79,7 @@ for (const source of scriptSources) {
 [
   "src/app-shell.js",
   "src/app-band.js",
+  "src/songs-color.js",
   "src/app-auth.js",
   "src/app-navigation.js",
   "src/styles.css",
@@ -105,6 +106,44 @@ assertScriptBefore(
   html,
   "src/app-shell.js",
   "src/app-band.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-filters.js",
+  "src/songs-color.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-color.js",
+  "src/songs-controller.js"
+);
+
+assertScriptBefore(
+  html,
+  "src/songs-color.js",
+  "src/songs-detail.js"
+);
+
+const appShellSource = readFileSync(
+  join(srcDir, "app-shell.js"),
+  "utf8"
+);
+const songsColorSource = readFileSync(
+  join(srcDir, "songs-color.js"),
+  "utf8"
+);
+
+assert.doesNotMatch(
+  appShellSource,
+  /function\s+renderColorPicker\s*\(/,
+  "app-shell.js no debe contener el selector de color de Canciones."
+);
+assert.match(
+  songsColorSource,
+  /function\s+renderColorPicker\s*\(/,
+  "songs-color.js debe contener el selector de color de Canciones."
 );
 
 assertScriptBefore(
