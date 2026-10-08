@@ -1316,6 +1316,92 @@
         </div>
 
 
+        <div
+          id="metronomeCard"
+          class="form-card metronome-card"
+        >
+
+          <div class="section-header metronome-header">
+
+            <div>
+
+              <h3>
+                Metrónomo
+              </h3>
+
+              <p>
+                Usa el BPM y la métrica de esta canción.
+              </p>
+
+            </div>
+
+            <button
+              id="metronomePlayBtn"
+              type="button"
+              class="btn btn-primary"
+              aria-pressed="false"
+              disabled
+            >
+              ▶ Reproducir
+            </button>
+
+          </div>
+
+
+          <div class="metronome-summary">
+
+            <div>
+              <span>BPM</span>
+              <strong id="metronomeBpmValue">—</strong>
+              <span>♩</span>
+            </div>
+
+            <div>
+              <span>Métrica</span>
+              <strong id="metronomeMeterValue">—</strong>
+            </div>
+
+          </div>
+
+
+          <div class="metronome-controls">
+
+            <div class="form-group">
+
+              <label for="metronomeSubdivision">
+                Pulso del clic
+              </label>
+
+              <select id="metronomeSubdivision">
+
+                <option value="quarter">
+                  Negra (♩) · BPM
+                </option>
+
+                <option value="white">
+                  Blanca (𝅗𝅥)
+                </option>
+
+                <option value="eighth">
+                  Corchea (♪)
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="metronomeBeats"
+            class="metronome-beats"
+            aria-label="Compás del metrónomo"
+          ></div>
+
+        </div>
+
+
         <div class="form-card">
 
           <div class="section-header" style="margin-bottom:18px;">
@@ -2201,6 +2287,7 @@
 <script src="src/materials-save.js"></script>
 <script src="src/songs-comparison.js"></script>
 <script src="src/songs-controller.js"></script>
+<script src="src/metronome.js"></script>
 <script src="src/songs-detail.js"></script>
 <script src="src/app-navigation.js"></script>
 <script src="src/app-auth.js"></script>
