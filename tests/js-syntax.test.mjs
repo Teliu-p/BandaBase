@@ -80,6 +80,21 @@ assert.equal(
 );
 
 assert.equal(
+  scriptSources.filter(source => source === "src/comments-general.js").length,
+  1,
+  "comments-general.js debe cargarse exactamente una vez."
+);
+
+const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
+const commentsGeneralPosition = html.indexOf('<script src="src/comments-general.js"></script>');
+
+assert.ok(
+  commentsViewPosition >= 0 &&
+  commentsGeneralPosition > commentsViewPosition,
+  "comments-general.js debe cargarse después de comments-view.js."
+);
+
+assert.equal(
   scriptSources.filter(source => source === "src/proposals-content.js").length,
   1,
   "proposals-content.js debe cargarse exactamente una vez."
