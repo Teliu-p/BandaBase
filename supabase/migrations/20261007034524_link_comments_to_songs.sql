@@ -1,3 +1,4 @@
+
 alter table public.comments
   add column if not exists song_id uuid references public.songs(id) on delete cascade;
 
