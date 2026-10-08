@@ -68,25 +68,39 @@ function getMaterialRichTextSizeClass(
 
   if (
     element.tagName === "SPAN" &&
-    MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES.includes(
-      element.classList.contains(
-        "material-text-size-2"
-      )
-        ? "material-text-size-2"
-        : element.classList.contains(
-            "material-text-size-1"
-          )
-          ? "material-text-size-1"
-          : ""
+    element.classList.contains(
+      "material-text-size-1"
     )
   ) {
-    return (
-      element.classList.contains(
-        "material-text-size-2"
-      )
-        ? "material-text-size-2"
-        : "material-text-size-1"
-    );
+    return "material-text-size-1";
+  }
+
+  if (
+    element.tagName === "SPAN" &&
+    element.classList.contains(
+      "material-text-size-2"
+    )
+  ) {
+    return "material-text-size-2";
+  }
+
+  if (
+    element.tagName === "FONT"
+  ) {
+
+    const size =
+      element.getAttribute(
+        "size"
+      );
+
+    if (size === "5") {
+      return "material-text-size-1";
+    }
+
+    if (size === "7") {
+      return "material-text-size-2";
+    }
+
   }
 
   return null;
