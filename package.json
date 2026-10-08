@@ -1,0 +1,7 @@
+{
+  "name": "bandabase",
+  "private": true,
+  "scripts": {
+    "test": "node tests/js-syntax.test.mjs"
+  }
+}
