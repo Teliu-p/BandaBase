@@ -317,13 +317,13 @@ assertScriptBefore(
   "src/app-navigation.js"
 );
 
-const bodyEndPosition = html.indexOf("</body>");
+const noticePosition = html.indexOf('<div id="notice"></div>');
 const appDomPosition = html.indexOf(scriptTagFor("src/app-dom.js"));
 
 assert.ok(
-  bodyEndPosition >= 0 &&
-  appDomPosition > bodyEndPosition,
-  "app-dom.js debe cargarse después de que exista el contenido del body."
+  noticePosition >= 0 &&
+  appDomPosition > noticePosition,
+  "app-dom.js debe cargarse después de que exista el DOM de la aplicación."
 );
 
 assertScriptBefore(
