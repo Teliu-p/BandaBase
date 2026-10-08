@@ -73,6 +73,21 @@ assert.equal(
   "app-navigation.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/rich-text-composer.js").length,
+  1,
+  "rich-text-composer.js debe cargarse exactamente una vez."
+);
+
+const composerPosition = html.indexOf('<script src="src/rich-text-composer.js"></script>');
+const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
+
+assert.ok(
+  composerPosition >= 0 &&
+  commentsViewPosition > composerPosition,
+  "El compositor reutilizable debe cargarse antes de comments-view.js."
+);
+
 const stylesheetLinks = [...html.matchAll(/<link\s+[^>]*rel="stylesheet"[^>]*>/gi)].map(match => match[0]);
 
 assert.equal(
