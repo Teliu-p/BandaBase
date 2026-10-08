@@ -853,9 +853,7 @@ function renderBandListDetailContent(
   } else if (selfStatus === "Confirmado") {
     html += '<div class="list-self-participation">' +
       '<div><span class="status active">Estás participando</span>' +
-      renderParticipationInstrumentPicker(list.id, selfItem.participation_instruments) +
-      '</div>' +
-      '<button type="button" class="btn btn-subtle" data-list-self-change-participation="' + escapeHtml(list.id) + '">Cambiar funciones</button>' +
+      '<div class="member-info">' + escapeHtml(formatBandInstruments(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
       '</div>';
   } else {
     html += '<div class="list-self-participation">' +
@@ -1082,7 +1080,7 @@ function bindBandListParticipantEvents() {
     });
   });
 
-  document.querySelectorAll("[data-list-self-save-participation], [data-list-self-change-participation]").forEach(button => {
+  document.querySelectorAll("[data-list-self-save-participation]").forEach(button => {
     button.addEventListener("click", async () => {
       const instruments = selectedParticipationInstruments();
       if (!instruments.length) {
@@ -1091,7 +1089,7 @@ function bindBandListParticipantEvents() {
       }
       const result = await updateCurrentUserBandListParticipation(
         supabaseClient,
-        button.dataset.listSelfSaveParticipation || button.dataset.listSelfChangeParticipation,
+        button.dataset.listSelfSaveParticipation,
         instruments
       );
       if (result.error) {
