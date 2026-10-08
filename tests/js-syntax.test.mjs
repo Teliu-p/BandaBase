@@ -79,6 +79,7 @@ for (const source of scriptSources) {
 [
   "src/app-shell.js",
   "src/app-band.js",
+  "src/app-auth.js",
   "src/app-navigation.js",
   "src/styles.css",
   "src/rich-text-composer.js",
