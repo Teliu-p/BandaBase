@@ -65,7 +65,7 @@ function renderSongCards(
 
         const borderStyle =
           song.color
-            ? `border-left-color:${escapeHtml(song.color)};`
+            ? `border-left-color:${escapeHtml(song.color)} !important;`
             : "";
 
 
