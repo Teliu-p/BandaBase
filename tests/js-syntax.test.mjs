@@ -112,6 +112,21 @@ assert.equal(
   "songs-comparison.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/songs-detail.js").length,
+  1,
+  "songs-detail.js debe cargarse exactamente una vez."
+);
+
+const songsDetailPosition = html.indexOf('<script src="src/songs-detail.js"></script>');
+const songsControllerLoadPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
+
+assert.ok(
+  songsControllerLoadPosition >= 0 &&
+  songsDetailPosition > songsControllerLoadPosition,
+  "El detalle de canciones debe cargarse después del controlador de canciones."
+);
+
 const songsComparisonPosition = html.indexOf('<script src="src/songs-comparison.js"></script>');
 const songsControllerPosition = html.indexOf('<script src="src/songs-controller.js"></script>');
 
