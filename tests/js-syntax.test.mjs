@@ -79,6 +79,12 @@ assert.equal(
   "rich-text-composer.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/proposals-content.js").length,
+  1,
+  "proposals-content.js debe cargarse exactamente una vez."
+);
+
 const composerPosition = html.indexOf('<script src="src/rich-text-composer.js"></script>');
 const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
 
