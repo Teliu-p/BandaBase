@@ -122,6 +122,7 @@ for (const source of scriptSources) {
   "src/app-band.js",
   "src/songs-color.js",
   "src/app-auth.js",
+  "src/metronome.js",
   "src/app-navigation.js",
   "src/styles.css",
   "src/rich-text-composer.js",
@@ -454,6 +455,83 @@ assert.deepEqual(
 assert.equal(
   formatBandInstruments(["guitar", "voice", "invalid"]),
   "🎸 Guitarra, 🎤 Voz"
+);
+
+const {
+  parseMetronomeMeter,
+  getMetronomeBarQuarterNotes,
+  getMetronomeGroupStartPositions,
+  getMetronomeSubdivisionQuarterNotes,
+  getMetronomeClickIntervalSeconds
+} = loadPureFunctions(
+  "src/metronome.js",
+  [
+    "parseMetronomeMeter",
+    "getMetronomeBarQuarterNotes",
+    "getMetronomeGroupStartPositions",
+    "getMetronomeSubdivisionQuarterNotes",
+    "getMetronomeClickIntervalSeconds"
+  ]
+);
+
+assert.deepEqual(
+  parseMetronomeMeter("6/8"),
+  { numerator: 6, denominator: 8 }
+);
+
+assert.equal(
+  parseMetronomeMeter("11/8"),
+  null
+);
+
+assert.equal(
+  getMetronomeBarQuarterNotes("4/4"),
+  4
+);
+
+assert.equal(
+  getMetronomeBarQuarterNotes("6/8"),
+  3
+);
+
+assert.deepEqual(
+  getMetronomeGroupStartPositions("6/8"),
+  [0, 1.5]
+);
+
+assert.deepEqual(
+  getMetronomeGroupStartPositions("7/8"),
+  [0, 1, 2]
+);
+
+assert.equal(
+  getMetronomeSubdivisionQuarterNotes("quarter"),
+  1
+);
+
+assert.equal(
+  getMetronomeSubdivisionQuarterNotes("white"),
+  2
+);
+
+assert.equal(
+  getMetronomeSubdivisionQuarterNotes("eighth"),
+  0.5
+);
+
+assert.equal(
+  getMetronomeClickIntervalSeconds(120, "quarter"),
+  0.5
+);
+
+assert.equal(
+  getMetronomeClickIntervalSeconds(120, "white"),
+  1
+);
+
+assert.equal(
+  getMetronomeClickIntervalSeconds(120, "eighth"),
+  0.25
 );
 
 const {
