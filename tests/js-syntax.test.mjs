@@ -261,7 +261,7 @@ assert.match(
 
 assert.match(
   materialFormattingSource,
-  /<a\\b/,
+  /<a\b/,
   "El formato enriquecido de Materiales debe conservar enlaces."
 );
 
@@ -625,11 +625,13 @@ assert.equal(
 
 const {
   isMaterialRichTextContent,
+  materialRichTextHasMarkup,
   getMaterialAutoLinkUrl
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
     "isMaterialRichTextContent",
+    "materialRichTextHasMarkup",
     "getMaterialAutoLinkUrl"
   ]
 );
@@ -644,6 +646,20 @@ assert.equal(
 assert.equal(
   isMaterialRichTextContent(
     "Verso normal"
+  ),
+  false
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    '<a href="https://www.youtube.com">YouTube</a>'
+  ),
+  true
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    "Texto normal"
   ),
   false
 );
