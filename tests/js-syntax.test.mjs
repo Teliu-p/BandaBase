@@ -63,6 +63,29 @@ const html = readFileSync(indexPath, "utf8");
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
   .map(match => match[1]);
 
+const loadedSourceFiles = new Set(
+  scriptSources.filter(
+    source => source.startsWith("src/") && source.endsWith(".js")
+  )
+);
+
+const intentionallyUnloadedSourceFiles = new Set([
+  "rehearsals-data.js"
+]);
+
+for (const file of jsFiles) {
+  const relativeSource = "src/" + file.slice(srcDir.length + 1).replaceAll("\\", "/");
+
+  if (intentionallyUnloadedSourceFiles.has(relativeSource.slice(4))) {
+    continue;
+  }
+
+  assert.ok(
+    loadedSourceFiles.has(relativeSource),
+    relativeSource + " existe en src/ pero no está cargado por index.html."
+  );
+}
+
 for (const source of scriptSources) {
   if (!source.startsWith("src/")) {
     continue;
