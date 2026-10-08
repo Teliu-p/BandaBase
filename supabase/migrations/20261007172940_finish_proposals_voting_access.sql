@@ -1,3 +1,4 @@
+
 alter table public.proposal_votes
   alter column vote drop not null;
 
