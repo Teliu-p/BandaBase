@@ -17,6 +17,7 @@
   <script src="src/comments-data.js"></script>
   <script src="src/lists-data.js"></script>
   <script src="src/lists-view.js"></script>
+  <script src="src/admin.js"></script>
 
   <style>
     :root {
@@ -1760,6 +1761,27 @@
       color: var(--muted);
       font-size: 13px;
       margin: -10px 0 14px;
+    }
+
+    .admin-change-detail {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .admin-history-action,
+    .admin-history-entity {
+      font-size: 13px;
+    }
+
+    .admin-history-action {
+      font-weight: 600;
+    }
+
+    .admin-trash-item-title {
+      font-weight: 600;
     }
 
     @media (max-width: 640px) {
@@ -8993,6 +9015,12 @@ function showSection(
   if (sectionName === "comentarios") {
 
     void loadGeneralComments();
+
+  }
+
+  if (sectionName === "administracion") {
+
+    void loadAdminDashboard();
 
   }
 
