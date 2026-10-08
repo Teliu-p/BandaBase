@@ -294,11 +294,26 @@ function renderMaterialComposer(
         "text"
       ) {
 
-        editor.appendChild(
-          document.createTextNode(
+        const richFragment =
+          createMaterialRichTextFragment(
             block.content || ""
-          )
-        );
+          );
+
+        if (richFragment) {
+
+          editor.appendChild(
+            richFragment
+          );
+
+        } else {
+
+          editor.appendChild(
+            document.createTextNode(
+              block.content || ""
+            )
+          );
+
+        }
 
         return;
 
@@ -357,31 +372,36 @@ function collectMaterialComposerBlocks() {
   }
 
   const blocks = [];
-  let textBuffer = "";
+  let textNodes = [];
 
-  const flushText =
-    function() {
+  function flushText() {
 
-      if (
-        textBuffer.length ||
-        !blocks.length
-      ) {
+    if (!textNodes.length) {
+      return;
+    }
 
-        blocks.push({
-          block_type:
-            "text",
-          content:
-            textBuffer
-        });
+    const html =
+      serializeMaterialRichTextChildren(
+        textNodes
+      );
 
-      }
+    blocks.push({
+      block_type:
+        "text",
+      content:
+        makeMaterialStoredText(
+          html
+        )
+    });
 
-      textBuffer =
-        "";
+    textNodes =
+      [];
 
-    };
+  }
 
-  editor.childNodes.forEach(
+  Array.from(
+    editor.childNodes
+  ).forEach(
     node => {
 
       if (
@@ -389,8 +409,9 @@ function collectMaterialComposerBlocks() {
         Node.TEXT_NODE
       ) {
 
-        textBuffer +=
-          node.textContent || "";
+        textNodes.push(
+          node
+        );
 
         return;
 
@@ -414,43 +435,37 @@ function collectMaterialComposerBlocks() {
 
         flushText();
 
-        const attachmentId =
-          element.dataset.attachmentId ||
-          null;
-
-        const pendingKey =
-          element.dataset.pendingKey ||
-          null;
-
         blocks.push({
           block_type:
             "attachment",
           attachment_id:
-            attachmentId,
-          pendingKey
+            element.dataset.attachmentId ||
+            null,
+          pendingKey:
+            element.dataset.pendingKey ||
+            null
         });
 
         return;
 
       }
 
-      textBuffer +=
-        element.innerText ||
-        "";
+      textNodes.push(
+        element
+      );
 
     }
   );
 
-  if (
-    textBuffer.length ||
-    !blocks.length
-  ) {
+  flushText();
+
+  if (!blocks.length) {
 
     blocks.push({
       block_type:
         "text",
       content:
-        textBuffer
+        ""
     });
 
   }
@@ -586,6 +601,9 @@ function hideMaterialForm() {
 }
 
 
+bindMaterialFormattingControls();
+
+
 document
   .getElementById(
     "showMaterialFormBtn"
@@ -686,6 +704,342 @@ document
     "focus",
     rememberMaterialSelection
   );
+
+
+function focusMaterialEditorForFormatting() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return false;
+  }
+
+  editor.focus();
+
+  return restoreMaterialSelection();
+
+}
+
+
+function executeMaterialTextCommand(
+  command,
+  value = null
+) {
+
+  if (
+    !focusMaterialEditorForFormatting()
+  ) {
+    return;
+  }
+
+  try {
+
+    document.execCommand(
+      command,
+      false,
+      value
+    );
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+  }
+
+  rememberMaterialSelection();
+
+}
+
+
+function insertMaterialWrapper(
+  left,
+  right
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  editor.focus();
+
+  const restored =
+    restoreMaterialSelection();
+
+  let range =
+    restored
+      ? materialSelectionRange
+      : null;
+
+  if (!range) {
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(
+      false
+    );
+
+  }
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const hasSelection =
+    !range.collapsed;
+
+  if (hasSelection) {
+
+    const contents =
+      range.extractContents();
+
+    const fragment =
+      document.createDocumentFragment();
+
+    fragment.appendChild(
+      document.createTextNode(
+        left
+      )
+    );
+
+    fragment.appendChild(
+      contents
+    );
+
+    fragment.appendChild(
+      document.createTextNode(
+        right
+      )
+    );
+
+    range.insertNode(
+      fragment
+    );
+
+    range.collapse(
+      false
+    );
+
+  } else {
+
+    const opening =
+      document.createTextNode(
+        left
+      );
+
+    const closing =
+      document.createTextNode(
+        right
+      );
+
+    range.insertNode(
+      closing
+    );
+
+    range.insertNode(
+      opening
+    );
+
+    range.setStartAfter(
+      opening
+    );
+
+    range.collapse(
+      true
+    );
+
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(
+    range
+  );
+
+  materialSelectionRange =
+    range.cloneRange();
+
+}
+
+
+function bindMaterialFormattingControls() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  const boldButton =
+    document.getElementById(
+      "materialBoldBtn"
+    );
+
+  const parenthesesButton =
+    document.getElementById(
+      "materialParenthesesBtn"
+    );
+
+  const bracketsButton =
+    document.getElementById(
+      "materialBracketsBtn"
+    );
+
+  const size1Button =
+    document.getElementById(
+      "materialSize1Btn"
+    );
+
+  const size2Button =
+    document.getElementById(
+      "materialSize2Btn"
+    );
+
+
+  const remember =
+    () =>
+      rememberMaterialSelection();
+
+
+  editor.addEventListener(
+    "mouseup",
+    remember
+  );
+
+  editor.addEventListener(
+    "keyup",
+    remember
+  );
+
+  editor.addEventListener(
+    "input",
+    remember
+  );
+
+  editor.addEventListener(
+    "focus",
+    remember
+  );
+
+
+  boldButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  boldButton?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "bold"
+      );
+    }
+  );
+
+
+  size1Button?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  size1Button?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "fontSize",
+        "5"
+      );
+    }
+  );
+
+
+  size2Button?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  size2Button?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "fontSize",
+        "7"
+      );
+    }
+  );
+
+
+  parenthesesButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  parenthesesButton?.addEventListener(
+    "click",
+    function() {
+      insertMaterialWrapper(
+        "(",
+        ")"
+      );
+      editor.focus();
+    }
+  );
+
+
+  bracketsButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  bracketsButton?.addEventListener(
+    "click",
+    function() {
+      insertMaterialWrapper(
+        "[",
+        "]"
+      );
+      editor.focus();
+    }
+  );
+
+}
 
 
 document
