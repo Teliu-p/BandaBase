@@ -124,13 +124,13 @@ assert.equal(
   "materials-editor.js debe cargarse exactamente una vez."
 );
 
-const materialsViewPosition = html.indexOf('<script src="src/materials-view.js"></script>');
+const materialsViewLoadPosition = html.indexOf('<script src="src/materials-view.js"></script>');
 const materialsEditorPosition = html.indexOf('<script src="src/materials-editor.js"></script>');
 const songsComparisonPosition2 = html.indexOf('<script src="src/songs-comparison.js"></script>');
 
 assert.ok(
-  materialsViewPosition >= 0 &&
-  materialsEditorPosition > materialsViewPosition &&
+  materialsViewLoadPosition >= 0 &&
+  materialsEditorPosition > materialsViewLoadPosition &&
   songsComparisonPosition2 > materialsEditorPosition,
   "El editor de Materiales debe cargarse después de su vista y antes de la comparación de canciones."
 );
