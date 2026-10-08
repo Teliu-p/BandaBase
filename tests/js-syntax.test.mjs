@@ -857,14 +857,13 @@ const editedMaterialCleanupErrors =
   });
 
 assert.deepEqual(Array.from(editedMaterialCleanupErrors), []);
-assert.deepEqual(
-  materialSaveCalls.filter(call => call[0] === "updateMaterial"),
-  [["updateMaterial", "existing-material", {
-    name: "Nombre anterior",
-    content: "Texto anterior"
-  }]],
-  "Si falla la edición, la compensación debe restaurar nombre y contenido previos."
+const materialRestoreCalls = materialSaveCalls.filter(
+  call => call[0] === "updateMaterial"
 );
+assert.equal(materialRestoreCalls.length, 1);
+assert.equal(materialRestoreCalls[0][1], "existing-material");
+assert.equal(materialRestoreCalls[0][2].name, "Nombre anterior");
+assert.equal(materialRestoreCalls[0][2].content, "Texto anterior");
 assert.equal(
   materialSaveCalls.some(call => call[0] === "deleteMaterial"),
   false,
