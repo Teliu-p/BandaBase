@@ -1,3 +1,4 @@
+
 create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   band_id uuid not null references public.bands(id) on delete cascade,
