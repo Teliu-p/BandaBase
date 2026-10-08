@@ -537,67 +537,68 @@ async function saveMaterialDraft() {
           !keptIds.has(id)
       );
 
-  if (removedIds.length) {
+  const cleanupWarnings = [];
+  const retainedAttachmentIds = new Set();
 
+  if (removedIds.length) {
     const removedAttachments =
-      (
-        originalMaterial?.attachments ||
-        []
-      ).filter(
-        attachment =>
-          removedIds.includes(
-            attachment.id
-          )
+      (originalMaterial?.attachments || []).filter(
+        attachment => removedIds.includes(attachment.id)
       );
 
-    const storagePaths =
-      removedAttachments
-        .filter(
-          attachment =>
-            attachment.kind ===
-              "file" &&
-            attachment.storage_path
-        )
-        .map(
-          attachment =>
-            attachment.storage_path
-        );
+    const fileAttachments = removedAttachments.filter(
+      attachment => attachment.kind === "file" && attachment.storage_path
+    );
+    const storagePaths = fileAttachments.map(
+      attachment => attachment.storage_path
+    );
 
     if (storagePaths.length) {
+      let storageCleanupFailed = false;
 
-      const {
-        error: storageError
-      } =
-        await supabaseClient
+      try {
+        const { error: storageError } = await supabaseClient
           .storage
           .from("materials")
-          .remove(
-            storagePaths
-          );
+          .remove(storagePaths);
 
-      if (storageError) {
-
-        showNotice(
-          "El contenido se guardó, pero algunos archivos quitados no pudieron borrarse del almacenamiento.",
-          "error"
-        );
-
+        storageCleanupFailed = Boolean(storageError);
+      } catch (error) {
+        storageCleanupFailed = true;
       }
 
+      if (storageCleanupFailed) {
+        fileAttachments.forEach(
+          attachment => retainedAttachmentIds.add(attachment.id)
+        );
+        cleanupWarnings.push(
+          "No se pudieron borrar algunos archivos quitados del almacenamiento; se conservaron sus registros para reintentar la limpieza."
+        );
+      }
     }
 
-    for (
-      const attachmentId
-      of removedIds
-    ) {
+    for (const attachmentId of removedIds) {
+      if (retainedAttachmentIds.has(attachmentId)) {
+        continue;
+      }
 
-      await deleteMaterialAttachment(
-        supabaseClient,
-        attachmentId
-      );
+      try {
+        const { error } = await deleteMaterialAttachment(
+          supabaseClient,
+          attachmentId
+        );
 
+        if (error) {
+          cleanupWarnings.push(
+            "No se pudo quitar el registro de un recurso; se conservará para reintentar la limpieza."
+          );
+        }
+      } catch (error) {
+        cleanupWarnings.push(
+          "No se pudo quitar el registro de un recurso; se conservará para reintentar la limpieza."
+        );
+      }
     }
-
   }
 
   openMaterialIds.add(
@@ -606,11 +607,18 @@ async function saveMaterialDraft() {
 
   hideMaterialForm();
 
-  showNotice(
+  const successMessage =
     wasNew
       ? "Material agregado."
-      : "Material actualizado.",
-    "success"
+      : "Material actualizado.";
+
+  showNotice(
+    cleanupWarnings.length
+      ? successMessage + " " + cleanupWarnings.join(" ")
+      : successMessage,
+    cleanupWarnings.length
+      ? "error"
+      : "success"
   );
 
   await loadMaterials();
