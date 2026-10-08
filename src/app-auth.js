@@ -140,7 +140,9 @@ async function handleAuthSession(session) {
 supabaseClient.auth.onAuthStateChange(
   function(event, session) {
 
-    void handleAuthSession(session);
+    setTimeout(() => {
+      void handleAuthSession(session);
+    }, 0);
 
   }
 );

@@ -176,6 +176,23 @@ assertScriptBefore(
   "src/app-auth.js"
 );
 
+const appAuthSource = readFileSync(
+  join(srcDir, "app-auth.js"),
+  "utf8"
+);
+
+assert.match(
+  appAuthSource,
+  /setTimeout\(\(\) => \{[\s\S]*void handleAuthSession\(session\);[\s\S]*\}, 0\);/,
+  "El callback de autenticación debe diferir handleAuthSession para no hacer llamadas Supabase dentro del callback."
+);
+
+assert.doesNotMatch(
+  appAuthSource,
+  /onAuthStateChange\([\s\S]*function\(event, session\) \{\s*void handleAuthSession\(session\);/,
+  "El callback de autenticación no debe invocar handleAuthSession directamente."
+);
+
 const appBandSource = readFileSync(
   join(srcDir, "app-band.js"),
   "utf8"
