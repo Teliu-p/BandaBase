@@ -259,6 +259,18 @@ assert.match(
   "Debe existir el segundo tamaño enriquecido."
 );
 
+assert.match(
+  materialFormattingSource,
+  /<a\\b/,
+  "El formato enriquecido de Materiales debe conservar enlaces."
+);
+
+assert.match(
+  materialFormattingSource,
+  /createMaterialAutoLinkFragment/,
+  "El editor de Materiales debe poder convertir URLs en enlaces."
+);
+
 const appNavigationSource = readFileSync(
   join(srcDir, "app-navigation.js"),
   "utf8"
@@ -612,11 +624,13 @@ assert.equal(
 );
 
 const {
-  isMaterialRichTextContent
+  isMaterialRichTextContent,
+  getMaterialAutoLinkUrl
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
-    "isMaterialRichTextContent"
+    "isMaterialRichTextContent",
+    "getMaterialAutoLinkUrl"
   ]
 );
 
@@ -632,6 +646,27 @@ assert.equal(
     "Verso normal"
   ),
   false
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "https://www.youtube.com/watch?v=abc"
+  ),
+  "https://www.youtube.com/watch?v=abc"
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "www.youtube.com/watch?v=abc"
+  ),
+  "https://www.youtube.com/watch?v=abc"
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "javascript:alert(1)"
+  ),
+  null
 );
 
 const materialEditorSource = readFileSync(
