@@ -85,6 +85,21 @@ assert.equal(
   "proposals-content.js debe cargarse exactamente una vez."
 );
 
+assert.equal(
+  scriptSources.filter(source => source === "src/proposals-form-ui.js").length,
+  1,
+  "proposals-form-ui.js debe cargarse exactamente una vez."
+);
+
+const proposalsViewPosition = html.indexOf('<script src="src/proposals-view.js"></script>');
+const proposalsFormUiPosition = html.indexOf('<script src="src/proposals-form-ui.js"></script>');
+
+assert.ok(
+  proposalsViewPosition >= 0 &&
+  proposalsFormUiPosition > proposalsViewPosition,
+  "La interfaz del formulario de Propuestas debe cargarse después de proposals-view.js."
+);
+
 const composerPosition = html.indexOf('<script src="src/rich-text-composer.js"></script>');
 const commentsViewPosition = html.indexOf('<script src="src/comments-view.js"></script>');
 
