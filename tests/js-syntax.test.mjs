@@ -259,6 +259,18 @@ assert.match(
   "Debe existir el segundo tamaño enriquecido."
 );
 
+assert.match(
+  materialFormattingSource,
+  /<a\b/,
+  "El formato enriquecido de Materiales debe conservar enlaces."
+);
+
+assert.match(
+  materialFormattingSource,
+  /createMaterialAutoLinkFragment/,
+  "El editor de Materiales debe poder convertir URLs en enlaces."
+);
+
 const appNavigationSource = readFileSync(
   join(srcDir, "app-navigation.js"),
   "utf8"
@@ -456,7 +468,7 @@ function loadPureFunctions(sourcePath, functionNames) {
     .map(name => name + ": " + name)
     .join(", ");
 
-  const context = {};
+  const context = { URL };
   vm.runInNewContext(
     source +
       "\n" +
@@ -612,11 +624,17 @@ assert.equal(
 );
 
 const {
-  isMaterialRichTextContent
+  isMaterialRichTextContent,
+  materialRichTextHasMarkup,
+  getMaterialAutoLinkUrl,
+  serializeMaterialAutoLinkedText
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
-    "isMaterialRichTextContent"
+    "isMaterialRichTextContent",
+    "materialRichTextHasMarkup",
+    "getMaterialAutoLinkUrl",
+    "serializeMaterialAutoLinkedText"
   ]
 );
 
@@ -632,6 +650,48 @@ assert.equal(
     "Verso normal"
   ),
   false
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    '<a href="https://www.youtube.com">YouTube</a>'
+  ),
+  true
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    "Texto normal"
+  ),
+  false
+);
+
+assert.equal(
+  serializeMaterialAutoLinkedText(
+    "Mirá https://www.youtube.com/test."
+  ),
+  'Mirá <a href="https://www.youtube.com/test" target="_blank" rel="noopener noreferrer">https://www.youtube.com/test</a>.'
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "https://www.youtube.com/watch?v=abc"
+  ),
+  "https://www.youtube.com/watch?v=abc"
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "www.youtube.com/watch?v=abc"
+  ),
+  "https://www.youtube.com/watch?v=abc"
+);
+
+assert.equal(
+  getMaterialAutoLinkUrl(
+    "javascript:alert(1)"
+  ),
+  null
 );
 
 const materialEditorSource = readFileSync(

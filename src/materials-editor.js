@@ -308,7 +308,7 @@ function renderMaterialComposer(
         } else {
 
           editor.appendChild(
-            document.createTextNode(
+            createMaterialAutoLinkFragment(
               block.content || ""
             )
           );
@@ -1118,7 +1118,7 @@ document
       rememberMaterialSelection();
 
       insertMaterialNodeAtSelection(
-        document.createTextNode(
+        createMaterialAutoLinkFragment(
           text
         )
       );
@@ -1235,18 +1235,6 @@ document
     "click",
     function() {
 
-      const name =
-        window.prompt(
-          "Nombre del enlace",
-          "Enlace"
-        );
-
-      if (
-        name === null
-      ) {
-        return;
-      }
-
       const url =
         window.prompt(
           "Pegá la URL",
@@ -1275,34 +1263,46 @@ document
 
       }
 
-      const pendingKey =
-        crypto.randomUUID();
-
-      materialPendingAttachments[
-        pendingKey
-      ] = {
-        kind:
-          "link",
-        name:
-          name.trim() ||
-          "Enlace",
-        url:
-          safeUrl,
-        mime_type:
-          null
-      };
-
-      const node =
-        createMaterialInlineAttachment(
-          materialPendingAttachments[
-            pendingKey
-          ],
-          pendingKey
+      const editor =
+        document.getElementById(
+          "materialComposerEditor"
         );
 
-      insertMaterialNodeAtSelection(
-        node
-      );
+      if (
+        !editor ||
+        !focusMaterialEditorForFormatting()
+      ) {
+        return;
+      }
+
+      const selection =
+        window.getSelection();
+
+      if (
+        selection &&
+        selection.rangeCount &&
+        !selection
+          .getRangeAt(0)
+          .collapsed
+      ) {
+
+        document.execCommand(
+          "createLink",
+          false,
+          safeUrl
+        );
+
+      } else {
+
+        insertMaterialNodeAtSelection(
+          createMaterialAutoLinkFragment(
+            safeUrl
+          )
+        );
+
+      }
+
+      rememberMaterialSelection();
 
     }
   );

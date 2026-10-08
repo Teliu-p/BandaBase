@@ -3108,6 +3108,20 @@
   font-weight: 700;
 }
 
+.material-composer-editor a,
+.material-rich-text a {
+  color: var(--bb-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.material-composer-editor a:hover,
+.material-rich-text a:hover {
+  color: var(--bb-accent-strong);
+}
+
 .material-composer-editor .material-text-size-1,
 .material-rich-text .material-text-size-1,
 .material-composer-editor font[size="5"] {

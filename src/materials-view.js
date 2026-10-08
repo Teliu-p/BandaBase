@@ -456,11 +456,8 @@ function renderMaterialViewBlock(
         richText !== null
           ? richText
           : block.content
-            ? escapeHtml(
+            ? renderMaterialAutoLinkedTextHtml(
                 block.content
-              ).replaceAll(
-                "\n",
-                "<br>"
               )
             : ""
       ) +
