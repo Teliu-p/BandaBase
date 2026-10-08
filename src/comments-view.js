@@ -1747,6 +1747,18 @@ function bindGeneralCommentEvents() {
             generalEditingCommentId =
               comment.id;
 
+            document
+              .getElementById(
+                "generalCommentForm"
+              )
+              ?.classList.remove("hidden");
+
+            document
+              .getElementById(
+                "showGeneralCommentFormBtn"
+              )
+              ?.classList.add("hidden");
+
             openCommentComposer(
               "general",
               comment.blocks,
@@ -2064,6 +2076,18 @@ async function hydrateCommentAudioPlayers() {
 
 
 function resetGeneralCommentForm() {
+  document
+    .getElementById(
+      "showGeneralCommentFormBtn"
+    )
+    ?.classList.remove("hidden");
+
+  document
+    .getElementById(
+      "generalCommentForm"
+    )
+    ?.classList.add("hidden");
+
   generalEditingCommentId =
     null;
 
@@ -2388,6 +2412,36 @@ function bindCommentComposer(type) {
   );
 }
 
+
+document
+  .getElementById(
+    "showGeneralCommentFormBtn"
+  )
+  ?.addEventListener(
+    "click",
+    function() {
+      const form =
+        document.getElementById(
+          "generalCommentForm"
+        );
+
+      if (!form) return;
+
+      form.classList.remove("hidden");
+
+      document
+        .getElementById(
+          "showGeneralCommentFormBtn"
+        )
+        ?.classList.add("hidden");
+
+      document
+        .getElementById(
+          "generalCommentComposerEditor"
+        )
+        ?.focus();
+    }
+  );
 
 document
   .getElementById(
