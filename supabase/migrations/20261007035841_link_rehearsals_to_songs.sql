@@ -1,3 +1,4 @@
+
 create table if not exists public.rehearsal_songs (
   id uuid primary key default gen_random_uuid(),
   rehearsal_id uuid not null references public.rehearsals(id) on delete cascade,
