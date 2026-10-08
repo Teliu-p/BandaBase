@@ -10,6 +10,11 @@ const commentComposerStates = {
     selectionRange: null,
     pendingAttachments: {},
     originalAttachmentIds: new Set()
+  },
+  comparison: {
+    selectionRange: null,
+    pendingAttachments: {},
+    originalAttachmentIds: new Set()
   }
 };
 
@@ -30,12 +35,19 @@ function getCommentComposerConfig(type) {
         fileButtonId: "insertGeneralCommentFileBtn",
         linkButtonId: "insertGeneralCommentLinkBtn"
       }
-    : {
-        editorId: "commentComposerEditor",
-        fileInputId: "commentPendingFile",
-        fileButtonId: "insertCommentFileBtn",
-        linkButtonId: "insertCommentLinkBtn"
-      };
+    : type === "comparison"
+      ? {
+          editorId: "comparisonComposerEditor",
+          fileInputId: "comparisonPendingFile",
+          fileButtonId: "insertComparisonFileBtn",
+          linkButtonId: "insertComparisonLinkBtn"
+        }
+      : {
+          editorId: "commentComposerEditor",
+          fileInputId: "commentPendingFile",
+          fileButtonId: "insertCommentFileBtn",
+          linkButtonId: "insertCommentLinkBtn"
+        };
 }
 
 
@@ -2494,4 +2506,7 @@ bindCommentComposer(
 );
 bindCommentComposer(
   "song"
+);
+bindCommentComposer(
+  "comparison"
 );
