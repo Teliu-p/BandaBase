@@ -58,50 +58,14 @@ async function replaceSongSingers(
   songId,
   singers
 ) {
-
-  const {
-    error: deleteError
-  } =
-    await supabaseClient
-      .from("song_singers")
-      .delete()
-      .eq(
-        "song_id",
-        songId
-      );
-
-  if (deleteError) {
-    return {
-      error:
-        deleteError,
-      operation:
-        "delete"
-    };
-  }
-
-  if (!singers.length) {
-    return {
-      error: null,
-      operation: null
-    };
-  }
-
-  const {
-    error: insertError
-  } =
-    await createSongSingers(
-      supabaseClient,
-      songId,
-      singers
-    );
-
-  return {
-    error:
-      insertError,
-    operation:
-      insertError
-        ? "insert"
-        : null
-  };
-
+  return await supabaseClient.rpc(
+    "replace_song_singers",
+    {
+      p_song_id: songId,
+      p_singers: (singers || []).map(item => ({
+        singer: item.singer,
+        song_key: item.song_key ?? null
+      }))
+    }
+  );
 }
