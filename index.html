@@ -6779,6 +6779,91 @@
   }
 </style>
 
+
+<style id="bandabase-contrast-fix-v10">
+  /* Más contraste en capas generales */
+  .form-card,
+  .lists-form,
+  .comments-form,
+  .materials-form,
+  .proposal-card,
+  .list-card,
+  .list-detail-section,
+  .comment-card,
+  .member,
+  .placeholder,
+  .empty-state,
+  .material-card {
+    border-color: #41434a !important;
+    box-shadow:
+      0 3px 7px rgba(0,0,0,.28),
+      0 14px 30px rgba(0,0,0,.20) !important;
+  }
+
+  .home-recent-panel .list-detail-item,
+  .list-detail-section .list-detail-item,
+  .list-check-option,
+  .list-self-participation,
+  .proposal-vote-option,
+  .proposal-attachment,
+  .comment-view-attachment,
+  .material-attachment,
+  .comparison-row > div,
+  .song-list-option {
+    border-color: #3b3d44 !important;
+  }
+
+  /* Administración: elimina los fondos blancos heredados */
+  #section-administracion .form-card {
+    background: #313338 !important;
+    color: #dbdee1 !important;
+  }
+
+  #section-administracion .admin-member-row,
+  #section-administracion .admin-history-row,
+  #section-administracion .admin-trash-row {
+    background: #2b2d31 !important;
+    color: #dbdee1 !important;
+    border: 1px solid #3f4147 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+  }
+
+  #section-administracion .admin-member-row > div,
+  #section-administracion .admin-history-row > div,
+  #section-administracion .admin-trash-row > div {
+    color: #dbdee1 !important;
+  }
+
+  #section-administracion .admin-section-intro,
+  #section-administracion .admin-change-detail,
+  #section-administracion .admin-empty {
+    color: #949ba4 !important;
+  }
+
+  #section-administracion .admin-history-action,
+  #section-administracion .admin-history-entity,
+  #section-administracion .admin-trash-item-title {
+    color: #f2f3f5 !important;
+  }
+
+  #section-administracion .admin-role-select {
+    background: #1f2023 !important;
+    color: #dbdee1 !important;
+    border-color: #4a4c53 !important;
+  }
+
+  #section-administracion .admin-role-badge {
+    background: #404249 !important;
+    color: #f2f3f5 !important;
+    border: 1px solid #50525a !important;
+  }
+
+  /* La división entre panel y contenido interno queda visible */
+  #section-administracion .admin-list {
+    gap: 9px !important;
+  }
+</style>
+
 </head>
 
 <body>
