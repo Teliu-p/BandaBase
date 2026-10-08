@@ -474,9 +474,17 @@ const {
   ]
 );
 
-assert.deepEqual(
-  parseMetronomeMeter("6/8"),
-  { numerator: 6, denominator: 8 }
+const parsedMetronomeMeter =
+  parseMetronomeMeter("6/8");
+
+assert.equal(
+  parsedMetronomeMeter?.numerator,
+  6
+);
+
+assert.equal(
+  parsedMetronomeMeter?.denominator,
+  8
 );
 
 assert.equal(
@@ -495,12 +503,16 @@ assert.equal(
 );
 
 assert.deepEqual(
-  getMetronomeGroupStartPositions("6/8"),
+  Array.from(
+    getMetronomeGroupStartPositions("6/8")
+  ),
   [0, 1.5]
 );
 
 assert.deepEqual(
-  getMetronomeGroupStartPositions("7/8"),
+  Array.from(
+    getMetronomeGroupStartPositions("7/8")
+  ),
   [0, 1, 2]
 );
 
