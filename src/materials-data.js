@@ -224,37 +224,18 @@ async function replaceMaterialBlocks(
   materialId,
   blocks
 ) {
-
-  const {
-    error: deleteError
-  } =
-    await supabaseClient
-      .from("material_blocks")
-      .delete()
-      .eq(
-        "material_id",
-        materialId
-      );
-
-  if (deleteError) {
-    return {
-      data: null,
-      error: deleteError
-    };
-  }
-
-  if (!blocks.length) {
-    return {
-      data: [],
-      error: null
-    };
-  }
-
-  return await supabaseClient
-    .from("material_blocks")
-    .insert(
-      blocks
-    )
-    .select(MATERIAL_BLOCK_COLUMNS);
-
+  return await supabaseClient.rpc(
+    "replace_material_blocks",
+    {
+      p_material_id: materialId,
+      p_blocks: (blocks || []).map(item => ({
+        block_type: item.block_type,
+        content: item.content ?? null,
+        attachment_id: item.attachment_id ?? null,
+        position: Number.isInteger(item.position)
+          ? item.position
+          : null
+      }))
+    }
+  );
 }
