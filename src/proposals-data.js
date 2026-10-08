@@ -162,31 +162,13 @@ async function createProposalAttachment(
 
 
 async function replaceMyProposalVotes(client, proposalId, optionIds) {
-  const { error: deleteError } = await client
-    .from("proposal_votes")
-    .delete()
-    .eq("proposal_id", proposalId)
-    .eq("user_id", currentUser.id);
-
-  if (deleteError) {
-    return { error: deleteError };
-  }
-
-  if (!optionIds.length) {
-    return { error: null };
-  }
-
-  const rows = optionIds.map(optionId => ({
-    proposal_id: proposalId,
-    user_id: currentUser.id,
-    option_id: optionId
-  }));
-
-  const { error } = await client
-    .from("proposal_votes")
-    .insert(rows);
-
-  return { error };
+  return await client.rpc(
+    "replace_my_proposal_votes",
+    {
+      p_proposal_id: proposalId,
+      p_option_ids: optionIds || []
+    }
+  );
 }
 
 async function setProposalStatus(client, proposalId, status) {
