@@ -257,7 +257,7 @@ function getBandListMemberItem(listId, userId) {
 function getDefaultBandListSlots() {
   return {
     guitar: 2,
-    voice: 2,
+    voice: 5,
     keyboard: 1,
     bass: 1,
     drums: 1
