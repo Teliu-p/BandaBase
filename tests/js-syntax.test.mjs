@@ -95,6 +95,12 @@ for (const source of scriptSources) {
 
 assertScriptBefore(
   html,
+  "src/lists-view.js",
+  "src/lists-form.js"
+);
+
+assertScriptBefore(
+  html,
   "src/rich-text-composer.js",
   "src/comments-view.js"
 );
