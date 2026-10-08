@@ -1,3 +1,4 @@
+
 drop policy if exists "comments_song_member_insert" on public.comments;
 drop policy if exists "comments_song_member_update_own" on public.comments;
 
