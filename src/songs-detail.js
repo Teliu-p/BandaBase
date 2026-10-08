@@ -42,6 +42,10 @@ async function openSong(
   currentSong =
     song;
 
+  if (typeof window.bandabaseStopMetronome === "function") {
+    window.bandabaseStopMetronome();
+  }
+
   currentMaterials = [];
 
   openMaterialIds =
@@ -128,6 +132,10 @@ async function openSong(
     "detailMeter"
   ).value =
     song.meter || "";
+
+  if (typeof window.bandabaseSyncMetronome === "function") {
+    window.bandabaseSyncMetronome();
+  }
 
 
   document.getElementById(
@@ -406,6 +414,10 @@ document.getElementById(
 ).addEventListener(
   "click",
   function() {
+
+    if (typeof window.bandabaseStopMetronome === "function") {
+      window.bandabaseStopMetronome();
+    }
 
     currentSong =
       null;
