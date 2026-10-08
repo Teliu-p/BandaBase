@@ -73,6 +73,20 @@ assert.equal(
   "app-navigation.js debe cargarse exactamente una vez."
 );
 
+const stylesheetLinks = [...html.matchAll(/<link\s+[^>]*rel="stylesheet"[^>]*>/gi)].map(match => match[0]);
+
+assert.equal(
+  stylesheetLinks.filter(tag => tag.includes('href="src/styles.css"')).length,
+  1,
+  "styles.css debe cargarse exactamente una vez."
+);
+
+assert.equal(
+  (html.match(/<style(?:\s+[^>]*)?>[\s\S]*?<\/style>/gi) || []).length,
+  0,
+  "index.html no debe contener bloques style inline."
+);
+
 assert.equal(
   (html.match(/<script>\s*[\s\S]*?<\/script>/g) || []).length,
   0,
