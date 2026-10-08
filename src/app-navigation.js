@@ -85,6 +85,13 @@ function showSection(
 ) {
 
   if (
+    sectionName !== "canciones" &&
+    typeof window.bandabaseStopMetronome === "function"
+  ) {
+    window.bandabaseStopMetronome();
+  }
+
+  if (
     sectionName === "administracion" &&
     !window.bandabaseIsAdmin?.()
   ) {

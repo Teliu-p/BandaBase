@@ -2889,3 +2889,109 @@
   .list-self-participation {
     align-items: flex-start;
   }
+
+/* ============================================================
+   METRÓNOMO
+============================================================ */
+
+.metronome-card {
+  margin-top: 24px;
+}
+
+.metronome-header {
+  align-items: center;
+}
+
+.metronome-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 16px;
+  color: var(--bb-text-muted);
+  font-size: 14px;
+}
+
+.metronome-summary > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid var(--bb-border);
+  border-radius: 8px;
+  background: var(--bb-surface-inset);
+}
+
+.metronome-summary strong {
+  color: var(--bb-text);
+  font-size: 17px;
+}
+
+.metronome-controls {
+  max-width: 270px;
+  margin-bottom: 18px;
+}
+
+.metronome-beats {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 52px;
+}
+
+.metronome-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--bb-border);
+  border-radius: 8px;
+  background: var(--bb-surface-raised);
+  color: var(--bb-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    transform .06s ease,
+    background-color .06s ease,
+    border-color .06s ease,
+    color .06s ease;
+}
+
+.metronome-cell-group-start {
+  border-color: var(--bb-border-strong);
+  color: var(--bb-text-soft);
+}
+
+.metronome-cell-strong {
+  color: var(--bb-text);
+}
+
+.metronome-cell.active {
+  transform: translateY(-1px);
+  background: var(--bb-accent-strong);
+  border-color: var(--bb-accent);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(68,147,248,.14);
+}
+
+.metronome-empty {
+  grid-column: 1 / -1;
+  color: var(--bb-text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .metronome-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .metronome-controls {
+    max-width: none;
+    width: 100%;
+  }
+
+  .metronome-beats {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}

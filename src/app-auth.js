@@ -111,6 +111,10 @@ async function handleAuthSession(session) {
 
     } else {
 
+      if (typeof window.bandabaseStopMetronome === "function") {
+        window.bandabaseStopMetronome();
+      }
+
       currentUser = null;
       currentBand = null;
       currentProfile = null;
