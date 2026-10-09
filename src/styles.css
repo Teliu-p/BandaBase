@@ -3247,22 +3247,29 @@
   color: var(--bb-accent-strong);
 }
 
+.material-composer-editor .material-text-size-normal,
+.material-rich-text .material-text-size-normal,
+.material-composer-editor font[size="3"] {
+  font-size: 1rem;
+}
+
 .material-composer-editor .material-text-size-1,
 .material-rich-text .material-text-size-1,
 .material-composer-editor font[size="5"] {
-  font-size: 1.25em;
+  font-size: 1.25rem;
 }
 
 .material-composer-editor .material-text-size-2,
 .material-rich-text .material-text-size-2,
 .material-composer-editor font[size="7"] {
-  font-size: 1.5em;
+  font-size: 1.5rem;
 }
 
 .material-rich-text {
   line-height: 1.6;
 }
 
+.material-rich-text .material-text-size-normal,
 .material-rich-text .material-text-size-1,
 .material-rich-text .material-text-size-2 {
   display: inline;
