@@ -5,9 +5,22 @@ const MATERIAL_RICH_TEXT_PREFIX =
 
 const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
   Object.freeze([
+    "material-text-size-normal",
     "material-text-size-1",
     "material-text-size-2"
   ]);
+
+
+function getNextMaterialTextSizeClass(
+  currentClass,
+  targetClass
+) {
+
+  return currentClass === targetClass
+    ? "material-text-size-normal"
+    : targetClass;
+
+}
 
 
 function getMaterialAutoLinkUrl(
@@ -238,6 +251,15 @@ function getMaterialRichTextSizeClass(
   if (
     element.tagName === "SPAN" &&
     element.classList.contains(
+      "material-text-size-normal"
+    )
+  ) {
+    return "material-text-size-normal";
+  }
+
+  if (
+    element.tagName === "SPAN" &&
+    element.classList.contains(
       "material-text-size-1"
     )
   ) {
@@ -261,6 +283,10 @@ function getMaterialRichTextSizeClass(
       element.getAttribute(
         "size"
       );
+
+    if (size === "3") {
+      return "material-text-size-normal";
+    }
 
     if (size === "5") {
       return "material-text-size-1";
@@ -531,7 +557,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-[12]\b[^"]*")/i.test(
+    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
       String(html || "")
     )
   );
