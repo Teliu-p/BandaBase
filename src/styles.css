@@ -698,10 +698,25 @@
     ========================= */
 
     .color-picker {
-      display: grid;
-      grid-template-columns: repeat(7, 42px);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       gap: 9px;
       padding-top: 4px;
+    }
+
+    .color-picker-toggle {
+      flex: 0 0 auto;
+    }
+
+    .color-palette {
+      display: none;
+      grid-template-columns: repeat(7, 42px);
+      gap: 9px;
+    }
+
+    .color-picker.is-open .color-palette {
+      display: grid;
     }
 
     .color-option {
