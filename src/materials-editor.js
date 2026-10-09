@@ -1,762 +1,211 @@
 /* Editor y compositor de Materiales. */
 
 /*
- * El doble clic permite fijar el punto de escritura en espacios vacíos
- * del compositor. El clic simple conserva el comportamiento nativo.
+ * Doble clic: fija el punto de escritura en espacios vacíos.
+ * El clic simple conserva el posicionamiento nativo.
  */
-function getMaterialRangeCaretPoint(
-  sourceRange,
-  editor
-) {
-
-  const range =
-    sourceRange.cloneRange();
-
+function getMaterialRangeCaretPoint(sourceRange, editor, targetY = null) {
+  const range = sourceRange.cloneRange();
   range.collapse(true);
+  const rect = range.getBoundingClientRect();
+  if (rect?.height) return { x: rect.left, y: rect.top + rect.height / 2, height: rect.height };
 
-  let rect =
-    range.getBoundingClientRect();
-
-  if (
-    rect &&
-    rect.height > 0
-  ) {
-    return {
-      x: rect.left,
-      y: rect.top + rect.height / 2,
-      height: rect.height
-    };
-  }
-
-  const node =
-    range.startContainer;
-
+  const node = range.startContainer;
   if (node.nodeType === Node.TEXT_NODE) {
-
-    const value =
-      node.nodeValue || "";
-
-    const offset =
-      range.startOffset;
-
-    function getCharacterRect(index) {
-
-      if (
-        index < 0 ||
-        index >= value.length ||
-        value[index] === "\n"
-      ) {
-        return null;
-      }
-
-      const characterRange =
-        document.createRange();
-
-      characterRange.setStart(
-        node,
-        index
-      );
-
-      characterRange.setEnd(
-        node,
-        index + 1
-      );
-
-      const characterRect =
-        characterRange.getBoundingClientRect();
-
-      if (!characterRect || !characterRect.height) {
-        return null;
-      }
-
-      return characterRect;
-
+    const value = node.nodeValue || "";
+    const offset = range.startOffset;
+    const charRect = index => {
+      if (index < 0 || index >= value.length || value[index] === "\n") return null;
+      const r = document.createRange();
+      r.setStart(node, index);
+      r.setEnd(node, index + 1);
+      const box = r.getBoundingClientRect();
+      return box?.height ? box : null;
+    };
+    let before = offset - 1;
+    let after = offset;
+    while (before >= 0 && value[before] === "\n") before--;
+    while (after < value.length && value[after] === "\n") after++;
+    const left = charRect(before);
+    const right = charRect(after);
+    if (left && right) {
+      const y1 = left.top + left.height / 2;
+      const y2 = right.top + right.height / 2;
+      const height = Math.max(left.height, right.height);
+      const style = getComputedStyle(editor);
+      const x0 = editor.getBoundingClientRect().left + editor.clientLeft +
+        (parseFloat(style.paddingLeft) || 0);
+      if (y2 - y1 >= height * 1.5) return { x: x0, y: y1 + height, height };
+      if (value[offset - 1] === "\n" && y2 > y1) return { x: right.left, y: y2, height: right.height };
+      return { x: left.right, y: y1, height: left.height };
     }
-
-    let beforeIndex = offset - 1;
-    let afterIndex = offset;
-
-    while (
-      beforeIndex >= 0 &&
-      value[beforeIndex] === "\n"
-    ) {
-      beforeIndex -= 1;
-    }
-
-    while (
-      afterIndex < value.length &&
-      value[afterIndex] === "\n"
-    ) {
-      afterIndex += 1;
-    }
-
-    const beforeRect =
-      getCharacterRect(beforeIndex);
-
-    const afterRect =
-      getCharacterRect(afterIndex);
-
-    if (
-      beforeRect &&
-      afterRect
-    ) {
-
-      const beforeCenter =
-        beforeRect.top + beforeRect.height / 2;
-
-      const afterCenter =
-        afterRect.top + afterRect.height / 2;
-
-      const lineHeight =
-        Math.max(
-          beforeRect.height,
-          afterRect.height
-        );
-
-      if (
-        afterCenter - beforeCenter >=
-        lineHeight * 1.5
-      ) {
-        return {
-          x: editor.getBoundingClientRect().left +
-            editor.clientLeft +
-            parseFloat(getComputedStyle(editor).paddingLeft || "0"),
-          y: beforeCenter + lineHeight,
-          height: lineHeight
-        };
-      }
-
-      if (
-        value[offset - 1] === "\n" &&
-        afterCenter > beforeCenter
-      ) {
-        return {
-          x: afterRect.left,
-          y: afterCenter,
-          height: afterRect.height
-        };
-      }
-
-      return {
-        x: beforeRect.right,
-        y: beforeCenter,
-        height: beforeRect.height
-      };
-
-    }
-
-    if (afterRect) {
-      return {
-        x: afterRect.left,
-        y: afterRect.top + afterRect.height / 2,
-        height: afterRect.height
-      };
-    }
-
-    if (beforeRect) {
-      return {
-        x: beforeRect.right,
-        y: beforeRect.top + beforeRect.height / 2,
-        height: beforeRect.height
-      };
-    }
-
+    if (right) return { x: right.left, y: right.top + right.height / 2, height: right.height };
+    if (left) return { x: left.right, y: left.top + left.height / 2, height: left.height };
   }
 
-  const editorRect =
-    editor.getBoundingClientRect();
-
-  const editorStyle =
-    getComputedStyle(editor);
-
-  const fontSize =
-    parseFloat(editorStyle.fontSize) || 16;
-
+  const style = getComputedStyle(editor);
+  const box = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
   return {
-    x: editorRect.left +
-      editor.clientLeft +
-      (parseFloat(editorStyle.paddingLeft) || 0),
-    y: editorRect.top +
-      editor.clientTop +
-      (parseFloat(editorStyle.paddingTop) || 0) +
-      fontSize * 0.75,
-    height: fontSize * 1.5
+    x: box.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0),
+    y: Number.isFinite(targetY) ? targetY : box.top + editor.clientTop +
+      (parseFloat(style.paddingTop) || 0) + font * 0.75,
+    height: font * 1.5
   };
-
 }
 
-
-function getPreviousMaterialLeafNode(
-  node,
-  editor
-) {
-
-  let current =
-    node;
-
-  while (
-    current &&
-    current !== editor
-  ) {
-
-    if (current.previousSibling) {
-
-      current =
-        current.previousSibling;
-
-      while (
-        current.nodeType === Node.ELEMENT_NODE &&
-        current.lastChild &&
-        !current.classList?.contains(
-          "material-inline-attachment"
-        )
-      ) {
-        current =
-          current.lastChild;
-      }
-
-      return current;
-
-    }
-
-    current =
-      current.parentNode;
-
-  }
-
-  return null;
-
-}
-
-
-function moveMaterialCaretAboveBlankLine(
-  range,
-  editor
-) {
-
-  const node =
-    range.startContainer;
-
-  if (
-    node.nodeType === Node.TEXT_NODE
-  ) {
-
-    const value =
-      node.nodeValue || "";
-
-    let index =
-      range.startOffset - 1;
-
-    while (
-      index >= 0 &&
-      /[ \t\u00a0]/.test(value[index])
-    ) {
-      index -= 1;
-    }
-
-    if (
-      index >= 0 &&
-      value[index] === "\n"
-    ) {
-
-      range.setStart(
-        node,
-        index
-      );
-
-      range.collapse(true);
-
-      return true;
-
-    }
-
-    if (range.startOffset > 0) {
-      return false;
-    }
-
-  }
-
-  let previous =
-    getPreviousMaterialLeafNode(
-      node,
-      editor
-    );
-
-  while (previous) {
-
-    if (
-      previous.nodeType === Node.TEXT_NODE
-    ) {
-
-      const value =
-        previous.nodeValue || "";
-
-      let index =
-        value.length - 1;
-
-      while (
-        index >= 0 &&
-        /[ \t\u00a0]/.test(value[index])
-      ) {
-        index -= 1;
-      }
-
-      if (
-        index >= 0 &&
-        value[index] === "\n"
-      ) {
-
-        range.setStart(
-          previous,
-          index
-        );
-
-        range.collapse(true);
-
-        return true;
-
-      }
-
-      if (value.trim()) {
-        return false;
-      }
-
-    } else if (
-      previous.nodeType === Node.ELEMENT_NODE &&
-      previous.tagName === "BR"
-    ) {
-
-      const parent =
-        previous.parentNode;
-
-      if (!parent) {
-        return false;
-      }
-
-      range.setStartBefore(
-        previous
-      );
-
-      range.collapse(true);
-
-      return true;
-
-    } else if (
-      previous.nodeType === Node.ELEMENT_NODE &&
-      previous.classList?.contains(
-        "material-inline-attachment"
-      )
-    ) {
-
-      return false;
-
-    }
-
-    previous =
-      getPreviousMaterialLeafNode(
-        previous,
-        editor
-      );
-
-  }
-
-  return false;
-
-}
-
-
-function getMaterialSpaceWidth(
-  range,
-  editor
-) {
-
-  const node =
-    range.startContainer;
-
-  const styleTarget =
-    node.nodeType === Node.ELEMENT_NODE
-      ? node
-      : node.parentElement || editor;
-
-  const style =
-    getComputedStyle(styleTarget);
-
-  const probe =
-    document.createElement("span");
-
-  probe.style.position =
-    "absolute";
-
-  probe.style.visibility =
-    "hidden";
-
-  probe.style.whiteSpace =
-    "pre";
-
-  probe.style.fontFamily =
-    style.fontFamily;
-
-  probe.style.fontSize =
-    style.fontSize;
-
-  probe.style.fontWeight =
-    style.fontWeight;
-
-  probe.style.fontStyle =
-    style.fontStyle;
-
-  probe.style.letterSpacing =
-    style.letterSpacing;
-
-  probe.textContent =
-    "          ";
-
-  document.body.appendChild(
-    probe
-  );
-
-  const width =
-    probe.getBoundingClientRect().width / 10;
-
+function getMaterialSpaceWidth(range, editor) {
+  const node = range.startContainer;
+  const target = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement || editor;
+  const style = getComputedStyle(target);
+  const probe = document.createElement("span");
+  Object.assign(probe.style, {
+    position: "absolute", visibility: "hidden", whiteSpace: "pre",
+    fontFamily: style.fontFamily, fontSize: style.fontSize,
+    fontWeight: style.fontWeight, fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing
+  });
+  probe.textContent = "          ";
+  document.body.appendChild(probe);
+  const width = probe.getBoundingClientRect().width / 10;
   probe.remove();
-
-  return width ||
-    (parseFloat(style.fontSize) || 16) * 0.3;
-
+  return width || (parseFloat(style.fontSize) || 16) * 0.3;
 }
 
-
-function hasMaterialTextAtOrAfterPointOnLine(
-  editor,
-  targetX,
-  targetY,
-  lineHeight
-) {
-
-  const walker =
-    document.createTreeWalker(
-      editor,
-      NodeFilter.SHOW_TEXT
-    );
-
+function hasMaterialTextAtOrAfterPointOnLine(editor, targetX, targetY, lineHeight) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
   let node;
+  while ((node = walker.nextNode())) {
+    const value = node.nodeValue || "";
+    for (let index = 0; index < value.length; index++) {
+      if (value[index] === "\n" || value[index] === "\r") continue;
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + 1);
+      const box = range.getBoundingClientRect();
+      if (!box?.height) continue;
+      const center = box.top + box.height / 2;
+      if (Math.abs(center - targetY) <= Math.max(box.height, lineHeight) * 0.55 &&
+          box.right > targetX + 1) return true;
+    }
+  }
+  return false;
+}
 
-  while (
-    (node = walker.nextNode())
-  ) {
+function moveMaterialCaretAboveBlankLine(range, editor) {
+  const node = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    let index = range.startOffset - 1;
+    while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+    if (index >= 0 && value[index] === "\n") {
+      range.setStart(node, index);
+      range.collapse(true);
+      return true;
+    }
+    if (range.startOffset > 0) return false;
+  }
 
-    const value =
-      node.nodeValue || "";
-
-    for (
-      let index = 0;
-      index < value.length;
-      index += 1
-    ) {
-
-      if (
-        value[index] === "\n" ||
-        value[index] === "\r"
-      ) {
-        continue;
-      }
-
-      const range =
-        document.createRange();
-
-      range.setStart(
-        node,
-        index
-      );
-
-      range.setEnd(
-        node,
-        index + 1
-      );
-
-      const rect =
-        range.getBoundingClientRect();
-
-      if (
-        !rect ||
-        !rect.height
-      ) {
-        continue;
-      }
-
-      const centerY =
-        rect.top + rect.height / 2;
-
-      if (
-        Math.abs(centerY - targetY) <=
-          Math.max(rect.height, lineHeight) * 0.55 &&
-        rect.right > targetX + 1
-      ) {
+  let current = node;
+  while (current && current !== editor) {
+    if (!current.previousSibling) {
+      current = current.parentNode;
+      continue;
+    }
+    current = current.previousSibling;
+    while (current.nodeType === Node.ELEMENT_NODE && current.lastChild &&
+           !current.classList?.contains("material-inline-attachment")) current = current.lastChild;
+    if (current.nodeType === Node.TEXT_NODE) {
+      const value = current.nodeValue || "";
+      let index = value.length - 1;
+      while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+      if (index >= 0 && value[index] === "\n") {
+        range.setStart(current, index);
+        range.collapse(true);
         return true;
       }
-
+      if (value.trim()) return false;
+    } else if (current.nodeType === Node.ELEMENT_NODE) {
+      if (current.tagName === "BR") {
+        range.setStartBefore(current);
+        range.collapse(true);
+        return true;
+      }
+      if (current.classList?.contains("material-inline-attachment")) return false;
     }
-
   }
-
   return false;
-
 }
 
-
-function placeMaterialCaretAtDoubleClick(
-  event
-) {
-
-  const editor =
-    document.getElementById(
-      "materialComposerEditor"
-    );
-
-  if (
-    !editor ||
-    !editor.contains(event.target)
-  ) {
-    return;
-  }
-
-  if (
-    event.target.closest?.(
-      ".material-inline-attachment"
-    )
-  ) {
-    return;
-  }
+function placeMaterialCaretAtDoubleClick(event) {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor || !editor.contains(event.target) ||
+      event.target.closest?.(".material-inline-attachment")) return;
 
   event.preventDefault();
-
   let range = null;
-
-  if (
-    typeof document.caretPositionFromPoint ===
-    "function"
-  ) {
-
-    const position =
-      document.caretPositionFromPoint(
-        event.clientX,
-        event.clientY
-      );
-
-    if (
-      position &&
-      editor.contains(position.offsetNode)
-    ) {
-
-      range =
-        document.createRange();
-
-      range.setStart(
-        position.offsetNode,
-        position.offset
-      );
-
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.offsetNode)) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
       range.collapse(true);
-
     }
-
   }
-
-  if (
-    !range &&
-    typeof document.caretRangeFromPoint ===
-    "function"
-  ) {
-
-    const pointRange =
-      document.caretRangeFromPoint(
-        event.clientX,
-        event.clientY
-      );
-
-    if (
-      pointRange &&
-      editor.contains(pointRange.startContainer) &&
-      editor.contains(pointRange.endContainer)
-    ) {
-
-      range =
-        pointRange.cloneRange();
-
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.startContainer) && editor.contains(point.endContainer)) {
+      range = point.cloneRange();
       range.collapse(true);
-
     }
-
   }
-
   if (!range) {
-
-    range =
-      document.createRange();
-
-    range.selectNodeContents(
-      editor
-    );
-
+    range = document.createRange();
+    range.selectNodeContents(editor);
     range.collapse(false);
-
   }
 
   editor.focus();
+  const selection = window.getSelection();
+  if (!selection) return;
+  const style = getComputedStyle(editor);
+  const bounds = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  const lineHeight = parseFloat(style.lineHeight) || font * 1.5;
+  let caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
 
-  const selection =
-    window.getSelection();
-
-  if (!selection) {
-    return;
+  // Si el navegador eligió el renglón de abajo, retroceder por el salto anterior.
+  const linesAbove = Math.max(0, Math.round((caret.y - event.clientY) / lineHeight));
+  for (let i = 0; i < linesAbove; i++) {
+    if (!moveMaterialCaretAboveBlankLine(range, editor)) break;
+    caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+    if (Math.abs(event.clientY - caret.y) < lineHeight * 0.45) break;
   }
 
-  let caretPoint =
-    getMaterialRangeCaretPoint(
-      range,
-      editor
-    );
-
-  const editorRect =
-    editor.getBoundingClientRect();
-
-  const editorStyle =
-    getComputedStyle(editor);
-
-  const fontSize =
-    parseFloat(editorStyle.fontSize) || 16;
-
-  const lineHeight =
-    parseFloat(editorStyle.lineHeight) ||
-    fontSize * 1.5;
-
-  // A veces el navegador devuelve el principio del renglón inferior
-  // al hacer doble clic en un renglón vacío. Si hay un salto previo,
-  // retrocedemos hasta la línea vacía antes de calcular el relleno.
-  const linesAbove =
-    Math.max(
-      0,
-      Math.round(
-        (caretPoint.y - event.clientY) / lineHeight
-      )
-    );
-
-  for (
-    let step = 0;
-    step < linesAbove;
-    step += 1
-  ) {
-
-    if (
-      !moveMaterialCaretAboveBlankLine(
-        range,
-        editor
-      )
-    ) {
-      break;
-    }
-
-    caretPoint =
-      getMaterialRangeCaretPoint(
-        range,
-        editor
-      );
-
-    if (
-      Math.abs(event.clientY - caretPoint.y) <
-      lineHeight * 0.45
-    ) {
-      break;
-    }
-
-  }
-
-  const spaceWidth =
-    getMaterialSpaceWidth(
-      range,
-      editor
-    );
-
-  const contentStartX =
-    editorRect.left +
-    editor.clientLeft +
-    (parseFloat(editorStyle.paddingLeft) || 0);
-
-  const padding =
-    calculateMaterialForcedCaretPadding(
-      caretPoint.x,
-      caretPoint.y,
-      event.clientX,
-      event.clientY,
-      lineHeight,
-      spaceWidth,
-      contentStartX
-    );
-
-  let prefix =
-    "\n".repeat(
-      padding.lineBreaks
-    );
-
-  if (
-    padding.lineBreaks > 0
-  ) {
-
-    prefix +=
-      " ".repeat(
-        padding.spaces
-      );
-
-  } else if (
-    event.clientX > caretPoint.x &&
-    !hasMaterialTextAtOrAfterPointOnLine(
-      editor,
-      event.clientX,
-      event.clientY,
-      lineHeight
-    )
-  ) {
-
-    prefix +=
-      " ".repeat(
-        padding.spaces
-      );
-
-  }
-
-  if (prefix) {
-
-    const paddingNode =
-      document.createTextNode(
-        prefix
-      );
-
-    range.insertNode(
-      paddingNode
-    );
-
-    range.setStart(
-      paddingNode,
-      paddingNode.length
-    );
-
-    range.collapse(true);
-
-  }
-
-  selection.removeAllRanges();
-
-  selection.addRange(
-    range
+  const spaceWidth = getMaterialSpaceWidth(range, editor);
+  const startX = bounds.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0);
+  const padding = calculateMaterialForcedCaretPadding(
+    caret.x, caret.y, event.clientX, event.clientY,
+    lineHeight, spaceWidth, startX
   );
-
-  materialSelectionRange =
-    range.cloneRange();
-
+  let prefix = "\n".repeat(padding.lineBreaks);
+  if (padding.lineBreaks > 0) {
+    prefix += " ".repeat(padding.spaces);
+  } else if (event.clientX > caret.x &&
+             !hasMaterialTextAtOrAfterPointOnLine(editor, event.clientX, event.clientY, lineHeight)) {
+    prefix += " ".repeat(padding.spaces);
+  }
+  if (prefix) {
+    const filler = document.createTextNode(prefix);
+    range.insertNode(filler);
+    range.setStart(filler, filler.length);
+    range.collapse(true);
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
   updateMaterialFormattingButtonStates();
-
 }
-
 
 
 
