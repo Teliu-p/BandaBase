@@ -127,6 +127,19 @@ assert.match(
 );
 
 const html = readFileSync(indexPath, "utf8");
+const styles = readFileSync(join(root, "src", "styles.css"), "utf8");
+
+assert.match(
+  html,
+  /<form id="songDetailForm">\s*<div class="form-grid song-detail-grid">/,
+  "El formulario de canción debe tener una grilla responsive dedicada."
+);
+assert.match(
+  styles,
+  /\.song-detail-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*grid-template-areas:[^}]*"title title"[^}]*"duration bpm"[^}]*"artist artist"[^}]*"genre meter"/s,
+  "En móvil, el formulario debe distribuir los campos en dos columnas cómodas."
+);
+
 
 assert.match(
   html,
