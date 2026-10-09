@@ -7,144 +7,75 @@ function renderColorPicker(
   selectedColor,
   onSelect
 ) {
-
   container.innerHTML = "";
+  container.classList.remove("is-open");
 
-  const noneButton =
-    document.createElement("button");
-
-  noneButton.type = "button";
-
-  noneButton.className =
-    "color-option";
-
-  if (
-    !selectedColor
-  ) {
-    noneButton.classList.add("selected");
-  }
-
-  noneButton.title =
-    "Sin color";
-
-  noneButton.setAttribute(
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "color-option color-picker-toggle";
+  toggle.title = selectedColor
+    ? (SONG_COLORS.find(color => color.value === selectedColor)?.name || "Color seleccionado")
+    : "Elegir color";
+  toggle.setAttribute(
     "aria-label",
-    "Sin color"
+    selectedColor
+      ? "Color seleccionado. Abrir gama de colores"
+      : "Sin color. Abrir gama de colores"
   );
+  toggle.setAttribute("aria-expanded", "false");
 
-  noneButton.innerHTML = `
-    <span class="color-none"></span>
-  `;
+  toggle.innerHTML = selectedColor
+    ? `<span class="color-swatch" style="background:${selectedColor};"></span>`
+    : '<span class="color-none"></span>';
 
-  /*
-    IMPORTANTE:
-    El click se conecta directamente acá.
-    No dependemos de un formulario ni de un input oculto.
-  */
+  const palette = document.createElement("div");
+  palette.className = "color-palette";
+  palette.id = (container.id || "songColorPicker") + "-palette";
 
-  noneButton.addEventListener(
-    "click",
-    function(event) {
+  toggle.setAttribute("aria-controls", palette.id);
+  toggle.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
 
-      event.preventDefault();
-      event.stopPropagation();
+    const isOpen = container.classList.toggle("is-open");
+    toggle.setAttribute("aria-expanded", String(isOpen));
+  });
 
-      onSelect(null);
-
-      renderColorPicker(
-        container,
-        null,
-        onSelect
-      );
-
-    }
-  );
-
-  container.appendChild(
-    noneButton
-  );
-
-
-  SONG_COLORS.forEach(color => {
-
-    const button =
-      document.createElement("button");
-
+  function addColorOption(color, isNone = false) {
+    const button = document.createElement("button");
     button.type = "button";
-
-    button.className =
-      "color-option";
+    button.className = "color-option";
 
     if (
-      selectedColor === color.value
+      (isNone && !selectedColor) ||
+      (!isNone && selectedColor === color.value)
     ) {
       button.classList.add("selected");
     }
 
-    button.title =
-      color.name;
-
+    button.title = isNone ? "Sin color" : color.name;
     button.setAttribute(
       "aria-label",
-      "Color " + color.name
+      isNone ? "Sin color" : "Color " + color.name
     );
+    button.innerHTML = isNone
+      ? '<span class="color-none"></span>'
+      : `<span class="color-swatch" style="background:${color.value};"></span>`;
 
-    button.innerHTML = `
-      <span
-        class="color-swatch"
-        style="background:${color.value};"
-      ></span>
-    `;
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const nextColor = isNone ? null : color.value;
+      onSelect(nextColor);
+      renderColorPicker(container, nextColor, onSelect);
+    });
 
-    button.addEventListener(
-      "click",
-      function(event) {
+    palette.appendChild(button);
+  }
 
-        event.preventDefault();
-        event.stopPropagation();
+  addColorOption(null, true);
+  SONG_COLORS.forEach(color => addColorOption(color));
 
-        onSelect(color.value);
-
-        renderColorPicker(
-          container,
-          color.value,
-          onSelect
-        );
-
-      }
-    );
-
-    container.appendChild(
-      button
-    );
-
-  });
-
-}
-
-
-/* ============================================================
-   SELECTOR DE COLOR DE FILTRO
-============================================================ */
-
-function populateColorFilter() {
-  populateMultiSongFilter(
-    "filterColor",
-    "Todos los colores",
-    SONG_COLORS.map(
-      color =>
-        color.value
-    ),
-    value => {
-      const color =
-        SONG_COLORS.find(
-          item =>
-            item.value === value
-        );
-
-      return color
-        ? color.name
-        : value;
-    }
-  );
+  container.appendChild(toggle);
+  container.appendChild(palette);
 }
