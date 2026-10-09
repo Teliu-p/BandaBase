@@ -40,7 +40,9 @@ function rememberMaterialSelection() {
 }
 
 
-function restoreMaterialSelection() {
+function restoreMaterialSelection(
+  rangeToRestore = materialSelectionRange
+) {
 
   const editor =
     document.getElementById(
@@ -49,7 +51,9 @@ function restoreMaterialSelection() {
 
   if (
     !editor ||
-    !materialSelectionRange
+    !rangeToRestore ||
+    !editor.contains(rangeToRestore.startContainer) ||
+    !editor.contains(rangeToRestore.endContainer)
   ) {
     return false;
   }
@@ -57,13 +61,22 @@ function restoreMaterialSelection() {
   const selection =
     window.getSelection();
 
+  if (!selection) {
+    return false;
+  }
+
   try {
 
     selection.removeAllRanges();
 
     selection.addRange(
-      materialSelectionRange
+      rangeToRestore
     );
+
+    materialSelectionRange =
+      rangeToRestore.cloneRange();
+
+    updateMaterialFormattingButtonStates();
 
     return true;
 
@@ -189,13 +202,18 @@ function insertMaterialNodeAtSelection(
     return;
   }
 
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
   editor.focus();
 
   const hasSelection =
-    restoreMaterialSelection();
+    restoreMaterialSelection(savedRange);
 
   let range =
-    materialSelectionRange;
+    hasSelection
+      ? materialSelectionRange
+      : null;
 
   if (
     !hasSelection
@@ -719,9 +737,15 @@ function focusMaterialEditorForFormatting() {
     return false;
   }
 
+  // El evento focus puede intentar guardar la selección actual
+  // mientras el navegador mueve el foco desde el toolbar.
+  // Conservamos una copia anterior y la restauramos después.
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
   editor.focus();
 
-  return restoreMaterialSelection();
+  return restoreMaterialSelection(savedRange);
 
 }
 
@@ -958,10 +982,13 @@ function insertMaterialWrapper(
     return;
   }
 
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
   editor.focus();
 
   const restored =
-    restoreMaterialSelection();
+    restoreMaterialSelection(savedRange);
 
   let range =
     restored
@@ -1004,10 +1031,18 @@ function insertMaterialWrapper(
     const fragment =
       document.createDocumentFragment();
 
-    fragment.appendChild(
+    const opening =
       document.createTextNode(
         left
-      )
+      );
+
+    const closing =
+      document.createTextNode(
+        right
+      );
+
+    fragment.appendChild(
+      opening
     );
 
     fragment.appendChild(
@@ -1015,17 +1050,21 @@ function insertMaterialWrapper(
     );
 
     fragment.appendChild(
-      document.createTextNode(
-        right
-      )
+      closing
     );
 
     range.insertNode(
       fragment
     );
 
+    // Dejar el cursor después del paréntesis/corchete de cierre
+    // evita que la siguiente acción actúe sobre el rango anterior.
+    range.setStartAfter(
+      closing
+    );
+
     range.collapse(
-      false
+      true
     );
 
   } else {
