@@ -282,7 +282,7 @@ const songsColorSource = readFileSync(
 );
 assert.match(
   songsColorSource,
-  /color-picker-toggle[\\s\\S]*container\\.classList\\.toggle\\("is-open"\\)[\\s\\S]*color-palette/,
+  /color-picker-toggle[\s\S]*container\.classList\.toggle\("is-open"\)[\s\S]*color-palette/,
   "La gama de colores debe abrirse y cerrarse desde un selector compacto."
 );
 
