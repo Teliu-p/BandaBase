@@ -333,6 +333,12 @@ assert.match(
 
 assert.match(
   html,
+  /id="materialItalicBtn"/,
+  "El editor de Materiales debe incluir el botón de cursiva junto a negrita."
+);
+
+assert.match(
+  html,
   /id="materialParenthesesBtn"/,
   "El editor de Materiales debe incluir el botón de paréntesis."
 );
@@ -388,6 +394,35 @@ assert.match(
   materialFormattingSource,
   /createMaterialAutoLinkFragment/,
   "El editor de Materiales debe poder convertir URLs en enlaces."
+);
+
+assert.match(
+  materialFormattingSource,
+  /node\.tagName === "I"\s*\|\|\s*node\.tagName === "EM"/,
+  "El formato enriquecido debe reconocer cursiva al guardar, restaurar y mostrar."
+);
+
+assert.match(
+  materialFormattingSource,
+  /strong\|em\|a\\b/,
+  "La cursiva debe activar el formato enriquecido persistente."
+);
+
+assert.ok(
+  materialFormattingSource.includes('"<em>" +') &&
+  materialFormattingSource.includes('"</em>"'),
+  "La cursiva debe guardarse como marcado enriquecido seguro."
+);
+
+const materialEditorFormattingSource = readFileSync(
+  join(srcDir, "materials-editor.js"),
+  "utf8"
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /executeMaterialTextCommand\([\s\S]{0,80}"italic"/,
+  "El botón de cursiva debe ejecutar la orden de formato italic."
 );
 
 const appNavigationSource = readFileSync(

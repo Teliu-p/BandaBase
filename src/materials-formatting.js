@@ -470,6 +470,17 @@ function serializeMaterialRichTextNode(
   }
 
   if (
+    node.tagName === "I" ||
+    node.tagName === "EM"
+  ) {
+    return (
+      "<em>" +
+      children +
+      "</em>"
+    );
+  }
+
+  if (
     node.tagName === "B" ||
     node.tagName === "STRONG"
   ) {
@@ -520,7 +531,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(strong|a\b|span class="material-text-size-[12]")\b/.test(
+    /<(strong|em|a\b|span class="material-text-size-[12]")\b/.test(
       String(html || "")
     )
   );
@@ -692,6 +703,16 @@ function appendSanitizedMaterialNode(
 
     safeNode.rel =
       "noopener noreferrer";
+
+  } else if (
+    node.tagName === "I" ||
+    node.tagName === "EM"
+  ) {
+
+    safeNode =
+      document.createElement(
+        "em"
+      );
 
   } else if (
     node.tagName === "B" ||
@@ -893,6 +914,17 @@ function renderMaterialRichTextHtml(
           child => renderNode(child, insideAnchor)
         )
         .join("");
+
+    if (
+      node.tagName === "I" ||
+      node.tagName === "EM"
+    ) {
+      return (
+        "<em>" +
+        children +
+        "</em>"
+      );
+    }
 
     if (
       node.tagName === "B" ||
