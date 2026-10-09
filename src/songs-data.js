@@ -127,6 +127,7 @@ async function createSong(
     .from("songs")
     .insert({
       band_id,
+      created_by: currentUser?.id || null,
       name,
       artist,
       genre,
