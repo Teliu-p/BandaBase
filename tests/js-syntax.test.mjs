@@ -25,7 +25,7 @@ function collectJavaScriptFiles(dir) {
 }
 
 function scriptTagFor(source) {
-  return '<script src="' + source + '"></script>';
+  return '<script src="' + source;
 }
 
 function assertScriptLoadedOnce(scriptSources, source) {
@@ -127,8 +127,37 @@ assert.match(
 );
 
 const html = readFileSync(indexPath, "utf8");
+
+assert.match(
+  html,
+  /^---\s+layout:\s*null\s+---/,
+  "index.html debe procesarse con Jekyll para recibir el hash del commit publicado."
+);
+assert.match(
+  html,
+  /<meta name="bandabase-build" content="\{\{ site\.github\.build_revision \}\}">/,
+  "index.html debe exponer el hash de la versión publicada."
+);
+assert.match(
+  html,
+  /src\/app-update\.js\?v=\{\{ site\.github\.build_revision \}\}/,
+  "El comprobador de actualizaciones también debe cambiar de URL en cada commit."
+);
+assert.match(
+  html,
+  /src\/styles\.css\?v=\{\{ site\.github\.build_revision \}\}/,
+  "La hoja de estilos debe tener una URL distinta por versión."
+);
+
+const versionJson = readFileSync(join(root, "version.json"), "utf8");
+assert.match(
+  versionJson,
+  /"build_revision"\s*:\s*"\{\{ site\.github\.build_revision \}\}"/,
+  "version.json debe publicar el hash del commit mediante Jekyll."
+);
+
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
-  .map(match => match[1]);
+  .map(match => match[1].split("?")[0]);
 
 const loadedSourceFiles = new Set(
   scriptSources.filter(
@@ -478,7 +507,7 @@ assertScriptBefore(
 );
 
 assert.equal(
-  (html.match(/<link\s+[^>]*href="src\/styles\.css"[^>]*>/gi) || []).length,
+  (html.match(/<link\s+[^>]*href="src\/styles\.css(?:\?[^"]*)?"[^>]*>/gi) || []).length,
   1,
   "styles.css debe cargarse exactamente una vez."
 );
