@@ -1946,6 +1946,19 @@
       .song-detail-grid > .form-group:nth-child(5) { grid-area: genre; }
       .song-detail-grid > .form-group:nth-child(6) { grid-area: meter; }
 
+      /* En vertical, priorizar el orden natural de lectura; en horizontal
+         se conserva la distribución compacta definida arriba. */
+      @media (orientation: portrait) {
+        .song-detail-grid {
+          grid-template-areas:
+            "title title"
+            "artist artist"
+            "genre genre"
+            "duration bpm"
+            "meter meter";
+        }
+      }
+
       .form-group.full {
         grid-column: auto;
       }
