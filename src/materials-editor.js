@@ -956,6 +956,11 @@ function bindMaterialFormattingControls() {
       "materialBoldBtn"
     );
 
+  const italicButton =
+    document.getElementById(
+      "materialItalicBtn"
+    );
+
   const parenthesesButton =
     document.getElementById(
       "materialParenthesesBtn"
@@ -1016,6 +1021,24 @@ function bindMaterialFormattingControls() {
     function() {
       executeMaterialTextCommand(
         "bold"
+      );
+    }
+  );
+
+
+  italicButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  italicButton?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "italic"
       );
     }
   );
