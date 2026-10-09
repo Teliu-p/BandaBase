@@ -428,6 +428,99 @@ function renderProposals() {
 
       card
         .querySelectorAll(
+          "[data-open-proposal-attachment]"
+        )
+        .forEach(button => {
+          button.addEventListener(
+            "click",
+            async () => {
+              if (button.dataset.loading === "true") {
+                return;
+              }
+
+              const attachment =
+                (
+                  proposalAttachmentsMap[
+                    proposal.id
+                  ] || []
+                ).find(
+                  item =>
+                    item.id ===
+                    button.dataset.openProposalAttachment
+                );
+
+              if (!attachment?.storage_path) {
+                return;
+              }
+
+              // Open a new tab during the user gesture so popup blockers
+              // do not reject it after the asynchronous URL request.
+              const fileWindow =
+                window.open(
+                  "about:blank",
+                  "_blank"
+                );
+
+              if (!fileWindow) {
+                showNotice(
+                  "El navegador bloqueó la apertura del archivo. Permití las ventanas emergentes y probá de nuevo.",
+                  "error"
+                );
+                return;
+              }
+
+              fileWindow.opener = null;
+
+              const previousText =
+                button.textContent;
+
+              button.dataset.loading = "true";
+              button.disabled = true;
+              button.textContent = "Preparando archivo…";
+
+              try {
+                const {
+                  data,
+                  error
+                } = await supabaseClient
+                  .storage
+                  .from("materials")
+                  .createSignedUrl(
+                    attachment.storage_path,
+                    3600
+                  );
+
+                if (error || !data?.signedUrl) {
+                  throw new Error(
+                    error?.message ||
+                    "No se pudo abrir el archivo."
+                  );
+                }
+
+                fileWindow.location.href =
+                  data.signedUrl;
+              } catch (error) {
+                try {
+                  fileWindow.close();
+                } catch {}
+
+                showNotice(
+                  error?.message ||
+                    "No se pudo abrir el archivo.",
+                  "error"
+                );
+              } finally {
+                button.dataset.loading = "false";
+                button.disabled = false;
+                button.textContent =
+                  previousText;
+              }
+            }
+          );
+        });
+
+      card
+        .querySelectorAll(
           ".proposal-vote-option input"
         )
         .forEach(input => {
@@ -739,53 +832,13 @@ async function loadProposals() {
     }
   );
 
-  const fileAttachments =
-    proposalAttachments.filter(
-      attachment =>
-        attachment.kind === "file" &&
-        attachment.storage_path
-    );
-
-  const signedUrlMap = {};
-
-  if (fileAttachments.length) {
-    const { data: signedUrls, error: signedError } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .createSignedUrls(
-          fileAttachments.map(
-            attachment =>
-              attachment.storage_path
-          ),
-          3600
-        );
-
-    if (signedError) {
-      showNotice(
-        signedError.message,
-        "error"
-      );
-      return;
-    }
-
-    (signedUrls || []).forEach(item => {
-      signedUrlMap[item.path] =
-        item.signedUrl;
-    });
-  }
-
   proposalAttachments.forEach(attachment => {
     (
       proposalAttachmentsMap[
         attachment.proposal_id
       ] ||= []
     ).push({
-      ...attachment,
-      signed_url:
-        signedUrlMap[
-          attachment.storage_path
-        ] || null
+      ...attachment
     });
   });
 
