@@ -2951,25 +2951,71 @@
 .metronome-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  align-items: stretch;
+  gap: 12px;
   margin-bottom: 16px;
   color: var(--bb-text-muted);
   font-size: 14px;
 }
 
-.metronome-summary > div {
-  display: inline-flex;
-  align-items: baseline;
+.metronome-summary > .metronome-summary-field {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   gap: 7px;
-  padding: 8px 11px;
+  min-width: 0;
+  padding: 10px 12px;
   border: 1px solid var(--bb-border);
   border-radius: 8px;
   background: var(--bb-surface-inset);
 }
 
-.metronome-summary strong {
+.metronome-summary label {
+  color: var(--bb-text-muted);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.metronome-summary input,
+.metronome-summary select {
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid var(--bb-border);
+  border-radius: 6px;
+  background: var(--bb-surface);
+  color: var(--bb-text);
+  font: inherit;
+}
+
+.metronome-bpm-editor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metronome-bpm-editor input {
+  width: 88px;
+}
+
+.metronome-bpm-editor > span {
   color: var(--bb-text);
   font-size: 17px;
+}
+
+.metronome-bpm-field {
+  max-width: 100%;
+}
+
+.metronome-tap-button {
+  white-space: nowrap;
+}
+
+.metronome-tap-status {
+  min-height: 16px;
+  font-size: 12px;
 }
 
 .metronome-controls {

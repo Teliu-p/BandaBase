@@ -267,6 +267,12 @@ let metronomeNextClickQuarterPosition =
 let metronomeVisualEvents =
   [];
 
+let metronomeTapTimes =
+  [];
+
+let metronomeTapResetTimer =
+  null;
+
 
 const METRONOME_SCHEDULE_AHEAD_SECONDS =
   0.12;
@@ -286,14 +292,24 @@ function metronomeElements() {
         "metronomePlayBtn"
       ),
 
-    bpmValue:
+    bpmInput:
       document.getElementById(
-        "metronomeBpmValue"
+        "metronomeBpmInput"
       ),
 
-    meterValue:
+    meterInput:
       document.getElementById(
-        "metronomeMeterValue"
+        "metronomeMeterInput"
+      ),
+
+    tapTempoButton:
+      document.getElementById(
+        "metronomeTapTempoBtn"
+      ),
+
+    tapTempoStatus:
+      document.getElementById(
+        "metronomeTapTempoStatus"
       ),
 
     subdivision:
@@ -456,16 +472,16 @@ function updateMetronomeDisplay() {
 
   const {
     playButton,
-    bpmValue,
-    meterValue,
+    bpmInput,
+    meterInput,
     subdivision
   } =
     metronomeElements();
 
   if (
     !playButton ||
-    !bpmValue ||
-    !meterValue ||
+    !bpmInput ||
+    !meterInput ||
     !subdivision
   ) {
     return;
@@ -474,14 +490,25 @@ function updateMetronomeDisplay() {
   const config =
     readMetronomeFormValues();
 
-  bpmValue.textContent =
-    Number.isFinite(config.bpm)
-      ? String(config.bpm)
-      : "—";
+  const detailBpm =
+    document.getElementById("detailBpm");
 
-  meterValue.textContent =
-    config.meter ||
-    "—";
+  const detailMeter =
+    document.getElementById("detailMeter");
+
+  const currentBpmValue =
+    detailBpm?.value || "";
+
+  const currentMeterValue =
+    detailMeter?.value || "";
+
+  if (bpmInput.value !== currentBpmValue) {
+    bpmInput.value = currentBpmValue;
+  }
+
+  if (meterInput.value !== currentMeterValue) {
+    meterInput.value = currentMeterValue;
+  }
 
   const valid =
     isValidMetronomeConfig(
@@ -1040,7 +1067,10 @@ function restartMetronomeFromForm() {
 function bindMetronomeControls() {
 
   const {
-    playButton
+    playButton,
+    bpmInput,
+    meterInput,
+    tapTempoButton
   } =
     metronomeElements();
 
@@ -1063,19 +1093,26 @@ function bindMetronomeControls() {
 
 
   [
-    "detailBpm",
-    "detailMeter"
+    {
+      id: "detailBpm",
+      event: "input"
+    },
+    {
+      id: "detailMeter",
+      event: "change"
+    }
   ]
     .forEach(
-      id => {
+      ({
+        id,
+        event
+      }) => {
 
         const input =
-          document.getElementById(
-            id
-          );
+          document.getElementById(id);
 
         input?.addEventListener(
-          "input",
+          event,
           function() {
 
             updateMetronomeDisplay();
@@ -1097,6 +1134,68 @@ function bindMetronomeControls() {
     );
 
 
+  bpmInput?.addEventListener(
+    "input",
+    function() {
+
+      const detailBpm =
+        document.getElementById("detailBpm");
+
+      if (
+        detailBpm &&
+        detailBpm.value !== bpmInput.value
+      ) {
+        detailBpm.value =
+          bpmInput.value;
+
+        detailBpm.dispatchEvent(
+          new Event("input", {
+            bubbles: true
+          })
+        );
+
+      } else {
+        updateMetronomeDisplay();
+      }
+
+    }
+  );
+
+
+  meterInput?.addEventListener(
+    "change",
+    function() {
+
+      const detailMeter =
+        document.getElementById("detailMeter");
+
+      if (
+        detailMeter &&
+        detailMeter.value !== meterInput.value
+      ) {
+        detailMeter.value =
+          meterInput.value;
+
+        detailMeter.dispatchEvent(
+          new Event("change", {
+            bubbles: true
+          })
+        );
+
+      } else {
+        updateMetronomeDisplay();
+      }
+
+    }
+  );
+
+
+  tapTempoButton?.addEventListener(
+    "click",
+    tapMetronomeTempo
+  );
+
+
   document.getElementById(
     "metronomeSubdivision"
   )?.addEventListener(
@@ -1112,6 +1211,154 @@ function bindMetronomeControls() {
 
 }
 
+
+function tapMetronomeTempo() {
+
+  const {
+    tapTempoStatus
+  } =
+    metronomeElements();
+
+  const now =
+    Date.now();
+
+  const lastTap =
+    metronomeTapTimes[
+      metronomeTapTimes.length - 1
+    ];
+
+  if (
+    lastTap &&
+    now - lastTap > 2500
+  ) {
+    metronomeTapTimes = [];
+  }
+
+  const previousTap =
+    metronomeTapTimes[
+      metronomeTapTimes.length - 1
+    ];
+
+  if (
+    previousTap &&
+    now - previousTap < 150
+  ) {
+    if (tapTempoStatus) {
+      tapTempoStatus.textContent =
+        "Toque demasiado rápido";
+    }
+
+    return;
+  }
+
+  metronomeTapTimes.push(now);
+
+  if (metronomeTapTimes.length > 5) {
+    metronomeTapTimes.shift();
+  }
+
+  if (metronomeTapTimes.length < 2) {
+
+    if (tapTempoStatus) {
+      tapTempoStatus.textContent =
+        "Tocá otra vez al pulso";
+    }
+
+  } else {
+
+    const intervals =
+      metronomeTapTimes
+        .slice(1)
+        .map(
+          (tap, index) =>
+            tap -
+            metronomeTapTimes[index]
+        )
+        .filter(
+          interval =>
+            interval >= 150 &&
+            interval <= 2500
+        )
+        .sort(
+          (a, b) =>
+            a - b
+        );
+
+    if (intervals.length) {
+
+      const middle =
+        Math.floor(
+          intervals.length / 2
+        );
+
+      const medianInterval =
+        intervals.length % 2
+          ? intervals[middle]
+          : (
+              intervals[middle - 1] +
+              intervals[middle]
+            ) / 2;
+
+      const bpm =
+        Math.round(
+          60000 / medianInterval
+        );
+
+      if (bpm >= 1 && bpm <= 400) {
+
+        const detailBpm =
+          document.getElementById("detailBpm");
+
+        if (detailBpm) {
+          detailBpm.value =
+            String(bpm);
+
+          detailBpm.dispatchEvent(
+            new Event("input", {
+              bubbles: true
+            })
+          );
+        }
+
+        if (tapTempoStatus) {
+          tapTempoStatus.textContent =
+            `${bpm} BPM · seguí tocando para ajustar`;
+        }
+
+      } else if (tapTempoStatus) {
+
+        tapTempoStatus.textContent =
+          "Pulso fuera del rango de BPM";
+
+      }
+
+    }
+
+  }
+
+  window.clearTimeout(
+    metronomeTapResetTimer
+  );
+
+  metronomeTapResetTimer =
+    window.setTimeout(
+      function() {
+
+        metronomeTapTimes = [];
+
+        if (tapTempoStatus) {
+          tapTempoStatus.textContent =
+            "Tocá al pulso";
+        }
+
+        metronomeTapResetTimer =
+          null;
+
+      },
+      2500
+    );
+
+}
 
 function syncMetronomeFromSongForm() {
 

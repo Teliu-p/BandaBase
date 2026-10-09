@@ -1350,15 +1350,48 @@
 
           <div class="metronome-summary">
 
-            <div>
-              <span>BPM</span>
-              <strong id="metronomeBpmValue">—</strong>
-              <span>♩</span>
+            <div class="metronome-summary-field metronome-bpm-field">
+              <label for="metronomeBpmInput">BPM</label>
+              <div class="metronome-bpm-editor">
+                <input
+                  id="metronomeBpmInput"
+                  type="number"
+                  min="1"
+                  max="400"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="—"
+                  aria-label="BPM del metrónomo"
+                >
+                <span aria-hidden="true">♩</span>
+                <button
+                  id="metronomeTapTempoBtn"
+                  type="button"
+                  class="btn btn-subtle metronome-tap-button"
+                  aria-label="Calcular BPM tocando al pulso"
+                >
+                  Tap tempo
+                </button>
+              </div>
+              <span
+                id="metronomeTapTempoStatus"
+                class="metronome-tap-status"
+                aria-live="polite"
+              >Tocá al pulso</span>
             </div>
 
-            <div>
-              <span>Métrica</span>
-              <strong id="metronomeMeterValue">—</strong>
+            <div class="metronome-summary-field metronome-meter-field">
+              <label for="metronomeMeterInput">Métrica</label>
+              <select id="metronomeMeterInput" aria-label="Métrica del metrónomo">
+                <option value="">—</option>
+                <option value="2/4">2/4</option>
+                <option value="3/4">3/4</option>
+                <option value="4/4">4/4</option>
+                <option value="5/4">5/4</option>
+                <option value="6/8">6/8</option>
+                <option value="7/8">7/8</option>
+                <option value="12/8">12/8</option>
+              </select>
             </div>
 
           </div>
