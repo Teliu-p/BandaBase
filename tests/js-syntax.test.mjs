@@ -398,7 +398,7 @@ assert.match(
 
 assert.match(
   materialFormattingSource,
-  /node\.tagName === "I" \|\| node\.tagName === "EM"/,
+  /node\.tagName === "I"\s*\|\|\s*node\.tagName === "EM"/,
   "El formato enriquecido debe reconocer cursiva al guardar, restaurar y mostrar."
 );
 
