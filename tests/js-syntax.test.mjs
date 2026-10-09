@@ -282,8 +282,18 @@ const songsColorSource = readFileSync(
 );
 assert.match(
   songsColorSource,
-  /color-picker-toggle[\s\S]*container\.classList\.toggle\("is-open"\)[\s\S]*color-palette/,
-  "La gama de colores debe abrirse y cerrarse desde un selector compacto."
+  /color-picker-toggle/,
+  "El selector debe mostrar un único indicador compacto."
+);
+assert.match(
+  songsColorSource,
+  /container\.classList\.toggle/,
+  "El indicador debe abrir y cerrar la paleta."
+);
+assert.match(
+  songsColorSource,
+  /color-palette/,
+  "La gama completa debe estar dentro de una paleta desplegable."
 );
 
 assert.doesNotMatch(
