@@ -128,6 +128,21 @@ assert.match(
 
 const html = readFileSync(indexPath, "utf8");
 const styles = readFileSync(join(root, "src", "styles.css"), "utf8");
+const songsColorSource = readFileSync(
+  join(srcDir, "songs-color.js"),
+  "utf8"
+);
+assert.match(
+  songsColorSource,
+  /color-picker-toggle[\s\S]*color-palette[\s\S]*container\.classList\.toggle\("is-open"\)/,
+  "La gama de colores debe abrirse y cerrarse desde un selector compacto."
+);
+assert.match(
+  styles,
+  /\.color-picker\.is-open \.color-palette\s*\{\s*display:\s*grid;/,
+  "La gama de colores debe permanecer oculta hasta que se abra el selector."
+);
+
 
 assert.match(
   html,
