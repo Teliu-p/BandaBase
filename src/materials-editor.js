@@ -801,6 +801,205 @@ function getMaterialCurrentFontSizeCommandValue() {
 }
 
 
+function getMaterialTextSizeClassFromElement(
+  element
+) {
+
+  if (!element) {
+    return null;
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-normal"
+    )
+  ) {
+    return "material-text-size-normal";
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-1"
+    )
+  ) {
+    return "material-text-size-1";
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-2"
+    )
+  ) {
+    return "material-text-size-2";
+  }
+
+  if (element.tagName === "FONT") {
+
+    const size =
+      element.getAttribute("size");
+
+    if (size === "3") {
+      return "material-text-size-normal";
+    }
+
+    if (size === "5") {
+      return "material-text-size-1";
+    }
+
+    if (size === "7") {
+      return "material-text-size-2";
+    }
+
+  }
+
+  return null;
+
+}
+
+
+function getMaterialTextSizeElementForRange(
+  range,
+  editor,
+  exactContentsOnly = false
+) {
+
+  if (!range || !editor) {
+    return null;
+  }
+
+  const selectedText =
+    range.toString();
+
+  let element =
+    range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentElement;
+
+  while (
+    element &&
+    element !== editor
+  ) {
+
+    const sizeClass =
+      getMaterialTextSizeClassFromElement(
+        element
+      );
+
+    if (
+      sizeClass &&
+      element.contains(
+        range.endContainer
+      )
+    ) {
+
+      if (
+        !exactContentsOnly ||
+        selectedText === element.textContent
+      ) {
+        return element;
+      }
+
+    }
+
+    element =
+      element.parentElement;
+
+  }
+
+  return null;
+
+}
+
+
+function unwrapMaterialTextSizeElement(
+  element
+) {
+
+  const parent =
+    element?.parentNode;
+
+  if (!parent) {
+    return;
+  }
+
+  while (
+    element.firstChild
+  ) {
+
+    parent.insertBefore(
+      element.firstChild,
+      element
+    );
+
+  }
+
+  parent.removeChild(
+    element
+  );
+
+}
+
+
+function clearMaterialTextSizeDescendants(
+  root
+) {
+
+  if (!root?.querySelectorAll) {
+    return;
+  }
+
+  const sizeElements =
+    Array.from(
+      root.querySelectorAll(
+        [
+          "span.material-text-size-normal",
+          "span.material-text-size-1",
+          "span.material-text-size-2",
+          'font[size="3"]',
+          'font[size="5"]',
+          'font[size="7"]'
+        ].join(",")
+      )
+    ).reverse();
+
+  sizeElements.forEach(
+    unwrapMaterialTextSizeElement
+  );
+
+}
+
+
+function convertMaterialTextSizeElementToSpan(
+  element
+) {
+
+  if (
+    !element ||
+    element.tagName !== "FONT"
+  ) {
+    return element;
+  }
+
+  const span =
+    document.createElement("span");
+
+  while (
+    element.firstChild
+  ) {
+    span.appendChild(
+      element.firstChild
+    );
+  }
+
+  element.replaceWith(
+    span
+  );
+
+  return span;
+
+}
+
+
 function setMaterialFormattingButtonState(
   button,
   active
@@ -868,6 +1067,17 @@ function updateMaterialFormattingButtonStates() {
 
   }
 
+  const sizeElement =
+    getMaterialTextSizeElementForRange(
+      range,
+      editor
+    );
+
+  const sizeClass =
+    getMaterialTextSizeClassFromElement(
+      sizeElement
+    );
+
   const fontSize =
     getMaterialCurrentFontSizeCommandValue();
 
@@ -883,16 +1093,17 @@ function updateMaterialFormattingButtonStates() {
 
   setMaterialFormattingButtonState(
     document.getElementById("materialSize1Btn"),
-    fontSize === "5"
+    sizeClass === "material-text-size-1" ||
+      (!sizeClass && fontSize === "5")
   );
 
   setMaterialFormattingButtonState(
     document.getElementById("materialSize2Btn"),
-    fontSize === "7"
+    sizeClass === "material-text-size-2" ||
+      (!sizeClass && fontSize === "7")
   );
 
 }
-
 
 function showMaterialFormatActionFeedback(button) {
 
@@ -938,35 +1149,183 @@ function toggleMaterialTextSize(
     return;
   }
 
-  const currentSize =
-    getMaterialCurrentFontSizeCommandValue();
-
-  const nextSize =
-    currentSize ===
-      String(sizeValue)
-      ? "3"
-      : String(sizeValue);
-
-  try {
-
-    document.execCommand(
-      "fontSize",
-      false,
-      nextSize
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
     );
 
-  } catch (error) {
+  const selection =
+    window.getSelection();
 
-    console.error(
-      error
-    );
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  const targetClass =
+    String(sizeValue) === "5"
+      ? "material-text-size-1"
+      : "material-text-size-2";
+
+  // El cursor sin texto seleccionado sigue usando el modo de escritura
+  // nativo del navegador. Para texto seleccionado usamos clases propias,
+  // que sí reconocemos después de guardar y volver a abrir el material.
+  if (range.collapsed) {
+
+    const currentSizeElement =
+      getMaterialTextSizeElementForRange(
+        range,
+        editor
+      );
+
+    const currentClass =
+      getMaterialTextSizeClassFromElement(
+        currentSizeElement
+      );
+
+    const currentSize =
+      currentClass === "material-text-size-1"
+        ? "5"
+        : currentClass === "material-text-size-2"
+          ? "7"
+          : currentClass === "material-text-size-normal"
+            ? "3"
+            : getMaterialCurrentFontSizeCommandValue();
+
+    const nextSize =
+      currentSize === String(sizeValue)
+        ? "3"
+        : String(sizeValue);
+
+    try {
+
+      document.execCommand(
+        "fontSize",
+        false,
+        nextSize
+      );
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+    }
+
+    rememberMaterialSelection();
+    return;
 
   }
 
-  rememberMaterialSelection();
+  const exactSizeElement =
+    getMaterialTextSizeElementForRange(
+      range,
+      editor,
+      true
+    );
+
+  const containingSizeElement =
+    exactSizeElement ||
+    getMaterialTextSizeElementForRange(
+      range,
+      editor
+    );
+
+  const currentClass =
+    getMaterialTextSizeClassFromElement(
+      containingSizeElement
+    );
+
+  const nextClass =
+    getNextMaterialTextSizeClass(
+      currentClass,
+      targetClass
+    );
+
+  if (exactSizeElement) {
+
+    clearMaterialTextSizeDescendants(
+      exactSizeElement
+    );
+
+    const wrapper =
+      convertMaterialTextSizeElementToSpan(
+        exactSizeElement
+      );
+
+    wrapper.className =
+      nextClass;
+
+    const updatedRange =
+      document.createRange();
+
+    updatedRange.selectNodeContents(
+      wrapper
+    );
+
+    selection.removeAllRanges();
+    selection.addRange(
+      updatedRange
+    );
+
+    materialSelectionRange =
+      updatedRange.cloneRange();
+
+    updateMaterialFormattingButtonStates();
+
+    return;
+
+  }
+
+  // Al cambiar solo una parte de un texto ya formateado, el contenido
+  // extraído puede traer copias de sus tamaños anteriores. Quitamos esos
+  // tamaños antes de aplicar uno solo al fragmento seleccionado.
+  const contents =
+    range.extractContents();
+
+  clearMaterialTextSizeDescendants(
+    contents
+  );
+
+  const wrapper =
+    document.createElement("span");
+
+  wrapper.className =
+    nextClass;
+
+  wrapper.appendChild(
+    contents
+  );
+
+  range.insertNode(
+    wrapper
+  );
+
+  const updatedRange =
+    document.createRange();
+
+  updatedRange.selectNodeContents(
+    wrapper
+  );
+
+  selection.removeAllRanges();
+  selection.addRange(
+    updatedRange
+  );
+
+  materialSelectionRange =
+    updatedRange.cloneRange();
+
+  updateMaterialFormattingButtonStates();
 
 }
-
 
 function insertMaterialWrapper(
   left,

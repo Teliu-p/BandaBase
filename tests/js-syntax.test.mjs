@@ -437,6 +437,38 @@ assert.match(
 
 assert.match(
   materialFormattingSource,
+  /material-text-size-normal/,
+  "Debe existir un formato de tamaño normal que permita deshacer A+ o A++ dentro de otro tamaño sin perder el tamaño base."
+);
+
+const {
+  getNextMaterialTextSizeClass
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["getNextMaterialTextSizeClass"]
+);
+
+assert.equal(
+  getNextMaterialTextSizeClass(null, "material-text-size-1"),
+  "material-text-size-1"
+);
+assert.equal(
+  getNextMaterialTextSizeClass("material-text-size-1", "material-text-size-1"),
+  "material-text-size-normal",
+  "Pulsar el mismo tamaño debe volver al tamaño normal en lugar de crear otro envoltorio."
+);
+assert.equal(
+  getNextMaterialTextSizeClass("material-text-size-normal", "material-text-size-1"),
+  "material-text-size-1"
+);
+assert.equal(
+  getNextMaterialTextSizeClass("material-text-size-1", "material-text-size-2"),
+  "material-text-size-2",
+  "Cambiar de A+ a A++ debe reemplazar el tamaño existente."
+);
+
+assert.match(
+  materialFormattingSource,
   /<a\b/,
   "El formato enriquecido de Materiales debe conservar enlaces."
 );
@@ -491,6 +523,42 @@ assert.match(
   materialEditorFormattingSource,
   /executeMaterialTextCommand\([\s\S]{0,80}"italic"/,
   "El botón de cursiva debe ejecutar la orden de formato italic."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /function getMaterialTextSizeElementForRange\([\s\S]*?exactContentsOnly = false[\s\S]*?selectedText === element\.textContent/,
+  "El editor debe reconocer el tamaño propio ya aplicado al texto seleccionado después de guardar y volver a abrir."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /function toggleMaterialTextSize\([\s\S]*?const exactSizeElement[\s\S]*?clearMaterialTextSizeDescendants\([\s\S]*?wrapper\.className =\s*nextClass/,
+  "Al volver a aplicar un tamaño sobre la misma selección, debe reutilizar el envoltorio existente."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /range\.extractContents\(\)[\s\S]*?clearMaterialTextSizeDescendants\([\s\S]*?wrapper\.className =\s*nextClass/,
+  "Al cambiar el tamaño de una selección parcial, debe eliminar los tamaños heredados del fragmento antes de envolverlo."
+);
+
+assert.match(
+  styles,
+  /\.material-text-size-normal[\s\S]*?font-size:\s*1rem/,
+  "El tamaño normal debe restablecer una medida base, incluso dentro de una selección previamente ampliada."
+);
+
+assert.match(
+  styles,
+  /\.material-text-size-1[\s\S]*?font-size:\s*1\.25rem[\s\S]*?\.material-text-size-2[\s\S]*?font-size:\s*1\.5rem/,
+  "A+ y A++ deben usar medidas basadas en la raíz para que los tamaños anidados no se multipliquen."
+);
+
+assert.doesNotMatch(
+  styles,
+  /font-size:\s*1\.25em|font-size:\s*1\.5em/,
+  "Los tamaños de Materiales no deben escalar multiplicándose con el tamaño heredado."
 );
 
 const appNavigationSource = readFileSync(
