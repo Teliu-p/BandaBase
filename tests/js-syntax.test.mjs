@@ -101,6 +101,31 @@ assert.doesNotMatch(
   "La carga anticipada de metadatos y las funciones de hidratación automática deben desaparecer."
 );
 
+const proposalsViewSource = readFileSync(
+  join(srcDir, "proposals-view.js"),
+  "utf8"
+);
+const proposalsContentSource = readFileSync(
+  join(srcDir, "proposals-content.js"),
+  "utf8"
+);
+
+assert.doesNotMatch(
+  proposalsViewSource,
+  /createSignedUrls\s*\(/,
+  "Propuestas no debe generar de antemano URLs para todos los archivos."
+);
+assert.match(
+  proposalsViewSource,
+  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*createSignedUrl\s*\(/,
+  "Propuestas debe solicitar la URL firmada desde la acción explícita de abrir un archivo."
+);
+assert.match(
+  proposalsContentSource,
+  /data-open-proposal-attachment/,
+  "Los adjuntos de archivos de Propuestas deben presentar un control para abrirlos bajo demanda."
+);
+
 const html = readFileSync(indexPath, "utf8");
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
   .map(match => match[1]);
