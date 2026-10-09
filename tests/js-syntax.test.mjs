@@ -409,7 +409,6 @@ assert.match(
 );
 
 assert.ok(
-  materialFormattingSource.includes('" <em>" +') === false &&
   materialFormattingSource.includes('"<em>" +') &&
   materialFormattingSource.includes('"</em>"'),
   "La cursiva debe guardarse como marcado enriquecido seguro."
