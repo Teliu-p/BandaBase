@@ -10,6 +10,55 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
     "material-text-size-2"
   ]);
 
+function calculateMaterialForcedCaretPadding(
+  caretX,
+  caretY,
+  targetX,
+  targetY,
+  lineHeight,
+  spaceWidth,
+  contentStartX
+) {
+
+  const safeLineHeight =
+    Number.isFinite(lineHeight) && lineHeight > 0
+      ? lineHeight
+      : 20;
+
+  const safeSpaceWidth =
+    Number.isFinite(spaceWidth) && spaceWidth > 0
+      ? spaceWidth
+      : 4;
+
+  const lineBreaks =
+    Math.max(
+      0,
+      Math.round(
+        (targetY - caretY) / safeLineHeight
+      )
+    );
+
+  const horizontalStart =
+    lineBreaks > 0
+      ? contentStartX
+      : caretX;
+
+  const spaces =
+    Math.max(
+      0,
+      Math.round(
+        (targetX - horizontalStart) / safeSpaceWidth
+      )
+    );
+
+  return {
+    lineBreaks,
+    spaces
+  };
+
+}
+
+
 
 function getNextMaterialTextSizeClass(
   currentClass,
