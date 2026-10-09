@@ -1,5 +1,214 @@
 /* Editor y compositor de Materiales. */
 
+/*
+ * Doble clic: fija el punto de escritura en espacios vacíos.
+ * El clic simple conserva el posicionamiento nativo.
+ */
+function getMaterialRangeCaretPoint(sourceRange, editor, targetY = null) {
+  const range = sourceRange.cloneRange();
+  range.collapse(true);
+  const rect = range.getBoundingClientRect();
+  if (rect?.height) return { x: rect.left, y: rect.top + rect.height / 2, height: rect.height };
+
+  const node = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    const offset = range.startOffset;
+    const charRect = index => {
+      if (index < 0 || index >= value.length || value[index] === "\n") return null;
+      const r = document.createRange();
+      r.setStart(node, index);
+      r.setEnd(node, index + 1);
+      const box = r.getBoundingClientRect();
+      return box?.height ? box : null;
+    };
+    let before = offset - 1;
+    let after = offset;
+    while (before >= 0 && value[before] === "\n") before--;
+    while (after < value.length && value[after] === "\n") after++;
+    const left = charRect(before);
+    const right = charRect(after);
+    if (left && right) {
+      const y1 = left.top + left.height / 2;
+      const y2 = right.top + right.height / 2;
+      const height = Math.max(left.height, right.height);
+      const style = getComputedStyle(editor);
+      const x0 = editor.getBoundingClientRect().left + editor.clientLeft +
+        (parseFloat(style.paddingLeft) || 0);
+      if (y2 - y1 >= height * 1.5) return { x: x0, y: y1 + height, height };
+      if (value[offset - 1] === "\n" && y2 > y1) return { x: right.left, y: y2, height: right.height };
+      return { x: left.right, y: y1, height: left.height };
+    }
+    if (right) return { x: right.left, y: right.top + right.height / 2, height: right.height };
+    if (left) return { x: left.right, y: left.top + left.height / 2, height: left.height };
+  }
+
+  const style = getComputedStyle(editor);
+  const box = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  return {
+    x: box.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0),
+    y: Number.isFinite(targetY) ? targetY : box.top + editor.clientTop +
+      (parseFloat(style.paddingTop) || 0) + font * 0.75,
+    height: font * 1.5
+  };
+}
+
+function getMaterialSpaceWidth(range, editor) {
+  const node = range.startContainer;
+  const target = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement || editor;
+  const style = getComputedStyle(target);
+  const probe = document.createElement("span");
+  Object.assign(probe.style, {
+    position: "absolute", visibility: "hidden", whiteSpace: "pre",
+    fontFamily: style.fontFamily, fontSize: style.fontSize,
+    fontWeight: style.fontWeight, fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing
+  });
+  probe.textContent = "          ";
+  document.body.appendChild(probe);
+  const width = probe.getBoundingClientRect().width / 10;
+  probe.remove();
+  return width || (parseFloat(style.fontSize) || 16) * 0.3;
+}
+
+function hasMaterialTextAtOrAfterPointOnLine(editor, targetX, targetY, lineHeight) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    const value = node.nodeValue || "";
+    for (let index = 0; index < value.length; index++) {
+      if (value[index] === "\n" || value[index] === "\r") continue;
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + 1);
+      const box = range.getBoundingClientRect();
+      if (!box?.height) continue;
+      const center = box.top + box.height / 2;
+      if (Math.abs(center - targetY) <= Math.max(box.height, lineHeight) * 0.55 &&
+          box.right > targetX + 1) return true;
+    }
+  }
+  return false;
+}
+
+function moveMaterialCaretAboveBlankLine(range, editor) {
+  const node = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    let index = range.startOffset - 1;
+    while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+    if (index >= 0 && value[index] === "\n") {
+      range.setStart(node, index);
+      range.collapse(true);
+      return true;
+    }
+    if (range.startOffset > 0) return false;
+  }
+
+  let current = node;
+  while (current && current !== editor) {
+    if (!current.previousSibling) {
+      current = current.parentNode;
+      continue;
+    }
+    current = current.previousSibling;
+    while (current.nodeType === Node.ELEMENT_NODE && current.lastChild &&
+           !current.classList?.contains("material-inline-attachment")) current = current.lastChild;
+    if (current.nodeType === Node.TEXT_NODE) {
+      const value = current.nodeValue || "";
+      let index = value.length - 1;
+      while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+      if (index >= 0 && value[index] === "\n") {
+        range.setStart(current, index);
+        range.collapse(true);
+        return true;
+      }
+      if (value.trim()) return false;
+    } else if (current.nodeType === Node.ELEMENT_NODE) {
+      if (current.tagName === "BR") {
+        range.setStartBefore(current);
+        range.collapse(true);
+        return true;
+      }
+      if (current.classList?.contains("material-inline-attachment")) return false;
+    }
+  }
+  return false;
+}
+
+function placeMaterialCaretAtDoubleClick(event) {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor || !editor.contains(event.target) ||
+      event.target.closest?.(".material-inline-attachment")) return;
+
+  event.preventDefault();
+  let range = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.offsetNode)) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
+      range.collapse(true);
+    }
+  }
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.startContainer) && editor.contains(point.endContainer)) {
+      range = point.cloneRange();
+      range.collapse(true);
+    }
+  }
+  if (!range) {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+
+  editor.focus();
+  const selection = window.getSelection();
+  if (!selection) return;
+  const style = getComputedStyle(editor);
+  const bounds = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  const lineHeight = parseFloat(style.lineHeight) || font * 1.5;
+  let caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+
+  // Si el navegador eligió el renglón de abajo, retroceder por el salto anterior.
+  const linesAbove = Math.max(0, Math.round((caret.y - event.clientY) / lineHeight));
+  for (let i = 0; i < linesAbove; i++) {
+    if (!moveMaterialCaretAboveBlankLine(range, editor)) break;
+    caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+    if (Math.abs(event.clientY - caret.y) < lineHeight * 0.45) break;
+  }
+
+  const spaceWidth = getMaterialSpaceWidth(range, editor);
+  const startX = bounds.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0);
+  const padding = calculateMaterialForcedCaretPadding(
+    caret.x, caret.y, event.clientX, event.clientY,
+    lineHeight, spaceWidth, startX
+  );
+  let prefix = "\n".repeat(padding.lineBreaks);
+  if (padding.lineBreaks > 0) {
+    prefix += " ".repeat(padding.spaces);
+  } else if (event.clientX > caret.x &&
+             !hasMaterialTextAtOrAfterPointOnLine(editor, event.clientX, event.clientY, lineHeight)) {
+    prefix += " ".repeat(padding.spaces);
+  }
+  if (prefix) {
+    const filler = document.createTextNode(prefix);
+    range.insertNode(filler);
+    range.setStart(filler, filler.length);
+    range.collapse(true);
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
+  updateMaterialFormattingButtonStates();
+}
+
+
+
 function rememberMaterialSelection() {
 
   const editor =
@@ -723,6 +932,15 @@ document
   .addEventListener(
     "focus",
     rememberMaterialSelection
+  );
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "dblclick",
+    placeMaterialCaretAtDoubleClick
   );
 
 
