@@ -479,13 +479,20 @@ document.getElementById(
     const {
       error: memberError
     } =
-      await supabaseClient.rpc(
-        "update_my_band_member_display_name",
-        {
-          p_band_id: currentBand.id,
-          p_display_name: fullName || null
-        }
-      );
+      await supabaseClient
+        .from("band_members")
+        .update({
+          display_name:
+            fullName || null
+        })
+        .eq(
+          "band_id",
+          currentBand.id
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
 
     if (memberError) {
 
