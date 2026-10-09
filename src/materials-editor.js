@@ -186,6 +186,185 @@ function getMaterialRangeCaretPoint(
 }
 
 
+function getPreviousMaterialLeafNode(
+  node,
+  editor
+) {
+
+  let current =
+    node;
+
+  while (
+    current &&
+    current !== editor
+  ) {
+
+    if (current.previousSibling) {
+
+      current =
+        current.previousSibling;
+
+      while (
+        current.nodeType === Node.ELEMENT_NODE &&
+        current.lastChild &&
+        !current.classList?.contains(
+          "material-inline-attachment"
+        )
+      ) {
+        current =
+          current.lastChild;
+      }
+
+      return current;
+
+    }
+
+    current =
+      current.parentNode;
+
+  }
+
+  return null;
+
+}
+
+
+function moveMaterialCaretAboveBlankLine(
+  range,
+  editor
+) {
+
+  const node =
+    range.startContainer;
+
+  if (
+    node.nodeType === Node.TEXT_NODE
+  ) {
+
+    const value =
+      node.nodeValue || "";
+
+    let index =
+      range.startOffset - 1;
+
+    while (
+      index >= 0 &&
+      /[ \t\u00a0]/.test(value[index])
+    ) {
+      index -= 1;
+    }
+
+    if (
+      index >= 0 &&
+      value[index] === "\n"
+    ) {
+
+      range.setStart(
+        node,
+        index
+      );
+
+      range.collapse(true);
+
+      return true;
+
+    }
+
+    if (range.startOffset > 0) {
+      return false;
+    }
+
+  }
+
+  let previous =
+    getPreviousMaterialLeafNode(
+      node,
+      editor
+    );
+
+  while (previous) {
+
+    if (
+      previous.nodeType === Node.TEXT_NODE
+    ) {
+
+      const value =
+        previous.nodeValue || "";
+
+      let index =
+        value.length - 1;
+
+      while (
+        index >= 0 &&
+        /[ \t\u00a0]/.test(value[index])
+      ) {
+        index -= 1;
+      }
+
+      if (
+        index >= 0 &&
+        value[index] === "\n"
+      ) {
+
+        range.setStart(
+          previous,
+          index
+        );
+
+        range.collapse(true);
+
+        return true;
+
+      }
+
+      if (value.trim()) {
+        return false;
+      }
+
+    } else if (
+      previous.nodeType === Node.ELEMENT_NODE &&
+      previous.tagName === "BR"
+    ) {
+
+      const parent =
+        previous.parentNode;
+
+      if (!parent) {
+        return false;
+      }
+
+      range.setStartBefore(
+        previous
+      );
+
+      range.collapse(true);
+
+      return true;
+
+    } else if (
+      previous.nodeType === Node.ELEMENT_NODE &&
+      previous.classList?.contains(
+        "material-inline-attachment"
+      )
+    ) {
+
+      return false;
+
+    }
+
+    previous =
+      getPreviousMaterialLeafNode(
+        previous,
+        editor
+      );
+
+  }
+
+  return false;
+
+}
+
+
 function getMaterialSpaceWidth(
   range,
   editor
@@ -432,7 +611,7 @@ function placeMaterialCaretAtDoubleClick(
     return;
   }
 
-  const caretPoint =
+  let caretPoint =
     getMaterialRangeCaretPoint(
       range,
       editor
@@ -450,6 +629,47 @@ function placeMaterialCaretAtDoubleClick(
   const lineHeight =
     parseFloat(editorStyle.lineHeight) ||
     fontSize * 1.5;
+
+  // A veces el navegador devuelve el principio del renglón inferior
+  // al hacer doble clic en un renglón vacío. Si hay un salto previo,
+  // retrocedemos hasta la línea vacía antes de calcular el relleno.
+  const linesAbove =
+    Math.max(
+      0,
+      Math.round(
+        (caretPoint.y - event.clientY) / lineHeight
+      )
+    );
+
+  for (
+    let step = 0;
+    step < linesAbove;
+    step += 1
+  ) {
+
+    if (
+      !moveMaterialCaretAboveBlankLine(
+        range,
+        editor
+      )
+    ) {
+      break;
+    }
+
+    caretPoint =
+      getMaterialRangeCaretPoint(
+        range,
+        editor
+      );
+
+    if (
+      Math.abs(event.clientY - caretPoint.y) <
+      lineHeight * 0.45
+    ) {
+      break;
+    }
+
+  }
 
   const spaceWidth =
     getMaterialSpaceWidth(
