@@ -1,5 +1,594 @@
 /* Editor y compositor de Materiales. */
 
+/*
+ * El doble clic permite fijar el punto de escritura en espacios vacíos
+ * del compositor. El clic simple conserva el comportamiento nativo.
+ */
+function calculateMaterialForcedCaretPadding(
+  caretX,
+  caretY,
+  targetX,
+  targetY,
+  lineHeight,
+  spaceWidth,
+  contentStartX
+) {
+
+  const safeLineHeight =
+    Number.isFinite(lineHeight) && lineHeight > 0
+      ? lineHeight
+      : 20;
+
+  const safeSpaceWidth =
+    Number.isFinite(spaceWidth) && spaceWidth > 0
+      ? spaceWidth
+      : 4;
+
+  const lineBreaks =
+    Math.max(
+      0,
+      Math.round(
+        (targetY - caretY) / safeLineHeight
+      )
+    );
+
+  const horizontalStart =
+    lineBreaks > 0
+      ? contentStartX
+      : caretX;
+
+  const spaces =
+    Math.max(
+      0,
+      Math.round(
+        (targetX - horizontalStart) / safeSpaceWidth
+      )
+    );
+
+  return {
+    lineBreaks,
+    spaces
+  };
+
+}
+
+
+function getMaterialRangeCaretPoint(
+  sourceRange,
+  editor
+) {
+
+  const range =
+    sourceRange.cloneRange();
+
+  range.collapse(true);
+
+  let rect =
+    range.getBoundingClientRect();
+
+  if (
+    rect &&
+    rect.height > 0
+  ) {
+    return {
+      x: rect.left,
+      y: rect.top + rect.height / 2,
+      height: rect.height
+    };
+  }
+
+  const node =
+    range.startContainer;
+
+  if (node.nodeType === Node.TEXT_NODE) {
+
+    const value =
+      node.nodeValue || "";
+
+    const offset =
+      range.startOffset;
+
+    function getCharacterRect(index) {
+
+      if (
+        index < 0 ||
+        index >= value.length ||
+        value[index] === "\n"
+      ) {
+        return null;
+      }
+
+      const characterRange =
+        document.createRange();
+
+      characterRange.setStart(
+        node,
+        index
+      );
+
+      characterRange.setEnd(
+        node,
+        index + 1
+      );
+
+      const characterRect =
+        characterRange.getBoundingClientRect();
+
+      if (!characterRect || !characterRect.height) {
+        return null;
+      }
+
+      return characterRect;
+
+    }
+
+    let beforeIndex = offset - 1;
+    let afterIndex = offset;
+
+    while (
+      beforeIndex >= 0 &&
+      value[beforeIndex] === "\n"
+    ) {
+      beforeIndex -= 1;
+    }
+
+    while (
+      afterIndex < value.length &&
+      value[afterIndex] === "\n"
+    ) {
+      afterIndex += 1;
+    }
+
+    const beforeRect =
+      getCharacterRect(beforeIndex);
+
+    const afterRect =
+      getCharacterRect(afterIndex);
+
+    if (
+      beforeRect &&
+      afterRect
+    ) {
+
+      const beforeCenter =
+        beforeRect.top + beforeRect.height / 2;
+
+      const afterCenter =
+        afterRect.top + afterRect.height / 2;
+
+      const lineHeight =
+        Math.max(
+          beforeRect.height,
+          afterRect.height
+        );
+
+      if (
+        afterCenter - beforeCenter >=
+        lineHeight * 1.5
+      ) {
+        return {
+          x: editor.getBoundingClientRect().left +
+            editor.clientLeft +
+            parseFloat(getComputedStyle(editor).paddingLeft || "0"),
+          y: beforeCenter + lineHeight,
+          height: lineHeight
+        };
+      }
+
+      if (
+        value[offset - 1] === "\n" &&
+        afterCenter > beforeCenter
+      ) {
+        return {
+          x: afterRect.left,
+          y: afterCenter,
+          height: afterRect.height
+        };
+      }
+
+      return {
+        x: beforeRect.right,
+        y: beforeCenter,
+        height: beforeRect.height
+      };
+
+    }
+
+    if (afterRect) {
+      return {
+        x: afterRect.left,
+        y: afterRect.top + afterRect.height / 2,
+        height: afterRect.height
+      };
+    }
+
+    if (beforeRect) {
+      return {
+        x: beforeRect.right,
+        y: beforeRect.top + beforeRect.height / 2,
+        height: beforeRect.height
+      };
+    }
+
+  }
+
+  const editorRect =
+    editor.getBoundingClientRect();
+
+  const editorStyle =
+    getComputedStyle(editor);
+
+  const fontSize =
+    parseFloat(editorStyle.fontSize) || 16;
+
+  return {
+    x: editorRect.left +
+      editor.clientLeft +
+      (parseFloat(editorStyle.paddingLeft) || 0),
+    y: editorRect.top +
+      editor.clientTop +
+      (parseFloat(editorStyle.paddingTop) || 0) +
+      fontSize * 0.75,
+    height: fontSize * 1.5
+  };
+
+}
+
+
+function getMaterialSpaceWidth(
+  range,
+  editor
+) {
+
+  const node =
+    range.startContainer;
+
+  const styleTarget =
+    node.nodeType === Node.ELEMENT_NODE
+      ? node
+      : node.parentElement || editor;
+
+  const style =
+    getComputedStyle(styleTarget);
+
+  const probe =
+    document.createElement("span");
+
+  probe.style.position =
+    "absolute";
+
+  probe.style.visibility =
+    "hidden";
+
+  probe.style.whiteSpace =
+    "pre";
+
+  probe.style.fontFamily =
+    style.fontFamily;
+
+  probe.style.fontSize =
+    style.fontSize;
+
+  probe.style.fontWeight =
+    style.fontWeight;
+
+  probe.style.fontStyle =
+    style.fontStyle;
+
+  probe.style.letterSpacing =
+    style.letterSpacing;
+
+  probe.textContent =
+    "          ";
+
+  document.body.appendChild(
+    probe
+  );
+
+  const width =
+    probe.getBoundingClientRect().width / 10;
+
+  probe.remove();
+
+  return width ||
+    (parseFloat(style.fontSize) || 16) * 0.3;
+
+}
+
+
+function hasMaterialTextAtOrAfterPointOnLine(
+  editor,
+  targetX,
+  targetY,
+  lineHeight
+) {
+
+  const walker =
+    document.createTreeWalker(
+      editor,
+      NodeFilter.SHOW_TEXT
+    );
+
+  let node;
+
+  while (
+    (node = walker.nextNode())
+  ) {
+
+    const value =
+      node.nodeValue || "";
+
+    for (
+      let index = 0;
+      index < value.length;
+      index += 1
+    ) {
+
+      if (
+        value[index] === "\n" ||
+        value[index] === "\r"
+      ) {
+        continue;
+      }
+
+      const range =
+        document.createRange();
+
+      range.setStart(
+        node,
+        index
+      );
+
+      range.setEnd(
+        node,
+        index + 1
+      );
+
+      const rect =
+        range.getBoundingClientRect();
+
+      if (
+        !rect ||
+        !rect.height
+      ) {
+        continue;
+      }
+
+      const centerY =
+        rect.top + rect.height / 2;
+
+      if (
+        Math.abs(centerY - targetY) <=
+          Math.max(rect.height, lineHeight) * 0.55 &&
+        rect.right > targetX + 1
+      ) {
+        return true;
+      }
+
+    }
+
+  }
+
+  return false;
+
+}
+
+
+function placeMaterialCaretAtDoubleClick(
+  event
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (
+    !editor ||
+    !editor.contains(event.target)
+  ) {
+    return;
+  }
+
+  if (
+    event.target.closest?.(
+      ".material-inline-attachment"
+    )
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  let range = null;
+
+  if (
+    typeof document.caretPositionFromPoint ===
+    "function"
+  ) {
+
+    const position =
+      document.caretPositionFromPoint(
+        event.clientX,
+        event.clientY
+      );
+
+    if (
+      position &&
+      editor.contains(position.offsetNode)
+    ) {
+
+      range =
+        document.createRange();
+
+      range.setStart(
+        position.offsetNode,
+        position.offset
+      );
+
+      range.collapse(true);
+
+    }
+
+  }
+
+  if (
+    !range &&
+    typeof document.caretRangeFromPoint ===
+    "function"
+  ) {
+
+    const pointRange =
+      document.caretRangeFromPoint(
+        event.clientX,
+        event.clientY
+      );
+
+    if (
+      pointRange &&
+      editor.contains(pointRange.startContainer) &&
+      editor.contains(pointRange.endContainer)
+    ) {
+
+      range =
+        pointRange.cloneRange();
+
+      range.collapse(true);
+
+    }
+
+  }
+
+  if (!range) {
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(false);
+
+  }
+
+  editor.focus();
+
+  const selection =
+    window.getSelection();
+
+  if (!selection) {
+    return;
+  }
+
+  const caretPoint =
+    getMaterialRangeCaretPoint(
+      range,
+      editor
+    );
+
+  const editorRect =
+    editor.getBoundingClientRect();
+
+  const editorStyle =
+    getComputedStyle(editor);
+
+  const fontSize =
+    parseFloat(editorStyle.fontSize) || 16;
+
+  const lineHeight =
+    parseFloat(editorStyle.lineHeight) ||
+    fontSize * 1.5;
+
+  const spaceWidth =
+    getMaterialSpaceWidth(
+      range,
+      editor
+    );
+
+  const contentStartX =
+    editorRect.left +
+    editor.clientLeft +
+    (parseFloat(editorStyle.paddingLeft) || 0);
+
+  const padding =
+    calculateMaterialForcedCaretPadding(
+      caretPoint.x,
+      caretPoint.y,
+      event.clientX,
+      event.clientY,
+      lineHeight,
+      spaceWidth,
+      contentStartX
+    );
+
+  let prefix =
+    "\n".repeat(
+      padding.lineBreaks
+    );
+
+  if (
+    padding.lineBreaks > 0
+  ) {
+
+    prefix +=
+      " ".repeat(
+        padding.spaces
+      );
+
+  } else if (
+    event.clientX > caretPoint.x &&
+    !hasMaterialTextAtOrAfterPointOnLine(
+      editor,
+      event.clientX,
+      event.clientY,
+      lineHeight
+    )
+  ) {
+
+    prefix +=
+      " ".repeat(
+        padding.spaces
+      );
+
+  }
+
+  if (prefix) {
+
+    const paddingNode =
+      document.createTextNode(
+        prefix
+      );
+
+    range.insertNode(
+      paddingNode
+    );
+
+    range.setStart(
+      paddingNode,
+      paddingNode.length
+    );
+
+    range.collapse(true);
+
+  }
+
+  selection.removeAllRanges();
+
+  selection.addRange(
+    range
+  );
+
+  materialSelectionRange =
+    range.cloneRange();
+
+  updateMaterialFormattingButtonStates();
+
+}
+
+
+
+
 function rememberMaterialSelection() {
 
   const editor =
@@ -723,6 +1312,15 @@ document
   .addEventListener(
     "focus",
     rememberMaterialSelection
+  );
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "dblclick",
+    placeMaterialCaretAtDoubleClick
   );
 
 
