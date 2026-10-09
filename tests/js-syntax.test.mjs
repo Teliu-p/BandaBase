@@ -472,6 +472,24 @@ const materialEditorFormattingSource = readFileSync(
 
 assert.match(
   materialEditorFormattingSource,
+  /function restoreMaterialSelection\(\s*rangeToRestore = materialSelectionRange/,
+  "La restauración debe aceptar una copia de la selección, sin depender de un estado que el evento focus pueda sobrescribir."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /function focusMaterialEditorForFormatting\(\)[\s\S]*?const savedRange =\s*materialSelectionRange\?\.cloneRange\(\) \|\| null;[\s\S]*?editor\.focus\(\);[\s\S]*?restoreMaterialSelection\(savedRange\)/,
+  "El formato debe conservar la selección original antes de devolver el foco al editor."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /fragment\.appendChild\(\s*closing\s*\);[\s\S]*?range\.insertNode\(\s*fragment\s*\);[\s\S]*?range\.setStartAfter\(\s*closing\s*\)/,
+  "Tras encerrar una selección, el cursor debe quedar después del cierre para que el siguiente formato no se aplique al rango equivocado."
+);
+
+assert.match(
+  materialEditorFormattingSource,
   /executeMaterialTextCommand\([\s\S]{0,80}"italic"/,
   "El botón de cursiva debe ejecutar la orden de formato italic."
 );
@@ -871,6 +889,22 @@ assert.equal(
     "Texto normal"
   ),
   false
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    '<span class="material-text-size-1">Texto grande</span>'
+  ),
+  true,
+  "El tamaño de texto debe persistir incluso cuando está aplicado sin negrita o cursiva."
+);
+
+assert.equal(
+  materialRichTextHasMarkup(
+    '<span class="material-text-size-2"><em><strong>Texto combinado</strong></em></span>'
+  ),
+  true,
+  "La combinación de tamaño, cursiva y negrita debe conservar el formato enriquecido."
 );
 
 assert.equal(
