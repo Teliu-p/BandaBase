@@ -76,6 +76,31 @@ for (const file of jsFiles) {
   });
 }
 
+const materialsViewSource = readFileSync(
+  join(srcDir, "materials-view.js"),
+  "utf8"
+);
+const commentsViewSource = readFileSync(
+  join(srcDir, "comments-view.js"),
+  "utf8"
+);
+
+assert.match(
+  materialsViewSource,
+  /data-material-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
+  "Materiales debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+);
+assert.match(
+  commentsViewSource,
+  /data-comment-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
+  "Comentarios debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+);
+assert.doesNotMatch(
+  materialsViewSource + commentsViewSource,
+  /preload="metadata"|hydrate(?:Material|Comment)AudioPlayers/,
+  "La carga anticipada de metadatos y las funciones de hidratación automática deben desaparecer."
+);
+
 const html = readFileSync(indexPath, "utf8");
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
   .map(match => match[1]);

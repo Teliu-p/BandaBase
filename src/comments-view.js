@@ -201,12 +201,15 @@ function renderCommentBlocks(
             "Audio"
           ) +
           "</div>" +
-          '<audio class="comment-audio" controls preload="metadata" data-comment-audio="' +
+          '<div class="comment-audio-lazy-controls">' +
+          '<button type="button" class="btn btn-subtle comment-audio-load" data-comment-audio-load>▶ Reproducir audio</button>' +
+          '<audio class="comment-audio" controls preload="none" data-comment-audio="' +
           escapeHtml(
             attachment.storage_path ||
             ""
           ) +
-          '"></audio>' +
+          '" hidden></audio>' +
+          '</div>' +
           "</div>"
         );
       }
@@ -521,6 +524,87 @@ function bindSongCommentEvents() {
 function bindCommentAttachmentEvents() {
   document
     .querySelectorAll(
+      "[data-comment-audio-load]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          async function() {
+            if (button.dataset.loading === "true") {
+              return;
+            }
+
+            const wrapper =
+              button.closest(
+                ".comment-audio-lazy-controls"
+              );
+
+            const player =
+              wrapper?.querySelector(
+                "[data-comment-audio]"
+              );
+
+            const storagePath =
+              player?.dataset.commentAudio;
+
+            if (!player || !storagePath) {
+              return;
+            }
+
+            button.dataset.loading = "true";
+            button.disabled = true;
+            button.textContent = "Preparando audio…";
+
+            let signedUrl = null;
+            let loadError = null;
+
+            try {
+              const response =
+                await supabaseClient
+                  .storage
+                  .from("materials")
+                  .createSignedUrl(
+                    storagePath,
+                    3600
+                  );
+
+              signedUrl = response.data?.signedUrl || null;
+              loadError = response.error || null;
+            } catch (error) {
+              loadError = error;
+            }
+
+            if (loadError || !signedUrl) {
+              button.dataset.loading = "false";
+              button.disabled = false;
+              button.textContent = "Reintentar audio";
+
+              showNotice(
+                loadError?.message ||
+                  "No se pudo cargar el audio.",
+                "error"
+              );
+              return;
+            }
+
+            player.src = signedUrl;
+            player.hidden = false;
+            button.hidden = true;
+
+            try {
+              await player.play();
+            } catch {
+              // Algunos navegadores exigen un toque adicional en Play
+              // después de completar la solicitud de la URL.
+            }
+          }
+        );
+      }
+    );
+
+  document
+    .querySelectorAll(
       "[data-open-comment-attachment]"
     )
     .forEach(
@@ -613,46 +697,6 @@ function bindCommentAttachmentEvents() {
       }
     );
 
-  void hydrateCommentAudioPlayers();
-}
-
-
-async function hydrateCommentAudioPlayers() {
-  const players =
-    document.querySelectorAll(
-      "[data-comment-audio]"
-    );
-
-  for (
-    const player of players
-  ) {
-    const path =
-      player.dataset.commentAudio;
-
-    if (!path) continue;
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .createSignedUrl(
-          path,
-          3600
-        );
-
-    if (
-      error ||
-      !data?.signedUrl
-    ) {
-      continue;
-    }
-
-    player.src =
-      data.signedUrl;
-  }
 }
 
 

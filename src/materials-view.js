@@ -520,11 +520,14 @@ function renderMaterialViewBlock(
             "</span>" +
           "</div>" +
         "</div>" +
-        '<audio class="material-audio" controls preload="metadata" data-material-audio="' +
-          escapeHtml(
-            attachment.storage_path || ""
-          ) +
-        '"></audio>' +
+        '<div class="material-audio-lazy-controls">' +
+          '<button type="button" class="btn btn-subtle material-audio-load" data-material-audio-load>▶ Reproducir audio</button>' +
+          '<audio class="material-audio" controls preload="none" data-material-audio="' +
+            escapeHtml(
+              attachment.storage_path || ""
+            ) +
+          '" hidden></audio>' +
+        '</div>' +
       "</div>"
     );
 
@@ -699,58 +702,91 @@ function renderMaterials() {
 
   bindMaterialViewEvents();
 
-  void hydrateMaterialAudioPlayers();
-
-}
-
-
-async function hydrateMaterialAudioPlayers() {
-
-  const players =
-    document.querySelectorAll(
-      "[data-material-audio]"
-    );
-
-  for (
-    const player
-    of players
-  ) {
-
-    const storagePath =
-      player.dataset.materialAudio;
-
-    if (!storagePath) {
-      continue;
-    }
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .createSignedUrl(
-          storagePath,
-          3600
-        );
-
-    if (
-      error ||
-      !data?.signedUrl
-    ) {
-      continue;
-    }
-
-    player.src =
-      data.signedUrl;
-
-  }
-
 }
 
 
 function bindMaterialViewEvents() {
+
+  document
+    .querySelectorAll(
+      "[data-material-audio-load]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          async function() {
+            if (button.dataset.loading === "true") {
+              return;
+            }
+
+            const wrapper =
+              button.closest(
+                ".material-audio-lazy-controls"
+              );
+
+            const player =
+              wrapper?.querySelector(
+                "[data-material-audio]"
+              );
+
+            const storagePath =
+              player?.dataset.materialAudio;
+
+            if (!player || !storagePath) {
+              return;
+            }
+
+            button.dataset.loading = "true";
+            button.disabled = true;
+            button.textContent = "Preparando audio…";
+
+            let signedUrl = null;
+            let loadError = null;
+
+            try {
+              const response =
+                await supabaseClient
+                  .storage
+                  .from("materials")
+                  .createSignedUrl(
+                    storagePath,
+                    3600
+                  );
+
+              signedUrl = response.data?.signedUrl || null;
+              loadError = response.error || null;
+            } catch (error) {
+              loadError = error;
+            }
+
+            if (loadError || !signedUrl) {
+              button.dataset.loading = "false";
+              button.disabled = false;
+              button.textContent = "Reintentar audio";
+
+              showNotice(
+                loadError?.message ||
+                  "No se pudo cargar el audio.",
+                "error"
+              );
+              return;
+            }
+
+            player.src = signedUrl;
+            player.hidden = false;
+            button.hidden = true;
+
+            try {
+              await player.play();
+            } catch {
+              // Algunos navegadores exigen un toque adicional en Play
+              // después de completar la solicitud de la URL.
+            }
+          }
+        );
+      }
+    );
 
   document
     .querySelectorAll(
