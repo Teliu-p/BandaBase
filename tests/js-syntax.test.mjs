@@ -579,6 +579,18 @@ assert.match(
 
 assert.match(
   materialEditorFormattingSource,
+  /function moveMaterialCaretAboveBlankLine\([\s\S]*?range\.setStart\([\s\S]*?value\[index\] === "\\n"/,
+  "Si el navegador ubica el cursor en el renglón inferior, el doble clic debe poder volver al salto que precede la línea vacía."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /const linesAbove[\s\S]*?moveMaterialCaretAboveBlankLine\([\s\S]*?getMaterialRangeCaretPoint/,
+  "El editor debe corregir el renglón devuelto por el navegador antes de calcular los espacios de posicionamiento."
+);
+
+assert.match(
+  materialEditorFormattingSource,
   /function focusMaterialEditorForFormatting\(\)[\s\S]*?const savedRange =\s*materialSelectionRange\?\.cloneRange\(\) \|\| null;[\s\S]*?editor\.focus\(\);[\s\S]*?restoreMaterialSelection\(savedRange\)/,
   "El formato debe conservar la selección original antes de devolver el foco al editor."
 );
