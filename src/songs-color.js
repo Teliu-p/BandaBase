@@ -79,3 +79,19 @@ function renderColorPicker(
   container.appendChild(toggle);
   container.appendChild(palette);
 }
+
+/* ============================================================
+   SELECTOR DE COLOR DE FILTRO
+============================================================ */
+
+function populateColorFilter() {
+  populateMultiSongFilter(
+    "filterColor",
+    "Todos los colores",
+    SONG_COLORS.map(color => color.value),
+    value => {
+      const color = SONG_COLORS.find(item => item.value === value);
+      return color ? color.name : value;
+    }
+  );
+}
