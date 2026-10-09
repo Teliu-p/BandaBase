@@ -33,6 +33,8 @@ function rememberMaterialSelection() {
     materialSelectionRange =
       range.cloneRange();
 
+    updateMaterialFormattingButtonStates();
+
   }
 
 }
@@ -775,6 +777,133 @@ function getMaterialCurrentFontSizeCommandValue() {
 }
 
 
+function setMaterialFormattingButtonState(
+  button,
+  active
+) {
+
+  if (!button) {
+    return;
+  }
+
+  const isActive =
+    Boolean(active);
+
+  button.classList.toggle(
+    "is-active",
+    isActive
+  );
+
+  button.setAttribute(
+    "aria-pressed",
+    String(isActive)
+  );
+
+}
+
+
+function updateMaterialFormattingButtonStates() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  if (
+    !editor.contains(range.startContainer) ||
+    !editor.contains(range.endContainer)
+  ) {
+    return;
+  }
+
+  function isCommandActive(command) {
+
+    try {
+
+      return document.queryCommandState(command);
+
+    } catch (error) {
+
+      return false;
+
+    }
+
+  }
+
+  const fontSize =
+    getMaterialCurrentFontSizeCommandValue();
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialBoldBtn"),
+    isCommandActive("bold")
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialItalicBtn"),
+    isCommandActive("italic")
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialSize1Btn"),
+    fontSize === "5"
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialSize2Btn"),
+    fontSize === "7"
+  );
+
+}
+
+
+function showMaterialFormatActionFeedback(button) {
+
+  if (!button) {
+    return;
+  }
+
+  const timer =
+    Number(button.dataset.feedbackTimer || 0);
+
+  if (timer) {
+    window.clearTimeout(timer);
+  }
+
+  button.classList.add(
+    "is-action-feedback"
+  );
+
+  button.dataset.feedbackTimer =
+    String(window.setTimeout(
+      function() {
+
+        button.classList.remove(
+          "is-action-feedback"
+        );
+
+        delete button.dataset.feedbackTimer;
+
+      },
+      650
+    ));
+
+}
+
+
 function toggleMaterialTextSize(
   sizeValue
 ) {
@@ -1095,6 +1224,7 @@ function bindMaterialFormattingControls() {
         "(",
         ")"
       );
+      showMaterialFormatActionFeedback(parenthesesButton);
       editor.focus();
     }
   );
@@ -1115,6 +1245,7 @@ function bindMaterialFormattingControls() {
         "[",
         "]"
       );
+      showMaterialFormatActionFeedback(bracketsButton);
       editor.focus();
     }
   );
