@@ -361,6 +361,57 @@ assert.match(
   "El editor de Materiales debe incluir el segundo tamaño de texto."
 );
 
+for (const buttonId of [
+  "materialBoldBtn",
+  "materialItalicBtn",
+  "materialSize1Btn",
+  "materialSize2Btn"
+]) {
+  const buttonStart = html.indexOf('id="' + buttonId + '"');
+  const buttonEnd = html.indexOf(">", buttonStart);
+  assert.ok(buttonStart >= 0 && buttonEnd > buttonStart);
+  assert.match(
+    html.slice(buttonStart, buttonEnd),
+    /aria-pressed="false"/,
+    buttonId + " debe exponer su estado activo a tecnologías de asistencia."
+  );
+}
+
+const materialEditorStateSource = readFileSync(
+  join(srcDir, "materials-editor.js"),
+  "utf8"
+);
+
+assert.match(
+  materialEditorStateSource,
+  /function updateMaterialFormattingButtonStates\s*\(/,
+  "El estado de los botones debe actualizarse según el formato de la selección."
+);
+
+assert.match(
+  materialEditorStateSource,
+  /queryCommandState\("bold"\)/,
+  "Negrita debe reflejarse como activa cuando corresponda."
+);
+
+assert.match(
+  materialEditorStateSource,
+  /queryCommandState\("italic"\)/,
+  "Cursiva debe reflejarse como activa cuando corresponda."
+);
+
+assert.match(
+  materialEditorStateSource,
+  /classList\.add\(\s*"is-action-feedback"/,
+  "Los botones de inserción de símbolos deben ofrecer feedback visual tras usarlos."
+);
+
+assert.match(
+  styles,
+  /\.material-format-btn\.is-active[\s\S]*?\.material-format-btn\.is-action-feedback/,
+  "Los estados activos y el feedback de inserción deben distinguirse visualmente."
+);
+
 const materialFormattingSource = readFileSync(
   join(srcDir, "materials-formatting.js"),
   "utf8"
