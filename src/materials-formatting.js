@@ -531,7 +531,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(strong|em|a\b|span class="material-text-size-[12]")\b/.test(
+    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-[12]\b[^"]*")/i.test(
       String(html || "")
     )
   );
