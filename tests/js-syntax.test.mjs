@@ -390,13 +390,13 @@ assert.match(
 
 assert.match(
   materialEditorStateSource,
-  /queryCommandState\("bold"\)/,
+  /isCommandActive\("bold"\)/,
   "Negrita debe reflejarse como activa cuando corresponda."
 );
 
 assert.match(
   materialEditorStateSource,
-  /queryCommandState\("italic"\)/,
+  /isCommandActive\("italic"\)/,
   "Cursiva debe reflejarse como activa cuando corresponda."
 );
 
