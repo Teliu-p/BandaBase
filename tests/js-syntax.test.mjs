@@ -442,6 +442,52 @@ assert.match(
 );
 
 const {
+  calculateMaterialForcedCaretPadding
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["calculateMaterialForcedCaretPadding"]
+);
+
+const sameLineCaretPadding =
+  calculateMaterialForcedCaretPadding(
+    40, 30, 110, 30, 22, 6, 10
+  );
+
+assert.equal(sameLineCaretPadding.lineBreaks, 0);
+assert.equal(
+  sameLineCaretPadding.spaces,
+  12,
+  "El doble clic después del texto debe insertar espacios hasta aproximar el punto elegido."
+);
+
+const lowerBlankLinePadding =
+  calculateMaterialForcedCaretPadding(
+    40, 30, 58, 74, 22, 6, 10
+  );
+
+assert.equal(
+  lowerBlankLinePadding.lineBreaks,
+  2,
+  "El doble clic varias líneas debajo debe crear las líneas vacías necesarias."
+);
+assert.equal(
+  lowerBlankLinePadding.spaces,
+  8,
+  "Después de crear líneas vacías, la posición horizontal debe medirse desde el inicio del texto."
+);
+
+const caretAboveClickPadding =
+  calculateMaterialForcedCaretPadding(
+    40, 74, 58, 30, 22, 6, 10
+  );
+
+assert.equal(
+  caretAboveClickPadding.lineBreaks,
+  0,
+  "Una diferencia vertical negativa no debe eliminar texto ni insertar saltos."
+);
+
+const {
   getNextMaterialTextSizeClass
 } = loadPureFunctions(
   "src/materials-formatting.js",
@@ -505,6 +551,30 @@ assert.match(
   materialEditorFormattingSource,
   /function restoreMaterialSelection\(\s*rangeToRestore = materialSelectionRange/,
   "La restauración debe aceptar una copia de la selección, sin depender de un estado que el evento focus pueda sobrescribir."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /addEventListener\(\s*"dblclick",\s*placeMaterialCaretAtDoubleClick/,
+  "La posición especial debe activarse con doble clic, sin alterar el clic simple."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /caretPositionFromPoint[\s\S]*?caretRangeFromPoint/,
+  "El doble clic debe consultar la posición real del cursor con las API de coordenadas del navegador."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /hasMaterialTextAtOrAfterPointOnLine\([\s\S]*?padding\.spaces/,
+  "Al hacer doble clic sobre texto existente, el editor no debe insertar espacios por el mero hecho de que la posición de cursor quede dentro de un carácter."
+);
+
+assert.match(
+  materialEditorFormattingSource,
+  /"\\n"\.repeat\(\s*padding\.lineBreaks\s*\)/,
+  "El doble clic en una zona vacía inferior debe crear saltos de línea hasta el renglón solicitado."
 );
 
 assert.match(
