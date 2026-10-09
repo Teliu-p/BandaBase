@@ -4,55 +4,6 @@
  * El doble clic permite fijar el punto de escritura en espacios vacíos
  * del compositor. El clic simple conserva el comportamiento nativo.
  */
-function calculateMaterialForcedCaretPadding(
-  caretX,
-  caretY,
-  targetX,
-  targetY,
-  lineHeight,
-  spaceWidth,
-  contentStartX
-) {
-
-  const safeLineHeight =
-    Number.isFinite(lineHeight) && lineHeight > 0
-      ? lineHeight
-      : 20;
-
-  const safeSpaceWidth =
-    Number.isFinite(spaceWidth) && spaceWidth > 0
-      ? spaceWidth
-      : 4;
-
-  const lineBreaks =
-    Math.max(
-      0,
-      Math.round(
-        (targetY - caretY) / safeLineHeight
-      )
-    );
-
-  const horizontalStart =
-    lineBreaks > 0
-      ? contentStartX
-      : caretX;
-
-  const spaces =
-    Math.max(
-      0,
-      Math.round(
-        (targetX - horizontalStart) / safeSpaceWidth
-      )
-    );
-
-  return {
-    lineBreaks,
-    spaces
-  };
-
-}
-
-
 function getMaterialRangeCaretPoint(
   sourceRange,
   editor
