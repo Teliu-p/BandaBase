@@ -140,6 +140,12 @@ assert.match(
   "En móvil, el formulario debe distribuir los campos en dos columnas cómodas."
 );
 
+assert.match(
+  styles,
+  /@media\s*\(orientation:\s*portrait\)[\s\S]*?grid-template-areas:\s*"title title"\s*"artist artist"\s*"genre genre"\s*"duration bpm"\s*"meter meter"/,
+  "En móvil vertical, los campos deben seguir el orden Título, Artista, Género, Duración, BPM y Métrica."
+);
+
 
 assert.match(
   html,
