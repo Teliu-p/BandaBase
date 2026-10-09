@@ -453,10 +453,9 @@ assert.match(
   "El formato enriquecido debe reconocer cursiva al guardar, restaurar y mostrar."
 );
 
-assert.match(
-  materialFormattingSource,
-  /strong\|em\|a\\b/,
-  "La cursiva debe activar el formato enriquecido persistente."
+assert.ok(
+  materialFormattingSource.includes('/<(?:strong|em|a)\\b|<span\\b'),
+  "La detección del formato enriquecido debe reconocer cursiva y tamaños de texto."
 );
 
 assert.ok(
