@@ -51,6 +51,85 @@ loginForm.addEventListener(
 );
 
 
+/* ============================================================
+   REGISTRO DE NUEVOS INTEGRANTES
+============================================================ */
+
+signupForm.addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    const fullName =
+      document.getElementById("signupName").value.trim();
+
+    const email =
+      document.getElementById("signupEmail").value.trim();
+
+    const password =
+      document.getElementById("signupPassword").value;
+
+    const passwordConfirm =
+      document.getElementById("signupPasswordConfirm").value;
+
+    if (!fullName || !email || !password || !passwordConfirm) {
+      return;
+    }
+
+    if (password.length < 8) {
+      showNotice(
+        "La contraseña debe tener al menos 8 caracteres.",
+        "error"
+      );
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      showNotice(
+        "Las contraseñas no coinciden.",
+        "error"
+      );
+      return;
+    }
+
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName
+        }
+      }
+    });
+
+    if (error) {
+      showNotice(
+        error.message || "No se pudo crear la cuenta.",
+        "error"
+      );
+      return;
+    }
+
+    signupForm.reset();
+
+    if (data?.session) {
+      await handleAuthSession(data.session);
+      return;
+    }
+
+    showNotice(
+      "Cuenta creada. Revisá tu correo y confirmá la dirección para poder iniciar sesión.",
+      "success"
+    );
+
+  }
+);
+
+
 logoutBtn.addEventListener(
   "click",
   async function() {
