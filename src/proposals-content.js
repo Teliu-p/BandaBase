@@ -463,13 +463,15 @@ function renderProposalContent(proposal) {
       html +=
         '<div class="proposal-inline-content">';
 
-      if (attachment.signed_url) {
+      if (
+        attachment.kind === "file" &&
+        attachment.storage_path &&
+        attachment.id
+      ) {
         html +=
-          '<a class="proposal-inline-resource" href="' +
-          escapeHtml(
-            attachment.signed_url
-          ) +
-          '" target="_blank" rel="noopener noreferrer">' +
+          '<button type="button" class="proposal-inline-resource proposal-file-open" data-open-proposal-attachment="' +
+          escapeHtml(attachment.id) +
+          '">' +
           icon +
           " " +
           escapeHtml(
@@ -489,7 +491,7 @@ function renderProposalContent(proposal) {
                 )
               : ""
           ) +
-          " ↗</a>";
+          " ↗</button>";
       } else {
         html +=
           icon +
