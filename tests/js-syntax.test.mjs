@@ -1319,6 +1319,47 @@ assert.match(
   "El segundo clic debe detectar el tamaño actualmente aplicado."
 );
 
+assert.match(
+  materialEditorSource,
+  /function collectMaterialComposerBlocks\([\s\S]*?splitMaterialComposerNodeByAttachments/,
+  "El guardado debe detectar archivos insertados dentro de negrita, cursiva o tamaño."
+);
+
+assert.match(
+  materialEditorSource,
+  /function openMaterialEditor\([\s\S]*?openMaterialIds\.delete\([\s\S]*?renderMaterials\(\)/,
+  "Al editar un material expandido debe cerrarse su vista para no mostrar el mismo contenido duplicado."
+);
+
+const materialViewSource = readFileSync(
+  join(srcDir, "materials-view.js"),
+  "utf8"
+);
+
+assert.match(
+  materialViewSource,
+  /function updatePlaybackButton\([\s\S]*?⏸ Pausar audio[\s\S]*?▶ Reanudar audio/,
+  "El control personalizado de audio debe reflejar reproducción, pausa y reanudación."
+);
+
+assert.match(
+  materialViewSource,
+  /player\.addEventListener\([\s\S]*?"play"[\s\S]*?player\.addEventListener\([\s\S]*?"pause"/,
+  "Los cambios de estado del reproductor deben actualizar el control visible."
+);
+
+assert.doesNotMatch(
+  materialViewSource,
+  /button\.hidden\s*=\s*true/,
+  "El botón de reproducción no debe ocultarse al iniciar el audio; debe seguir permitiendo pausarlo."
+);
+
+assert.match(
+  materialViewSource,
+  /material-audio-load[\s\S]*?player\.hidden\s*=\s*false/,
+  "El reproductor nativo debe seguir visible junto al control personalizado."
+);
+
 const {
   normalizeSongGenres,
   formatSongGenres
@@ -1690,6 +1731,39 @@ assert.equal(
   "Una operación exitosa no debe activar la compensación."
 );
 assert.deepEqual(successSave.notices, [["Material agregado.", "success"]]);
+
+const missingPendingAttachmentSave = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "text", content: "Letra en negrita" },
+    { block_type: "attachment", pendingKey: "missing-audio" }
+  ],
+  pendingAttachments: {}
+});
+
+assert.equal(
+  missingPendingAttachmentSave.notices[0][1],
+  "error",
+  "Si falta el archivo asociado a un bloque, no debe mostrarse un falso éxito."
+);
+assert.match(
+  missingPendingAttachmentSave.notices[0][0],
+  /No se encontró el archivo adjunto pendiente/
+);
+assert.equal(
+  missingPendingAttachmentSave.calls.some(call => call[0] === "replaceBlocks"),
+  false,
+  "No debe guardarse la versión que omite un adjunto pendiente."
+);
+assert.deepEqual(
+  missingPendingAttachmentSave.calls.filter(call => call[0] === "deleteMaterial"),
+  [["deleteMaterial", "new-material"]],
+  "Si el nuevo material no puede guardar uno de sus adjuntos, el registro incompleto debe revertirse."
+);
+assert.equal(
+  missingPendingAttachmentSave.calls.some(call => call[0] === "loadMaterials"),
+  false
+);
+
 
 const newSaveRollback = await runMaterialSaveScenario({
   blocks: [
