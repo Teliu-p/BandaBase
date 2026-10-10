@@ -67,6 +67,24 @@
     }
   }
 
+  function refreshCanonicalDocumentCache() {
+    const canonicalUrl = new URL(window.location.href);
+
+    // The cache-busted navigation fetches a different URL than the shortcut's
+    // usual root URL. Refresh that canonical cache entry too, so mobile does
+    // not reopen the old HTML the next time the app is launched.
+    void fetch(canonicalUrl.href, {
+      cache: "reload",
+      credentials: "same-origin",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
+    }).catch(() => {
+      // This is cache warm-up only; the already loaded page must keep working.
+    });
+  }
+
   // Local files opened outside GitHub Pages (without Liquid rendering) do not
   // have a meaningful build SHA, so the automatic checker safely stays off.
   if (!/^[0-9a-f]{7,40}$/i.test(currentBuild)) {
@@ -78,6 +96,7 @@
   // cached root document even after the user has already updated.
   if (forcedReloadAttempt) {
     rememberConfirmedBuild(currentBuild);
+    refreshCanonicalDocumentCache();
   }
 
   function isVisible(element) {
