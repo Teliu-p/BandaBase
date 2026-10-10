@@ -235,6 +235,18 @@ assert.match(
   "Una recarga con la URL anti-caché debe dejar registrada la versión realmente cargada."
 );
 
+assert.match(
+  appUpdateSource,
+  /function refreshCanonicalDocumentCache\([\s\S]*?cache:\s*"reload"[\s\S]*?Cache-Control[\s\S]*?no-cache/,
+  "Después de actualizar con URL anti-caché debe revalidarse también la URL raíz para no dejar almacenado el HTML anterior en el móvil."
+);
+
+assert.match(
+  appUpdateSource,
+  /if \(forcedReloadAttempt\)\s*\{\s*rememberConfirmedBuild\(currentBuild\);\s*refreshCanonicalDocumentCache\(\);/,
+  "La actualización del caché de la URL raíz debe ejecutarse después de una recarga de actualización, no en cada visita."
+);
+
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
   .map(match => match[1].split("?")[0]);
 
