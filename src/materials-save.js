@@ -165,6 +165,29 @@ async function saveMaterialDraft() {
   const createdAttachmentIds = [];
   const uploadedStoragePaths = [];
 
+  async function abortSaveWithError(
+    message
+  ) {
+
+    const cleanupErrors =
+      await cleanupFailedMaterialSave({
+        materialId,
+        wasNew,
+        originalMaterial,
+        createdAttachmentIds,
+        uploadedStoragePaths
+      });
+
+    showNotice(
+      getMaterialSaveFailureNotice(
+        message,
+        cleanupErrors
+      ),
+      "error"
+    );
+
+  }
+
   if (materialId) {
 
     const {
@@ -287,7 +310,13 @@ async function saveMaterialDraft() {
       ];
 
     if (!pending) {
-      continue;
+
+      await abortSaveWithError(
+        "No se encontró el archivo adjunto pendiente. No se guardó este cambio; volvé a adjuntar el archivo e intentá de nuevo."
+      );
+
+      return;
+
     }
 
     if (
@@ -357,8 +386,17 @@ async function saveMaterialDraft() {
     const file =
       pending.file;
 
-    if (!file) {
-      continue;
+    if (
+      pending.kind !== "file" ||
+      !file
+    ) {
+
+      await abortSaveWithError(
+        "El archivo adjunto perdió sus datos antes de guardarse. No se guardó este cambio; volvé a adjuntar el archivo e intentá de nuevo."
+      );
+
+      return;
+
     }
 
     const storagePath =
