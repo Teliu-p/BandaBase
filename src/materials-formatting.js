@@ -10,6 +10,99 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
     "material-text-size-2"
   ]);
 
+/*
+ * Divide a rich-text subtree around inline attachments without losing the
+ * formatting wrappers surrounding each text segment. Attachments must become
+ * independent material blocks even when the caret was inside bold/italic/size.
+ */
+function splitMaterialComposerNodeByAttachments(node) {
+
+  if (!node) {
+    return [];
+  }
+
+  if (
+    node.nodeType === 1 &&
+    node.classList?.contains("material-inline-attachment")
+  ) {
+    return [{
+      attachment: node
+    }];
+  }
+
+  if (
+    node.nodeType !== 1 ||
+    !node.querySelector?.(".material-inline-attachment")
+  ) {
+    return [{
+      node: node.cloneNode(true)
+    }];
+  }
+
+  const segments = [];
+  let currentWrapper =
+    node.cloneNode(false);
+  let hasCurrentChildren = false;
+
+  function flushTextSegment() {
+
+    if (!hasCurrentChildren) {
+      return;
+    }
+
+    segments.push({
+      node: currentWrapper
+    });
+
+    currentWrapper =
+      node.cloneNode(false);
+
+    hasCurrentChildren = false;
+
+  }
+
+  Array.from(
+    node.childNodes || []
+  ).forEach(
+    child => {
+
+      splitMaterialComposerNodeByAttachments(
+        child
+      ).forEach(
+        segment => {
+
+          if (segment.attachment) {
+
+            flushTextSegment();
+
+            segments.push(
+              segment
+            );
+
+            return;
+
+          }
+
+          currentWrapper.appendChild(
+            segment.node
+          );
+
+          hasCurrentChildren = true;
+
+        }
+      );
+
+    }
+  );
+
+  flushTextSegment();
+
+  return segments;
+
+}
+
+
+
 function calculateMaterialForcedCaretPadding(
   caretX,
   caretY,
