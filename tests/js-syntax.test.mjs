@@ -181,6 +181,60 @@ assert.match(
   "version.json debe publicar el hash del commit mediante Jekyll."
 );
 
+assertScriptBefore(
+  html,
+  "src/app-update-state.js",
+  "src/app-update.js"
+);
+
+const {
+  shouldSilentlyRefreshKnownBuild
+} = loadPureFunctions(
+  "src/app-update-state.js",
+  ["shouldSilentlyRefreshKnownBuild"]
+);
+
+assert.equal(
+  shouldSilentlyRefreshKnownBuild("1111111", "2222222", "2222222", false),
+  true,
+  "Si el móvil abrió HTML antiguo pero la versión publicada es la ya confirmada, debe actualizar en silencio."
+);
+
+assert.equal(
+  shouldSilentlyRefreshKnownBuild("1111111", "3333333", "2222222", false),
+  false,
+  "Una versión publicada distinta de la última confirmada debe seguir notificándose como actualización real."
+);
+
+assert.equal(
+  shouldSilentlyRefreshKnownBuild("1111111", "2222222", "2222222", true),
+  false,
+  "Después de un intento de recarga con la URL anti-caché, no debe iniciar un bucle automático infinito."
+);
+
+const appUpdateSource = readFileSync(
+  join(srcDir, "app-update.js"),
+  "utf8"
+);
+
+assert.match(
+  appUpdateSource,
+  /bandabase:last-confirmed-build/,
+  "El detector debe recordar la última versión confirmada entre aperturas del navegador móvil."
+);
+
+assert.match(
+  appUpdateSource,
+  /deployedBuild === currentBuild[\s\S]*?rememberConfirmedBuild\(currentBuild\)/,
+  "Al confirmar que el HTML coincide con la versión publicada, debe guardar ese hash como conocido."
+);
+
+assert.match(
+  appUpdateSource,
+  /forcedReloadAttempt[\s\S]*?rememberConfirmedBuild\(currentBuild\)/,
+  "Una recarga con la URL anti-caché debe dejar registrada la versión realmente cargada."
+);
+
 const scriptSources = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
   .map(match => match[1].split("?")[0]);
 
@@ -226,6 +280,8 @@ for (const source of scriptSources) {
   "src/app-band.js",
   "src/songs-color.js",
   "src/app-auth.js",
+  "src/app-update-state.js",
+  "src/app-update.js",
   "src/metronome.js",
   "src/app-navigation.js",
   "src/styles.css",
