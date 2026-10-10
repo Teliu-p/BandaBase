@@ -4,6 +4,9 @@
   const buildMeta = document.querySelector('meta[name="bandabase-build"]');
   const currentBuild = String(buildMeta?.content || "").trim();
   const reloadParameter = "_bb_reload";
+  const appliedBuildStorageKey = "bandabase:last-confirmed-build";
+  const initialPageUrl = new URL(window.location.href);
+  const forcedReloadAttempt = initialPageUrl.searchParams.has(reloadParameter);
   const checkIntervalMs = 60 * 1000;
   const safetyCheckIntervalMs = 15 * 1000;
   const idleBeforeRefreshMs = 2 * 60 * 1000;
@@ -29,21 +32,52 @@
   let reloadRequested = false;
   let updateBanner = null;
 
-  // Remove the one-time cache-busting query after the fresh page has loaded.
-  const cleanUrl = new URL(window.location.href);
-  if (cleanUrl.searchParams.has(reloadParameter)) {
-    cleanUrl.searchParams.delete(reloadParameter);
+  // Remove the one-time cache-busting query after remembering that it was used.
+  if (forcedReloadAttempt) {
+    initialPageUrl.searchParams.delete(reloadParameter);
     window.history.replaceState(
       window.history.state,
       "",
-      cleanUrl.pathname + cleanUrl.search + cleanUrl.hash
+      initialPageUrl.pathname + initialPageUrl.search + initialPageUrl.hash
     );
+  }
+
+  function readLastConfirmedBuild() {
+    try {
+      return String(
+        window.localStorage.getItem(appliedBuildStorageKey) || ""
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function rememberConfirmedBuild(build) {
+    if (!/^[0-9a-f]{7,40}$/i.test(String(build || ""))) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        appliedBuildStorageKey,
+        String(build)
+      );
+    } catch {
+      // Private browsing or storage restrictions must not disable updates.
+    }
   }
 
   // Local files opened outside GitHub Pages (without Liquid rendering) do not
   // have a meaningful build SHA, so the automatic checker safely stays off.
   if (!/^[0-9a-f]{7,40}$/i.test(currentBuild)) {
     return;
+  }
+
+  // A cache-busted reload has reached an HTML document with this build ID.
+  // Keep that fact across mobile browser restarts, which may reopen an older
+  // cached root document even after the user has already updated.
+  if (forcedReloadAttempt) {
+    rememberConfirmedBuild(currentBuild);
   }
 
   function isVisible(element) {
@@ -130,7 +164,7 @@
     document.body.appendChild(updateBanner);
   }
 
-  function refreshPage(userInitiated) {
+  function refreshPage(userInitiated, targetBuild = "") {
     if (reloadRequested) {
       return;
     }
@@ -148,6 +182,12 @@
         return;
       }
     }
+
+    rememberConfirmedBuild(
+      /^[0-9a-f]{7,40}$/i.test(String(targetBuild || ""))
+        ? targetBuild
+        : (newestBuild || currentBuild)
+    );
 
     reloadRequested = true;
 
@@ -206,7 +246,28 @@
       }
 
       if (deployedBuild === currentBuild) {
+        rememberConfirmedBuild(currentBuild);
         return;
+      }
+
+      const lastConfirmedBuild =
+        readLastConfirmedBuild();
+
+      if (
+        shouldSilentlyRefreshKnownBuild(
+          currentBuild,
+          deployedBuild,
+          lastConfirmedBuild,
+          forcedReloadAttempt
+        )
+      ) {
+        // The page itself came from an old mobile cache, but the release
+        // we previously confirmed is still the one deployed. Refresh the
+        // stale shell without showing the same banner again.
+        if (isSafeToRefresh()) {
+          refreshPage(false, lastConfirmedBuild);
+          return;
+        }
       }
 
       if (!updateAvailable) {
