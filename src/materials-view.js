@@ -713,38 +713,165 @@ function bindMaterialViewEvents() {
     )
     .forEach(
       button => {
+
+        const wrapper =
+          button.closest(
+            ".material-audio-lazy-controls"
+          );
+
+        const player =
+          wrapper?.querySelector(
+            "[data-material-audio]"
+          );
+
+        if (!player) {
+          return;
+        }
+
+        function updatePlaybackButton() {
+
+          if (
+            button.dataset.loading === "true"
+          ) {
+            return;
+          }
+
+          button.disabled =
+            false;
+
+          if (
+            player.ended
+          ) {
+
+            button.textContent =
+              "↻ Reproducir audio";
+
+          } else if (
+            !player.paused
+          ) {
+
+            button.textContent =
+              "⏸ Pausar audio";
+
+          } else if (
+            player.currentTime > 0
+          ) {
+
+            button.textContent =
+              "▶ Reanudar audio";
+
+          } else {
+
+            button.textContent =
+              "▶ Reproducir audio";
+
+          }
+
+        }
+
+        player.addEventListener(
+          "play",
+          updatePlaybackButton
+        );
+
+        player.addEventListener(
+          "pause",
+          updatePlaybackButton
+        );
+
+        player.addEventListener(
+          "ended",
+          updatePlaybackButton
+        );
+
+        player.addEventListener(
+          "error",
+          function() {
+
+            delete player.dataset.materialAudioUrlExpiresAt;
+
+            updatePlaybackButton();
+
+          }
+        );
+
         button.addEventListener(
           "click",
           async function() {
-            if (button.dataset.loading === "true") {
+
+            if (
+              button.dataset.loading === "true"
+            ) {
               return;
             }
 
-            const wrapper =
-              button.closest(
-                ".material-audio-lazy-controls"
-              );
+            if (
+              !player.paused &&
+              !player.ended
+            ) {
 
-            const player =
-              wrapper?.querySelector(
-                "[data-material-audio]"
-              );
+              player.pause();
+
+              updatePlaybackButton();
+
+              return;
+
+            }
 
             const storagePath =
-              player?.dataset.materialAudio;
+              player.dataset.materialAudio;
 
-            if (!player || !storagePath) {
+            if (!storagePath) {
+
+              showNotice(
+                "No se encontró la ruta del audio guardado.",
+                "error"
+              );
+
               return;
+
             }
 
-            button.dataset.loading = "true";
-            button.disabled = true;
-            button.textContent = "Preparando audio…";
+            const urlExpiresAt =
+              Number(
+                player.dataset.materialAudioUrlExpiresAt || 0
+              );
 
-            let signedUrl = null;
-            let loadError = null;
+            if (
+              player.src &&
+              urlExpiresAt > Date.now() + 15000
+            ) {
+
+              try {
+
+                await player.play();
+
+                updatePlaybackButton();
+
+                return;
+
+              } catch (error) {
+
+                // Reintentar con una URL firmada nueva si la existente expiró
+                // o el navegador ya no puede reproducirla.
+
+                delete player.dataset.materialAudioUrlExpiresAt;
+
+              }
+
+            }
+
+            button.dataset.loading =
+              "true";
+
+            button.disabled =
+              true;
+
+            button.textContent =
+              "Preparando audio…";
 
             try {
+
               const response =
                 await supabaseClient
                   .storage
@@ -754,39 +881,75 @@ function bindMaterialViewEvents() {
                     3600
                   );
 
-              signedUrl = response.data?.signedUrl || null;
-              loadError = response.error || null;
-            } catch (error) {
-              loadError = error;
-            }
+              const signedUrl =
+                response.data?.signedUrl ||
+                null;
 
-            if (loadError || !signedUrl) {
-              button.dataset.loading = "false";
-              button.disabled = false;
-              button.textContent = "Reintentar audio";
+              if (
+                response.error ||
+                !signedUrl
+              ) {
+
+                throw (
+                  response.error ||
+                  new Error(
+                    "No se pudo obtener el audio."
+                  )
+                );
+
+              }
+
+              player.src =
+                signedUrl;
+
+              player.dataset.materialAudioUrlExpiresAt =
+                String(
+                  Date.now() + 55 * 60 * 1000
+                );
+
+              player.hidden =
+                false;
+
+              try {
+
+                await player.play();
+
+              } catch (playError) {
+
+                showNotice(
+                  "El audio está cargado, pero no se pudo iniciar automáticamente. Usá el control del reproductor para reproducirlo.",
+                  "error"
+                );
+
+              }
+
+            } catch (error) {
+
+              delete player.dataset.materialAudioUrlExpiresAt;
 
               showNotice(
-                loadError?.message ||
-                  "No se pudo cargar el audio.",
+                error?.message ||
+                  "No se pudo cargar el audio. Podés volver a intentarlo.",
                 "error"
               );
-              return;
+
+            } finally {
+
+              delete button.dataset.loading;
+
+              button.disabled =
+                false;
+
+              updatePlaybackButton();
+
             }
 
-            player.src = signedUrl;
-            player.hidden = false;
-            button.hidden = true;
-
-            try {
-              await player.play();
-            } catch {
-              // Algunos navegadores exigen un toque adicional en Play
-              // después de completar la solicitud de la URL.
-            }
           }
         );
+
       }
     );
+
 
   document
     .querySelectorAll(
