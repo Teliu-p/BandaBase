@@ -1068,7 +1068,8 @@ const {
   materialRichTextHasMarkup,
   getMaterialAutoLinkUrl,
   serializeMaterialAutoLinkedText,
-  renderMaterialRichTextTextNode
+  renderMaterialRichTextTextNode,
+  splitMaterialComposerNodeByAttachments
 } = loadPureFunctions(
   "src/materials-formatting.js",
   [
@@ -1076,7 +1077,8 @@ const {
     "materialRichTextHasMarkup",
     "getMaterialAutoLinkUrl",
     "serializeMaterialAutoLinkedText",
-    "renderMaterialRichTextTextNode"
+    "renderMaterialRichTextTextNode",
+    "splitMaterialComposerNodeByAttachments"
   ]
 );
 
@@ -1123,6 +1125,106 @@ assert.equal(
   true,
   "La combinación de tamaño, cursiva y negrita debe conservar el formato enriquecido."
 );
+
+// Minimal DOM node doubles exercise the same splitter the editor uses.
+class MockMaterialNode {
+  constructor(nodeType, tagName = "", text = "", classNames = []) {
+    this.nodeType = nodeType;
+    this.tagName = tagName;
+    this.nodeValue = nodeType === 3 ? text : null;
+    this.childNodes = [];
+    this.parentNode = null;
+    this.classNames = new Set(classNames);
+    this.classList = {
+      contains: name => this.classNames.has(name)
+    };
+    this.dataset = {};
+  }
+
+  appendChild(node) {
+    this.childNodes.push(node);
+    node.parentNode = this;
+    return node;
+  }
+
+  querySelector(selector) {
+    if (selector !== ".material-inline-attachment") return null;
+
+    for (const child of this.childNodes) {
+      if (
+        child.nodeType === 1 &&
+        child.classList.contains("material-inline-attachment")
+      ) {
+        return child;
+      }
+
+      const nested = child.querySelector?.(selector);
+      if (nested) return nested;
+    }
+
+    return null;
+  }
+
+  cloneNode(deep = false) {
+    const clone = new MockMaterialNode(
+      this.nodeType,
+      this.tagName,
+      this.nodeValue || "",
+      [...this.classNames]
+    );
+    clone.dataset = { ...this.dataset };
+
+    if (deep) {
+      for (const child of this.childNodes) {
+        clone.appendChild(child.cloneNode(true));
+      }
+    }
+
+    return clone;
+  }
+
+  get textContent() {
+    if (this.nodeType === 3) return this.nodeValue || "";
+    return this.childNodes.map(child => child.textContent).join("");
+  }
+}
+
+const formattedLine = new MockMaterialNode(
+  1,
+  "SPAN",
+  "",
+  ["material-text-size-1"]
+);
+const boldText = new MockMaterialNode(1, "STRONG");
+boldText.appendChild(new MockMaterialNode(3, "", "Antes "));
+const pendingAudio = new MockMaterialNode(
+  1,
+  "SPAN",
+  "",
+  ["material-inline-attachment"]
+);
+pendingAudio.dataset.pendingKey = "pending-audio";
+boldText.appendChild(pendingAudio);
+boldText.appendChild(new MockMaterialNode(3, "", " después"));
+formattedLine.appendChild(boldText);
+
+const splitFormattedLine =
+  splitMaterialComposerNodeByAttachments(formattedLine);
+
+assert.equal(
+  splitFormattedLine.length,
+  3,
+  "Un archivo insertado dentro de un texto enriquecido debe partirlo en texto, adjunto y texto."
+);
+assert.equal(splitFormattedLine[0].node.tagName, "SPAN");
+assert.equal(splitFormattedLine[0].node.classList.contains("material-text-size-1"), true);
+assert.equal(splitFormattedLine[0].node.textContent, "Antes ");
+assert.equal(splitFormattedLine[0].node.childNodes[0].tagName, "STRONG");
+assert.equal(splitFormattedLine[1].attachment, pendingAudio);
+assert.equal(splitFormattedLine[2].node.tagName, "SPAN");
+assert.equal(splitFormattedLine[2].node.textContent, " después");
+assert.equal(splitFormattedLine[2].node.childNodes[0].tagName, "STRONG");
+
 
 assert.equal(
   serializeMaterialAutoLinkedText(
