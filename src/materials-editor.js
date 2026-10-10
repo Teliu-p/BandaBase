@@ -628,59 +628,54 @@ function collectMaterialComposerBlocks() {
 
   }
 
+  function appendAttachmentBlock(
+    element
+  ) {
+
+    blocks.push({
+      block_type:
+        "attachment",
+      attachment_id:
+        element.dataset.attachmentId ||
+        null,
+      pendingKey:
+        element.dataset.pendingKey ||
+        null
+    });
+
+  }
+
   Array.from(
     editor.childNodes
   ).forEach(
     node => {
 
-      if (
-        node.nodeType ===
-        Node.TEXT_NODE
-      ) {
+      splitMaterialComposerNodeByAttachments(
+        node
+      ).forEach(
+        segment => {
 
-        textNodes.push(
-          node
-        );
+          if (segment.attachment) {
 
-        return;
+            flushText();
 
-      }
+            appendAttachmentBlock(
+              segment.attachment
+            );
 
-      if (
-        node.nodeType !==
-        Node.ELEMENT_NODE
-      ) {
-        return;
-      }
+            return;
 
-      const element =
-        node;
+          }
 
-      if (
-        element.classList.contains(
-          "material-inline-attachment"
-        )
-      ) {
+          if (segment.node) {
 
-        flushText();
+            textNodes.push(
+              segment.node
+            );
 
-        blocks.push({
-          block_type:
-            "attachment",
-          attachment_id:
-            element.dataset.attachmentId ||
-            null,
-          pendingKey:
-            element.dataset.pendingKey ||
-            null
-        });
+          }
 
-        return;
-
-      }
-
-      textNodes.push(
-        element
+        }
       );
 
     }
@@ -730,6 +725,18 @@ function openMaterialEditor(
   editingMaterialId =
     material?.id ||
     null;
+
+  // Evitar que la vista expandida y el formulario de edición muestren
+  // simultáneamente el mismo contenido como si fueran dos materiales.
+  if (editingMaterialId) {
+
+    openMaterialIds.delete(
+      editingMaterialId
+    );
+
+    renderMaterials();
+
+  }
 
   materialDraftInitialAttachmentIds =
     new Set(
