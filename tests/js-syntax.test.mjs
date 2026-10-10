@@ -195,19 +195,19 @@ const {
 );
 
 assert.equal(
-  shouldSilentlyRefreshKnownBuild("oldsha12", "newsha12", "newsha12", false),
+  shouldSilentlyRefreshKnownBuild("1111111", "2222222", "2222222", false),
   true,
   "Si el móvil abrió HTML antiguo pero la versión publicada es la ya confirmada, debe actualizar en silencio."
 );
 
 assert.equal(
-  shouldSilentlyRefreshKnownBuild("oldsha12", "later003", "newsha12", false),
+  shouldSilentlyRefreshKnownBuild("1111111", "3333333", "2222222", false),
   false,
   "Una versión publicada distinta de la última confirmada debe seguir notificándose como actualización real."
 );
 
 assert.equal(
-  shouldSilentlyRefreshKnownBuild("oldsha12", "newsha12", "newsha12", true),
+  shouldSilentlyRefreshKnownBuild("1111111", "2222222", "2222222", true),
   false,
   "Después de un intento de recarga con la URL anti-caché, no debe iniciar un bucle automático infinito."
 );
