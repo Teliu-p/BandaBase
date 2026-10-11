@@ -198,6 +198,29 @@ begin
     raise exception 'A member lost valid self-service instrument editing.';
   end if;
 
+  -- Self-service must not change fields other than its instrument selection.
+  caught_expected_error := false;
+  begin
+    update public.band_list_items
+    set title = 'Título alterado sin permiso'
+    where id = '50000000-0000-0000-0000-000000000002';
+  exception
+    when raise_exception then
+      caught_expected_error := true;
+  end;
+
+  if not caught_expected_error then
+    raise exception 'Self-service was able to change the title of its participation row.';
+  end if;
+
+  select title into actual_title
+  from public.band_list_items
+  where id = '50000000-0000-0000-0000-000000000002';
+
+  if actual_title <> 'Integrante propio' then
+    raise exception 'Rejected self-service title change altered the row.';
+  end if;
+
   -- Self-service must not allow a member to confirm themselves.
   caught_expected_error := false;
   begin
