@@ -221,14 +221,15 @@ begin
     raise exception 'Rejected self-service title change altered the row.';
   end if;
 
-  -- Self-service must not allow a member to confirm themselves.
+  -- Self-service must not allow a member to confirm themselves. Reject either
+  -- at RLS WITH CHECK or at the row-mutation guard; both are valid boundaries.
   caught_expected_error := false;
   begin
     update public.band_list_items
     set status = 'Confirmado'
     where id = '50000000-0000-0000-0000-000000000002';
   exception
-    when insufficient_privilege then
+    when insufficient_privilege or raise_exception then
       caught_expected_error := true;
   end;
 
