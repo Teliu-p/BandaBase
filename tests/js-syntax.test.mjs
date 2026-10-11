@@ -142,7 +142,7 @@ function renderSongCommentsForPermissionTest({ currentUserId, commentUserId, isA
 
   vm.runInNewContext(
     renderCommentsFunctionSource +
-      "\\nglobalThis.__testRenderComments = renderComments;",
+      "\nglobalThis.__testRenderComments = renderComments;",
     testContext,
     { filename: "src/comments-view.js#renderComments" }
   );
