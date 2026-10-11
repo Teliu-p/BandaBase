@@ -8,7 +8,28 @@
 
 Este documento amplía la auditoría inicial de [database-migration-history-audit.md](./database-migration-history-audit.md). No certifica que cada archivo se ejecutara literalmente en el pasado; describe qué estado actual se ha podido comprobar y cuál es la evidencia que falta.
 
-## 1. Desalineación confirmada
+## Aclaración importante: hubo dos grupos distintos de doce migraciones
+
+El informe recuperado del **8 de octubre** documentaba la discrepancia inversa: doce versiones que **sí estaban registradas en Supabase pero cuyos archivos SQL faltaban en GitHub**. Eran estas versiones iniciales:
+
+- `20261007032329_enriched_materials`
+- `20261007032335_material_storage_bucket`
+- `20261007033157_create_band_comments`
+- `20261007034524_link_comments_to_songs`
+- `20261007034906_allow_general_and_song_comments`
+- `20261007035841_link_rehearsals_to_songs`
+- `20261007040838_create_band_lists_and_material_blocks`
+- `20261007043657_simplify_band_lists_structure`
+- `20261007044821_remove_band_list_date_time`
+- `20261007172727_expand_proposals_for_voting`
+- `20261007172940_finish_proposals_voting_access`
+- `20261007184046_add_proposal_vote_visibility`
+
+La comprobación actual confirma que esas doce versiones siguen en el historial remoto y que ahora también existe el conjunto correspondiente de archivos locales. **Ese problema anterior quedó resuelto y no debe volver a abrirse como tarea pendiente.**
+
+Este documento trata un **segundo grupo, diferente**, de doce archivos que aparecen en Git pero no tienen una fila remota con la misma versión. Que el número también sea doce no significa que sean las mismas migraciones ni que deba repetirse la reparación anterior.
+
+## 1. Estado de la segunda discrepancia
 
 - Hay **56** archivos locales en `supabase/migrations/`.
 - La tabla remota `supabase_migrations.schema_migrations` registra **44** versiones.
@@ -36,7 +57,9 @@ La tabla remota tiene las columnas `version`, `statements`, `name`, `created_by`
 
 ## 3. Lectura técnica
 
-La evidencia es consistente con un esquema remoto en el que los efectos importantes de las doce versiones ya están presentes, en parte bajo definiciones posteriores más restrictivas. Sin embargo, **el historial no se considera reconciliado todavía**: la existencia de una tabla o de una política con nombre parecido no prueba la ejecución íntegra de la migración original.
+Las doce versiones locales sin fila remota son versiones posteriores y distintas del primer grupo. Varias parecen representar definiciones iniciales o intermedias de objetos que luego fueron modificados por migraciones remotas posteriores. Esto es compatible con una colección de archivos históricos obsoletos o con SQL ejecutado fuera del seguimiento normal de migraciones; los catálogos por sí solos no permiten distinguir esas posibilidades.
+
+Por eso, el conteo 56 local / 44 remoto **no es por sí solo prueba de que haya que marcar las doce como aplicadas**. Este informe anterior se excedía al presentar esos comandos como la reparación propuesta. Se corrige aquí: no debe ejecutarse un lote de `migration repair --status applied` para estas doce versiones basándose solo en la presencia actual de objetos.
 
 Las dos versiones que requieren atención especial por transformar contenido son:
 
@@ -45,34 +68,20 @@ Las dos versiones que requieren atención especial por transformar contenido son
 
 Sus precondiciones/postcondiciones actuales son compatibles con el resultado esperado, pero volver a ejecutar los SQL antiguos podría provocar escrituras innecesarias y efectos de triggers/auditoría. No se deben aplicar de nuevo.
 
-## 4. Procedimiento gratuito propuesto para completar la reparación
+## 4. Qué hacer ahora (sin reparar ni pagar)
 
-La reparación que falta es **solo de metadatos**; no debe ejecutar el contenido de las doce migraciones.
+**No ejecutar ahora comandos `migration repair` para estas doce versiones, ni `supabase db push`.** Tampoco borrarlas del repositorio sin revisar su procedencia.
 
-1. En un checkout actualizado del repositorio, confirmar que el proyecto local está vinculado al ref correcto y ejecutar `supabase migration list --linked`. No ejecutar `db push`.
-2. Guardar una copia/exportación del historial actual de `supabase_migrations.schema_migrations` y del estado del esquema antes de cambiar el historial.
-3. Con el Supabase CLI oficial, marcar como `applied` únicamente las doce versiones que figuran abajo. El comando `migration repair` modifica el seguimiento de migraciones; no aplica ni revierte el SQL del archivo. Referencia oficial: [Supabase Database Migrations — reparar el historial](https://supabase.com/docs/guides/deployment/database-migrations#diagnosing-and-fixing-sync-errors).
-4. Volver a ejecutar `supabase migration list --linked`. Debe mostrar las versiones locales y remotas emparejadas.
-5. Ejecutar `supabase db push --linked --dry-run`. Si propone aplicar cualquiera de estos doce archivos o cualquier SQL no previsto, detenerse y no ejecutar un push real.
+El siguiente paso es clasificar cada archivo, no cambiar el historial:
 
-Comandos de reparación, uno por versión:
+1. Recuperar del terminal el resultado que el usuario ya obtuvo anteriormente, si está disponible, y contrastarlo con `supabase migration list --linked` ejecutado desde el checkout actual. No repetir reparaciones previas por intuición.
+2. Para cada uno de estos doce archivos, identificar el commit/PR que lo introdujo y las migraciones posteriores registradas en Supabase que cambiaron las mismas tablas, funciones, políticas o triggers.
+3. Clasificar cada archivo como: **(a)** SQL aplicado manualmente y verificable; **(b)** versión intermedia reemplazada por otra migración aplicada; o **(c)** cambio escrito en Git pero nunca aplicado. Solo la primera categoría podría justificar marcar la versión como `applied`, después de verificar el SQL exacto. Las categorías (b) y (c) requieren tratamiento distinto; no deben marcarse como aplicadas por conveniencia.
+4. Si el CLI propone estas versiones como pendientes, detenerse. Guardar el listado de propuestas sin ejecutar un push y revisar el SQL exacto de cada una antes de decidir si se conserva, se consolida fuera de la carpeta de migraciones o se corrige el seguimiento mediante el procedimiento oficial.
 
-```bash
-supabase migration repair --linked --status applied 20261007173000
-supabase migration repair --linked --status applied 20261007190000
-supabase migration repair --linked --status applied 20261007200000
-supabase migration repair --linked --status applied 20261007203000
-supabase migration repair --linked --status applied 20261007210000
-supabase migration repair --linked --status applied 20261007220000
-supabase migration repair --linked --status applied 20261007221500
-supabase migration repair --linked --status applied 20261007223000
-supabase migration repair --linked --status applied 20261007224000
-supabase migration repair --linked --status applied 20261007225000
-supabase migration repair --linked --status applied 20261007225500
-supabase migration repair --linked --status applied 20261008180900
-```
+El comando oficial `supabase migration repair` solo modifica el historial de versiones; no ejecuta el SQL de la migración. Precisamente por eso, marcar una versión como `applied` sin evidencia puede falsear el historial, aunque sea menos peligroso que ejecutar SQL antiguo. Documentación: [Supabase Database Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diagnosing-and-fixing-sync-errors).
 
-**No se han ejecutado estos comandos desde esta sesión.** La conexión de Supabase disponible permite consultas y migraciones, pero no ofrece una acción dedicada para ejecutar `supabase migration repair`. No se sustituye el CLI con `INSERT` directo en `schema_migrations`, porque la tabla real contiene arrays `statements` no vacíos para todas las versiones registradas y un insert manual podría dejar un historial con formato diferente.
+La conexión de Supabase disponible en esta sesión permite consultas y migraciones, pero no ofrece una acción dedicada para recuperar el resultado de los comandos ejecutados en la terminal del usuario ni para ejecutar `supabase migration repair`. No debe sustituirse el CLI por escrituras manuales en `supabase_migrations.schema_migrations`.
 
 ## 5. Límites de esta verificación
 
