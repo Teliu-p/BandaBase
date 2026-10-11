@@ -19,3 +19,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Install static analysis tools
+        run: npm install --no-save --package-lock=false eslint@9 globals@16
+
+      - name: Check undefined global references
+        run: npx eslint --config tests/eslint.config.mjs "src/**/*.js"
