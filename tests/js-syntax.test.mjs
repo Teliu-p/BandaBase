@@ -1994,3 +1994,88 @@ assert.equal(
   failedOldFileCleanup.notices.at(-1)[1],
   "error"
 );
+
+
+// Regression contract for the UPDATE RLS policy: permissive policies are OR-ed,
+// so the old broad policy must be removed, and admin/creator edits must still
+// enforce same-band song and active-member integrity.
+const bandListUpdatePolicyMigration = readFileSync(
+  join(
+    root,
+    "supabase/migrations/20261011042500_harden_band_list_item_update_policy.sql"
+  ),
+  "utf8"
+);
+
+assert.match(
+  bandListUpdatePolicyMigration,
+  /drop policy if exists band_list_items_update_control_v2[\\s\\S]*?on public\\.band_list_items/i,
+  "La migración debe retirar la política UPDATE antigua y permisiva."
+);
+assert.doesNotMatch(
+  bandListUpdatePolicyMigration,
+  /create policy band_list_items_update_control_v2/i,
+  "La migración no debe recrear la política UPDATE amplia."
+);
+
+const bandListUpdatePolicyStart =
+  bandListUpdatePolicyMigration.indexOf(
+    "create policy band_list_items_update_control"
+  );
+const bandListUpdateUsingStart =
+  bandListUpdatePolicyMigration.indexOf("using (", bandListUpdatePolicyStart);
+const bandListUpdateWithCheckStart =
+  bandListUpdatePolicyMigration.indexOf(
+    "with check (",
+    bandListUpdateUsingStart
+  );
+
+assert.ok(
+  bandListUpdatePolicyStart >= 0 &&
+  bandListUpdateUsingStart > bandListUpdatePolicyStart &&
+  bandListUpdateWithCheckStart > bandListUpdateUsingStart,
+  "La migración debe definir una política UPDATE con USING y WITH CHECK."
+);
+
+const bandListUpdateUsing = bandListUpdatePolicyMigration.slice(
+  bandListUpdateUsingStart,
+  bandListUpdateWithCheckStart
+);
+const bandListUpdateWithCheck =
+  bandListUpdatePolicyMigration.slice(bandListUpdateWithCheckStart);
+
+assert.match(
+  bandListUpdateUsing,
+  /public\\.is_band_admin\\(l\\.band_id\\)/i,
+  "Los administradores deben conservar permiso para editar ítems."
+);
+assert.match(
+  bandListUpdateUsing,
+  /l\\.deleted_at\\s+is\\s+null/i,
+  "No se deben actualizar ítems de listas enviadas a la papelera."
+);
+assert.match(
+  bandListUpdateWithCheck,
+  /public\\.is_band_admin\\(l\\.band_id\\)/i,
+  "Los administradores deben conservar permiso también en WITH CHECK."
+);
+assert.match(
+  bandListUpdateWithCheck,
+  /s\\.band_id\\s*=\\s*l\\.band_id/i,
+  "Un ítem no debe poder vincular una canción de otra banda."
+);
+assert.match(
+  bandListUpdateWithCheck,
+  /bm\\.active\\s*=\\s*true/i,
+  "La validación debe rechazar participantes que ya no estén activos."
+);
+assert.match(
+  bandListUpdateWithCheck,
+  /cardinality\\(band_list_items\\.participation_instruments\\)\\s*>\\s*0/i,
+  "La autoedición debe requerir al menos una función elegida."
+);
+assert.match(
+  bandListUpdateWithCheck,
+  /band_list_items\\.participation_instruments[\\s\\S]*?<@\\s*array\\['guitar', 'voice', 'keyboard', 'bass', 'drums'\\]/i,
+  "La autoedición debe limitar las funciones a los instrumentos admitidos."
+);
