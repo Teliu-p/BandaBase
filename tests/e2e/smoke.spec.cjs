@@ -63,7 +63,7 @@ test("the app boots in Chromium with no runtime errors or missing local JS/CSS",
   const { runtimeErrors, brokenAssets } = await openApp(page);
 
   await expect(page).toHaveTitle(/BandaBase/);
-  await expect(page.getByRole("heading", { name: "BandaBase" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "BandaBase", exact: true })).toBeVisible();
   await expect(page.locator("#signupForm")).toBeVisible();
   await expect(page.locator("#app")).toBeHidden();
 
