@@ -276,6 +276,39 @@ begin
   if affected <> 0 then
     raise exception 'An item in a soft-deleted list was editable.';
   end if;
+
+  -- A valid self-service instrument change must still allow the trusted
+  -- automatic-confirmation trigger to transition the row to Confirmado.
+  perform set_config(
+    'request.jwt.claim.sub',
+    '10000000-0000-0000-0000-000000000003',
+    true
+  );
+
+  update public.band_list_items
+  set participation_instruments = array['bass']::text[]
+  where id = '50000000-0000-0000-0000-000000000005';
+
+  get diagnostics affected = row_count;
+  if affected <> 1 then
+    raise exception 'Valid self-service instrument update was rejected on a list with available capacity.';
+  end if;
+
+  select status into actual_status
+  from public.band_list_items
+  where id = '50000000-0000-0000-0000-000000000005';
+
+  if actual_status <> 'Confirmado' then
+    raise exception 'A valid self-service instrument update failed to auto-confirm when capacity was available.';
+  end if;
+
+  select participation_instruments into actual_instruments
+  from public.band_list_items
+  where id = '50000000-0000-0000-0000-000000000005';
+
+  if actual_instruments <> array['bass']::text[] then
+    raise exception 'The valid self-service instrument update was not retained after auto-confirmation.';
+  end if;
 end;
 $test$;
 
