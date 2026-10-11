@@ -25,7 +25,8 @@ create table public.band_lists (
   id uuid primary key,
   band_id uuid not null,
   created_by uuid not null,
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  instrument_slots jsonb not null default '{}'::jsonb
 );
 
 create table public.songs (
@@ -174,9 +175,9 @@ insert into public.band_members (band_id,user_id,active,role) values
   ('11111111-1111-1111-1111-111111111111','10000000-0000-0000-0000-000000000005',false,'member'),
   ('22222222-2222-2222-2222-222222222222','10000000-0000-0000-0000-000000000006',true,'member');
 
-insert into public.band_lists (id,band_id,created_by,deleted_at) values
-  ('40000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','10000000-0000-0000-0000-000000000002',null),
-  ('40000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','10000000-0000-0000-0000-000000000002',now());
+insert into public.band_lists (id,band_id,created_by,deleted_at,instrument_slots) values
+  ('40000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','10000000-0000-0000-0000-000000000002',null,'{"voice":1,"guitar":0,"bass":0}'::jsonb),
+  ('40000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','10000000-0000-0000-0000-000000000002',now(),'{}'::jsonb);
 
 insert into public.songs (id,band_id) values
   ('30000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111'),
@@ -193,6 +194,148 @@ values
   ('50000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000001','member','Integrante propio',null,'10000000-0000-0000-0000-000000000003','Anotado',1,array['guitar'],'10000000-0000-0000-0000-000000000003'),
   ('50000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000001','member','Integrante participante',null,'10000000-0000-0000-0000-000000000002','Anotado',2,array['voice'],'10000000-0000-0000-0000-000000000002'),
   ('50000000-0000-0000-0000-000000000004','40000000-0000-0000-0000-000000000002','song','Canción en papelera','30000000-0000-0000-0000-000000000001',null,null,0,'{}','10000000-0000-0000-0000-000000000002');
+
+-- These triggers mirror production behavior relevant to UPDATE policy tests.
+-- Seed data is inserted before the triggers so fixtures start in the stated states.
+create function public.auto_confirm_band_list_members(p_list_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public', 'pg_catalog'
+as $function$
+declare
+  v_slots jsonb;
+  v_ok boolean := true;
+  v_instrument text;
+  v_confirmed integer;
+  v_annotated integer;
+  v_limit integer;
+begin
+  select instrument_slots into v_slots
+  from public.band_lists
+  where id = p_list_id and deleted_at is null
+  for update;
+
+  if not found or v_slots is null or v_slots = '{}'::jsonb then
+    return;
+  end if;
+
+  for v_instrument in
+    select distinct x.instrument
+    from public.band_list_items i
+    cross join lateral unnest(i.participation_instruments) as x(instrument)
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status in ('Anotado', 'Confirmado')
+  loop
+    select count(*) into v_confirmed
+    from public.band_list_items i
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status = 'Confirmado'
+      and v_instrument = any(i.participation_instruments);
+
+    select count(*) into v_annotated
+    from public.band_list_items i
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status = 'Anotado'
+      and v_instrument = any(i.participation_instruments);
+
+    v_limit := coalesce((v_slots ->> v_instrument)::integer, 0);
+
+    if v_confirmed + v_annotated > v_limit then
+      v_ok := false;
+      exit;
+    end if;
+  end loop;
+
+  if v_ok then
+    update public.band_list_items
+    set status = 'Confirmado'
+    where list_id = p_list_id
+      and item_type = 'member'
+      and status = 'Anotado'
+      and cardinality(participation_instruments) > 0;
+  end if;
+end;
+$function$;
+
+create function public.trg_auto_confirm_band_list_items()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public', 'pg_catalog'
+as $function$
+begin
+  if current_setting('bandabase.skip_list_auto_confirm', true) = 'on' then
+    return coalesce(new, old);
+  end if;
+
+  perform public.auto_confirm_band_list_members(coalesce(new.list_id, old.list_id));
+  return coalesce(new, old);
+end;
+$function$;
+
+create function public.validate_band_list_participation_capacity()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public', 'pg_catalog'
+as $function$
+declare
+  v_slots jsonb;
+  v_instrument text;
+  v_confirmed integer;
+  v_limit integer;
+begin
+  if new.item_type <> 'member'
+     or new.status <> 'Confirmado'
+     or coalesce(old.status, 'Anotado') = 'Confirmado' then
+    return new;
+  end if;
+
+  if cardinality(coalesce(new.participation_instruments, '{}'::text[])) = 0 then
+    raise exception 'No se puede marcar Participando sin seleccionar al menos una función';
+  end if;
+
+  select instrument_slots into v_slots
+  from public.band_lists
+  where id = new.list_id and deleted_at is null
+  for update;
+
+  if not found then
+    raise exception 'La lista no existe o fue eliminada';
+  end if;
+
+  for v_instrument in select distinct unnest(new.participation_instruments)
+  loop
+    select count(*) into v_confirmed
+    from public.band_list_items i
+    where i.list_id = new.list_id
+      and i.item_type = 'member'
+      and i.status = 'Confirmado'
+      and i.id <> new.id
+      and v_instrument = any(i.participation_instruments);
+
+    v_limit := coalesce((v_slots ->> v_instrument)::integer, 0);
+
+    if v_confirmed + 1 > v_limit then
+      raise exception 'No hay cupo disponible para %', v_instrument;
+    end if;
+  end loop;
+
+  return new;
+end;
+$function$;
+
+create trigger band_list_items_validate_participation_capacity
+before update on public.band_list_items
+for each row execute function public.validate_band_list_participation_capacity();
+
+create trigger band_list_items_auto_confirm
+after insert or update on public.band_list_items
+for each row execute function public.trg_auto_confirm_band_list_items();
 
 alter table public.band_list_items enable row level security;
 
