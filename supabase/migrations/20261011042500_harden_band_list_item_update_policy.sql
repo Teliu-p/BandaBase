@@ -58,6 +58,22 @@ begin
     return new;
   end if;
 
+  -- Auto-confirmation is a trusted internal transition: permit only status to
+  -- change from Anotado to Confirmado while that function's transaction-local
+  -- marker is present. This preserves automatic confirmation without opening a
+  -- direct self-confirmation path to clients.
+  if old.member_user_id = (select auth.uid())
+     and old.status = 'Anotado'
+     and new.status = 'Confirmado'
+     and current_setting('bandabase.auto_confirming_list_items', true) = 'on' then
+    if (to_jsonb(new) - 'status')
+       is distinct from
+       (to_jsonb(old) - 'status') then
+      raise exception 'La auto-confirmación solo puede cambiar el estado de la participación.';
+    end if;
+    return new;
+  end if;
+
   -- Non-manager members may change only their own instrument selection while
   -- their participation remains annotated. This also blocks row/list mutation
   -- attempts that would otherwise satisfy the broad self-service WITH CHECK.
@@ -71,6 +87,91 @@ begin
   end if;
 
   return new;
+end;
+$function$;
+
+-- Mark the internal auto-confirmation update so the self-service guard can
+-- distinguish it from a user's direct status change. The marker is transaction-local
+-- and restored even if the nested update fails.
+create or replace function public.auto_confirm_band_list_members(p_list_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public', 'pg_catalog'
+as $function$
+declare
+  v_slots jsonb;
+  v_ok boolean := true;
+  v_instrument text;
+  v_confirmed integer;
+  v_annotated integer;
+  v_limit integer;
+  v_previous_marker text;
+begin
+  select instrument_slots into v_slots
+  from public.band_lists
+  where id = p_list_id and deleted_at is null
+  for update;
+
+  if not found or v_slots is null or v_slots = '{}'::jsonb then
+    return;
+  end if;
+
+  for v_instrument in
+    select distinct x.instrument
+    from public.band_list_items i
+    cross join lateral unnest(i.participation_instruments) as x(instrument)
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status in ('Anotado', 'Confirmado')
+  loop
+    select count(*) into v_confirmed
+    from public.band_list_items i
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status = 'Confirmado'
+      and v_instrument = any(i.participation_instruments);
+
+    select count(*) into v_annotated
+    from public.band_list_items i
+    where i.list_id = p_list_id
+      and i.item_type = 'member'
+      and i.status = 'Anotado'
+      and v_instrument = any(i.participation_instruments);
+
+    v_limit := coalesce((v_slots ->> v_instrument)::integer, 0);
+
+    if v_confirmed + v_annotated > v_limit then
+      v_ok := false;
+      exit;
+    end if;
+  end loop;
+
+  if v_ok then
+    v_previous_marker := current_setting('bandabase.auto_confirming_list_items', true);
+    perform set_config('bandabase.auto_confirming_list_items', 'on', true);
+    begin
+      update public.band_list_items
+      set status = 'Confirmado'
+      where list_id = p_list_id
+        and item_type = 'member'
+        and status = 'Anotado'
+        and cardinality(participation_instruments) > 0;
+    exception
+      when others then
+        perform set_config(
+          'bandabase.auto_confirming_list_items',
+          coalesce(v_previous_marker, ''),
+          true
+        );
+        raise;
+    end;
+    perform set_config(
+      'bandabase.auto_confirming_list_items',
+      coalesce(v_previous_marker, ''),
+      true
+    );
+  end if;
 end;
 $function$;
 
