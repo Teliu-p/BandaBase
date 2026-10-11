@@ -273,8 +273,12 @@ function renderComments() {
   list.innerHTML =
     currentComments
       .map(comment => {
+        const canManageComment =
+          comment.user_id === currentUser?.id ||
+          window.bandabaseIsAdmin?.();
+
         const canContextDelete =
-          comment.user_id === currentUser?.id;
+          canManageComment;
 
         let html =
           '<article class="comment-card"' +

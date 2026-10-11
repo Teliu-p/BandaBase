@@ -95,6 +95,83 @@ assert.match(
   /data-comment-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
   "Comentarios debe solicitar la URL del audio solo desde la acción explícita de reproducir."
 );
+
+const renderCommentsStart = commentsViewSource.indexOf("function renderComments() {");
+const renderCommentsEnd = commentsViewSource.indexOf("\n\nasync function loadComments()", renderCommentsStart);
+assert.ok(
+  renderCommentsStart >= 0 && renderCommentsEnd > renderCommentsStart,
+  "Debe existir la función renderComments para probar el renderizado de comentarios."
+);
+const renderCommentsFunctionSource = commentsViewSource.slice(
+  renderCommentsStart,
+  renderCommentsEnd
+);
+
+function renderSongCommentsForPermissionTest({ currentUserId, commentUserId, isAdmin = false }) {
+  const list = { innerHTML: "" };
+  const testContext = {
+    currentComments: [{
+      id: "comment-test",
+      user_id: commentUserId,
+      created_at: "2026-10-10T12:00:00.000Z",
+      blocks: [{ block_type: "text", content: "Comentario de prueba" }]
+    }],
+    currentUser: { id: currentUserId },
+    commentProfilesMap: {},
+    document: {
+      getElementById(id) {
+        return id === "commentsList" ? list : null;
+      }
+    },
+    window: { bandabaseIsAdmin: () => isAdmin },
+    escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[character]);
+    },
+    getCommentAuthorNameFromMap: () => "Usuario de prueba",
+    formatCommentDate: () => "10/10/2026",
+    renderCommentBlocks: () => '<div class="comment-view-text">Comentario de prueba</div>',
+    bindSongCommentEvents: () => {},
+    bindCommentAttachmentEvents: () => {}
+  };
+
+  vm.runInNewContext(
+    renderCommentsFunctionSource +
+      "\nglobalThis.__testRenderComments = renderComments;",
+    testContext,
+    { filename: "src/comments-view.js#renderComments" }
+  );
+  testContext.__testRenderComments();
+  return list.innerHTML;
+}
+
+const ownerCommentHtml = renderSongCommentsForPermissionTest({
+  currentUserId: "user-1",
+  commentUserId: "user-1"
+});
+assert.match(ownerCommentHtml, /data-edit-comment="comment-test"/);
+assert.match(ownerCommentHtml, /data-delete-comment="comment-test"/);
+assert.match(ownerCommentHtml, /data-context-delete="songComment"/);
+
+const otherUserCommentHtml = renderSongCommentsForPermissionTest({
+  currentUserId: "user-1",
+  commentUserId: "user-2"
+});
+assert.doesNotMatch(otherUserCommentHtml, /data-edit-comment|data-delete-comment|data-context-delete=/);
+
+const adminCommentHtml = renderSongCommentsForPermissionTest({
+  currentUserId: "admin-1",
+  commentUserId: "user-2",
+  isAdmin: true
+});
+assert.match(adminCommentHtml, /data-edit-comment="comment-test"/);
+assert.match(adminCommentHtml, /data-delete-comment="comment-test"/);
+assert.match(adminCommentHtml, /data-context-delete="songComment"/);
 assert.doesNotMatch(
   materialsViewSource + commentsViewSource,
   /preload="metadata"|hydrate(?:Material|Comment)AudioPlayers/,
