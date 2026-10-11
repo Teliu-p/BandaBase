@@ -11,6 +11,9 @@ const app =
 const loginForm =
   document.getElementById("loginForm");
 
+const signupForm =
+  document.getElementById("signupForm");
+
 const logoutBtn =
   document.getElementById("logoutBtn");
 
