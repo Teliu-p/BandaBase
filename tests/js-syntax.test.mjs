@@ -2009,7 +2009,7 @@ const bandListUpdatePolicyMigration = readFileSync(
 
 assert.match(
   bandListUpdatePolicyMigration,
-  /drop policy if exists band_list_items_update_control_v2[\\s\\S]*?on public\\.band_list_items/i,
+  /drop policy if exists band_list_items_update_control_v2[\s\S]*?on public\.band_list_items/i,
   "La migración debe retirar la política UPDATE antigua y permisiva."
 );
 assert.doesNotMatch(
@@ -2046,36 +2046,36 @@ const bandListUpdateWithCheck =
 
 assert.match(
   bandListUpdateUsing,
-  /public\\.is_band_admin\\(l\\.band_id\\)/i,
+  /public\.is_band_admin\(l\.band_id\)/i,
   "Los administradores deben conservar permiso para editar ítems."
 );
 assert.match(
   bandListUpdateUsing,
-  /l\\.deleted_at\\s+is\\s+null/i,
+  /l\.deleted_at\s+is\s+null/i,
   "No se deben actualizar ítems de listas enviadas a la papelera."
 );
 assert.match(
   bandListUpdateWithCheck,
-  /public\\.is_band_admin\\(l\\.band_id\\)/i,
+  /public\.is_band_admin\(l\.band_id\)/i,
   "Los administradores deben conservar permiso también en WITH CHECK."
 );
 assert.match(
   bandListUpdateWithCheck,
-  /s\\.band_id\\s*=\\s*l\\.band_id/i,
+  /s\.band_id\s*=\s*l\.band_id/i,
   "Un ítem no debe poder vincular una canción de otra banda."
 );
 assert.match(
   bandListUpdateWithCheck,
-  /bm\\.active\\s*=\\s*true/i,
+  /bm\.active\s*=\s*true/i,
   "La validación debe rechazar participantes que ya no estén activos."
 );
 assert.match(
   bandListUpdateWithCheck,
-  /cardinality\\(band_list_items\\.participation_instruments\\)\\s*>\\s*0/i,
+  /cardinality\(band_list_items\.participation_instruments\)\s*>\s*0/i,
   "La autoedición debe requerir al menos una función elegida."
 );
 assert.match(
   bandListUpdateWithCheck,
-  /band_list_items\\.participation_instruments[\\s\\S]*?<@\\s*array\\['guitar', 'voice', 'keyboard', 'bass', 'drums'\\]/i,
+  /band_list_items\.participation_instruments[\s\S]*?<@\s*array\['guitar', 'voice', 'keyboard', 'bass', 'drums'\]/i,
   "La autoedición debe limitar las funciones a los instrumentos admitidos."
 );
