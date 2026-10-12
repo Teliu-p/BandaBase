@@ -1,91 +1,53 @@
-# Segunda pasada: reconciliación de historial de migraciones
+# Segunda pasada: reconciliación del historial de migraciones
 
-**Fecha de comprobación:** 2026-10-11  
+**Fecha de revisión:** 2026-10-12  
 **Repositorio:** `Teliu-p/BandaBase`  
-**Commit de `main` inspeccionado:** `097057b6ee5f3aedbfc9320169e3b7ffb6f404c4`  
+**`main` inspeccionada:** `0fda57683e372d7e1876ac8215e4699c6f329ddb`  
 **Proyecto remoto:** `evuwcikuxptrgzdzejov`  
-**Alcance:** inspección estática de archivos y consultas SQL de solo lectura. No se modificó el esquema, los datos ni el historial de migraciones remoto. No se creó una rama de Supabase de pago.
+**Alcance:** revisión estática del historial Git, SQL de las migraciones y consultas SQL de solo lectura al esquema remoto. No se modificó el esquema, los datos ni el historial remoto; no se creó una rama de Supabase de pago.
 
-Este documento amplía la auditoría inicial de [database-migration-history-audit.md](./database-migration-history-audit.md). No certifica que cada archivo se ejecutara literalmente en el pasado; describe qué estado actual se ha podido comprobar y cuál es la evidencia que falta.
+Este documento reemplaza las conclusiones provisionales de la revisión anterior con el resultado del análisis de procedencia y dependencias. No certifica qué comando ejecutó cada SQL en el pasado; distingue la evidencia del esquema actual de lo que todavía no puede probarse históricamente.
 
-## Aclaración importante: hubo dos grupos distintos de doce migraciones
+## 1. Las dos discrepancias de doce migraciones no eran el mismo problema
 
-El informe recuperado del **8 de octubre** documentaba la discrepancia inversa: doce versiones que **sí estaban registradas en Supabase pero cuyos archivos SQL faltaban en GitHub**. Eran estas versiones iniciales:
+El informe anterior del 8 de octubre documentaba doce versiones que **sí estaban registradas en Supabase, pero cuyos archivos SQL faltaban en GitHub**. Esas doce versiones iniciales ya están en `main`. **Ese problema está resuelto y no debe reabrirse.**
 
-- `20261007032329_enriched_materials`
-- `20261007032335_material_storage_bucket`
-- `20261007033157_create_band_comments`
-- `20261007034524_link_comments_to_songs`
-- `20261007034906_allow_general_and_song_comments`
-- `20261007035841_link_rehearsals_to_songs`
-- `20261007040838_create_band_lists_and_material_blocks`
-- `20261007043657_simplify_band_lists_structure`
-- `20261007044821_remove_band_list_date_time`
-- `20261007172727_expand_proposals_for_voting`
-- `20261007172940_finish_proposals_voting_access`
-- `20261007184046_add_proposal_vote_visibility`
+La discrepancia actual es la inversa: existen 56 archivos SQL en `supabase/migrations/`, pero el historial remoto registra 44 versiones. Hay doce archivos locales sin fila remota con la misma versión. El listado actual no mostró versiones remotas sin archivo local ni diferencias de nombre para las versiones que sí coinciden.
 
-La comprobación actual confirma que esas doce versiones siguen en el historial remoto y que ahora también existe el conjunto correspondiente de archivos locales. **Ese problema anterior quedó resuelto y no debe volver a abrirse como tarea pendiente.**
+| Archivo local sin fila remota | Conclusión de esta revisión |
+|---|---|
+| `20261007173000_comment_attachments_blocks.sql` | **Fundacional; no borrar.** En Supabase existen ambas tablas, índices y RLS. Una migración posterior registrada (`20261008003133_audit_child_content_hardening.sql`) crea triggers de auditoría sobre ambas tablas; otra (`20261008003117_final_permissions_grants_hardening.sql`) revoca permisos de cliente sobre ellas. Esas migraciones posteriores requieren que las tablas ya existan. Las políticas amplias de la primera versión fueron sustituidas por permisos específicos y retiradas de forma explícita más adelante. |
+| `20261007190000_band_list_participation_permissions.sql` | **Fundacional y con efecto sobre datos; no borrar ni volver a ejecutar a ciegas.** La tabla `band_list_managers` y el índice único parcial de participantes existen. Las migraciones registradas de participación/cupos dependen de esa estructura. El archivo también normaliza estados con un `UPDATE`; el catálogo actual no permite reconstruir por sí solo cuándo se ejecutó esa escritura. |
+| `20261007200000_song_genres_array.sql` | **Migración de tipo/datos; no es una versión desechable.** `songs.genre` es actualmente de tipo array (`text[]`) y este archivo contiene la conversión condicional desde texto separado por comas. No encontré una migración posterior registrada que reproduzca esa conversión. El estado actual prueba el tipo de destino, no recupera los valores históricos previos. |
+| `20261007203000_proposal_attachments.sql` | **Fundacional; no borrar.** La tabla existe. La migración posterior registrada de auditoría de contenido crea un trigger sobre `proposal_attachments`; la migración posterior de permisos también la incluye en sus revocaciones de privilegios. No hay otra migración registrada que vuelva a crear la tabla. La política amplia inicial sí evolucionó a permisos más específicos. |
+| `20261007210000_proposal_content_blocks.sql` | **Fundacional; no borrar.** `proposal_blocks` existe y una migración posterior registrada crea sobre ella un trigger de auditoría. Las políticas actuales son más específicas que la política inicial, pero eso no reemplaza la creación de la tabla y sus índices. |
+| `20261007220000_permissions_audit_and_trash.sql` | **Mixta: base del esquema más una capa de permisos parcialmente reemplazada.** Siguen existiendo `audit_log`, las columnas de papelera y las funciones/triggers de auditoría. Las migraciones registradas posteriores modifican la función de auditoría y endurecen varias políticas, pero no recrean toda esa base. Además, el catálogo actual muestra la política `band_list_items_update_control_v2`, cuya lógica es relevante para el problema aún abierto en la PR #98. Por tanto, no es correcto describir todo este archivo como obsoleto. |
+| `20261007221500_secure_anonymous_vote_stats.sql` | **Función y política con efectos actuales.** Existe `get_proposal_vote_stats(uuid[])` y existe `proposal_votes_select_public_or_own`. La migración registrada `20261008045145_make_vote_rpc_invoker.sql` cambia otra función (`replace_my_proposal_votes`), no es un reemplazo equivalente de `get_proposal_vote_stats`. |
+| `20261007223000_permissions_hardening.sql` | **Endurecimiento de privilegios con efectos que siguen siendo visibles.** La comprobación actual confirma que `create_band` y `enter_bandabase` no son ejecutables por `anon` ni `authenticated`, mientras que `is_band_member` no se concede a `anon` y sí a `authenticated`. El catálogo acredita el estado actual, aunque no la sentencia histórica exacta que lo produjo. |
+| `20261007224000_allow_member_soft_delete.sql` | **Capa intermedia de políticas, reemplazada parcialmente.** Los nombres de las políticas de actualización de este archivo ya no coinciden todos con los del catálogo actual; las políticas actuales de actualización/papelera son más recientes. Esto demuestra evolución de la capa de permisos, no que se pueda eliminar este paso histórico de la secuencia sin diseñar y validar una línea base consolidada. |
+| `20261007225000_allow_users_to_complete_soft_delete.sql` | **Políticas con efecto todavía presente.** Las cuatro políticas de lectura `*_select_active_or_own_trash_or_admin` aparecen en el catálogo remoto actual. El archivo no debe clasificarse como completamente supersedido. |
+| `20261007225500_remove_legacy_comment_access.sql` | **Limpieza de seguridad importante; no borrar.** Las políticas antiguas `comment_blocks_band_access` y `comment_attachments_band_access` no existen en el esquema actual, y se encuentran políticas separadas más específicas. La migración elimina precisamente las políticas amplias que, si coexistieran con las específicas, podrían seguir concediendo acceso por la combinación permisiva de RLS. No encontré una migración remota registrada posterior que duplique explícitamente esos dos `DROP POLICY`. |
+| `20261008180900_harden_material_comment_proposal_storage.sql` | **Endurecimiento adicional de Storage que sigue siendo necesario.** Las cuatro políticas actuales `material_files_{select,insert,update,delete}_...` incluyen rutas para materiales, comentarios y propuestas. La migración registrada anterior `20261008003423_materials_storage_object_hardening.sql` cubre rutas de materiales; no reproduce por sí sola las ramas de comentarios y propuestas añadidas por este archivo local. |
 
-Este documento trata un **segundo grupo, diferente**, de doce archivos que aparecen en Git pero no tienen una fila remota con la misma versión. Que el número también sea doce no significa que sean las mismas migraciones ni que deba repetirse la reparación anterior.
+## 2. Qué demuestra la arqueología y qué no
 
-## 1. Estado de la segunda discrepancia
+El historial Git confirma que los doce archivos forman parte de cambios de funcionalidad y endurecimiento incorporados entre el 7 y el 8 de octubre. Más importante: las migraciones posteriores que **sí** están registradas en Supabase referencian tablas, políticas, funciones o privilegios que estos archivos crean o configuran. El esquema remoto contiene esos objetos y efectos.
 
-- Hay **56** archivos locales en `supabase/migrations/`.
-- La tabla remota `supabase_migrations.schema_migrations` registra **44** versiones.
-- No se detectaron versiones remotas sin archivo local ni diferencias de nombre para las versiones presentes en ambos lados.
-- Hay **12 versiones locales sin fila remota**, listadas en la sección siguiente.
+La explicación más consistente con la evidencia es que **partes sustanciales de esta secuencia llegaron al esquema remoto sin que quedaran registradas esas doce versiones en `supabase_migrations.schema_migrations`** —por ejemplo, ejecución de SQL fuera del flujo normal de migraciones— y que algunas de sus políticas iniciales se endurecieron más tarde. El estado actual por sí solo no permite afirmar que cada sentencia de cada archivo se ejecutó literalmente, ni identificar qué sesión o comando la aplicó.
 
-La tabla remota tiene las columnas `version`, `statements`, `name`, `created_by`, `idempotency_key` y `rollback`. En las 44 filas existentes se observó: cero nombres vacíos, cero arrays `statements` nulos y cero arrays vacíos. Por eso no se debe “arreglar” el historial insertando filas mínimas manualmente: no reproducirían fielmente la forma de los registros existentes. El procedimiento preferido es el comando oficial `supabase migration repair`.
+Así que la hipótesis “son doce archivos viejos ya descartados” **no queda respaldada como explicación general**. Algunas políticas de los archivos 1, 6 y 9 cambiaron; sin embargo, los archivos 1–8, 10–12 contienen objetos o efectos que siguen existiendo o de los que dependen migraciones registradas posteriores. No debe eliminarse en bloque ninguno de los doce de `supabase/migrations/`.
 
-## 2. Evidencia observada por versión ausente
+### Advertencia sobre las dos versiones que escriben datos
 
-| Versión / archivo | Evidencia actual verificada | Riesgo o límite pendiente |
-|---|---|---|
-| `20261007173000_comment_attachments_blocks` | Existen `comment_attachments` y `comment_blocks`; ambas tienen RLS, índices y políticas actuales separadas para lectura/escritura. | Las políticas amplias `*_band_access` ya no existen. El estado actual parece provenir de endurecimientos posteriores, así que no demuestra que se aplicara exactamente esta primera versión. |
-| `20261007190000_band_list_participation_permissions` | Existe `band_list_managers`, su RLS/políticas/índices y el índice único parcial `band_list_items_one_member_per_list_idx`. | El archivo también ejecuta un `UPDATE` que normaliza los estados de todos los ítems de integrantes. La consulta actual devolvió 3 filas de integrantes, todas en `Confirmado`; eso es compatible con estados normalizados, pero no demuestra cómo se llegó a ellos. No se debe volver a ejecutar este archivo. |
-| `20261007200000_song_genres_array` | `songs.genre` es `text[]`. La comprobación actual encontró 5 canciones con array no nulo, 2 arrays vacíos, cero elementos vacíos y cero elementos con comas internas. | El archivo cambia el tipo de columna y transforma los valores separados por coma. El estado presente es compatible con el formato destino, pero no reconstruye los valores históricos previos a la conversión. No se debe volver a ejecutar la transformación. |
-| `20261007203000_proposal_attachments` | Existe `proposal_attachments`, con RLS, índice por propuesta y políticas actuales específicas. | La política amplia original fue sustituida por políticas posteriores. El catálogo no prueba qué versión histórica la creó. |
-| `20261007210000_proposal_content_blocks` | Existe `proposal_blocks`, con RLS, índices y políticas actuales específicas. | Las políticas actuales fueron endurecidas posteriormente; el nombre de la tabla no prueba la ejecución exacta del archivo original. |
-| `20261007220000_permissions_audit_and_trash` | Existen las columnas de papelera de canciones, listas, propuestas y comentarios; existe `audit_log` con RLS e índices; hay función de auditoría y triggers en las tablas principales y de contenido relacionado. La restricción de roles acepta `member`, `admin` y `owner`. | La función y las políticas actuales evolucionaron en migraciones posteriores. No se halló una escritura de datos de primer nivel en este archivo fuera de la función de trigger; sus inserciones en `audit_log` ocurren en futuras operaciones. El estado actual acredita el sistema de auditoría presente, no toda su historia. |
-| `20261007221500_secure_anonymous_vote_stats` | Existe `get_proposal_vote_stats(uuid[])`, limita el resultado a propuestas no eliminadas de bandas en las que el usuario tiene membresía activa; existe `proposal_votes_select_public_or_own`. | Es evidencia de las definiciones actuales, no de la secuencia exacta de despliegue. |
-| `20261007223000_permissions_hardening` | `create_band` y `enter_bandabase` no son ejecutables por `anon` ni por `authenticated`; `is_band_member` no es ejecutable por `anon` y sí por `authenticated`. | La política de permisos actual coincide con el propósito del archivo, pero el catálogo no demuestra qué comando lo produjo históricamente. |
-| `20261007224000_allow_member_soft_delete` | Existen políticas diferenciadas para actualización activa, envío a papelera y restauración en las entidades pertinentes. | Los nombres/definiciones no coinciden literalmente con todas las políticas de este archivo porque hubo cambios posteriores. No se debe volver a aplicar esta versión sobre la base actual. |
-| `20261007225000_allow_users_to_complete_soft_delete` | Existen las políticas de lectura `*_select_active_or_own_trash_or_admin` en las entidades verificadas. | Las definiciones actuales pueden haber sido recreadas o endurecidas después. |
-| `20261007225500_remove_legacy_comment_access` | Las políticas antiguas `comment_blocks_band_access` y `comment_attachments_band_access` no existen; hay políticas más específicas. | El efecto final coincide con retirar las reglas antiguas, aunque el catálogo no identifica por sí solo qué operación las quitó. |
-| `20261008180900_harden_material_comment_proposal_storage` | Existen las cuatro políticas de Storage `material_files_{select,insert,update,delete}_...`; sus rutas contemplan materiales, comentarios y propuestas. | Solo se inspeccionaron las reglas de autorización actuales, no la historia de cada objeto de Storage ni qué migración creó por primera vez cada política. |
+- `20261007190000_band_list_participation_permissions.sql` normaliza el estado de todos los ítems de integrantes con un `UPDATE`.
+- `20261007200000_song_genres_array.sql` convierte la columna `genre` de texto a array. Ese cambio está protegido por una comprobación del tipo de columna y el tipo actual ya es array.
 
-## 3. Lectura técnica
+Son operaciones distintas. La consulta actual es compatible con que sus resultados estén presentes, pero no es prueba histórica suficiente para ejecutar el archivo completo ni para dar por acreditadas todas sus sentencias. Algunas migraciones también crean o reemplazan políticas; al aplicarlas después de versiones posteriores pueden dejar el esquema peor que el actual.
 
-Las doce versiones locales sin fila remota son versiones posteriores y distintas del primer grupo. Varias parecen representar definiciones iniciales o intermedias de objetos que luego fueron modificados por migraciones remotas posteriores. Esto es compatible con una colección de archivos históricos obsoletos o con SQL ejecutado fuera del seguimiento normal de migraciones; los catálogos por sí solos no permiten distinguir esas posibilidades.
+## 3. Decisión operativa
 
-Por eso, el conteo 56 local / 44 remoto **no es por sí solo prueba de que haya que marcar las doce como aplicadas**. Este informe anterior se excedía al presentar esos comandos como la reparación propuesta. Se corrige aquí: no debe ejecutarse un lote de `migration repair --status applied` para estas doce versiones basándose solo en la presencia actual de objetos.
+**No ejecutar `supabase db push`, no borrar/mover los doce archivos y no ejecutar un `migration repair --status applied` masivo por ahora.** El primero puede intentar reproducir SQL histórico en una base que ya tiene migraciones más nuevas; el segundo rompería la reconstrucción de una base limpia; el tercero cambiaría el registro sin ejecutar ni verificar SQL.
 
-Las dos versiones que requieren atención especial por transformar contenido son:
+La reparación del tracking sigue pendiente, pero ahora queda acotada: confirmar con el resultado del CLI del checkout del usuario si esas doce versiones figuran como pendientes y decidir, versión por versión, si se registra como aplicada, si se reemplaza con una migración consolidada o si existe evidencia suficiente para otra corrección. El procedimiento oficial de `supabase migration repair` solo modifica el registro de versiones, no aplica el SQL; por eso solo corresponde tras validar el SQL y sus efectos. No insertar filas manualmente en `supabase_migrations.schema_migrations`.
 
-- `20261007190000_band_list_participation_permissions`: normaliza estados de participación mediante un `UPDATE`.
-- `20261007200000_song_genres_array`: cambia `genre` a array y convierte valores históricos.
-
-Sus precondiciones/postcondiciones actuales son compatibles con el resultado esperado, pero volver a ejecutar los SQL antiguos podría provocar escrituras innecesarias y efectos de triggers/auditoría. No se deben aplicar de nuevo.
-
-## 4. Qué hacer ahora (sin reparar ni pagar)
-
-**No ejecutar ahora comandos `migration repair` para estas doce versiones, ni `supabase db push`.** Tampoco borrarlas del repositorio sin revisar su procedencia.
-
-El siguiente paso es clasificar cada archivo, no cambiar el historial:
-
-1. Recuperar del terminal el resultado que el usuario ya obtuvo anteriormente, si está disponible, y contrastarlo con `supabase migration list --linked` ejecutado desde el checkout actual. No repetir reparaciones previas por intuición.
-2. Para cada uno de estos doce archivos, identificar el commit/PR que lo introdujo y las migraciones posteriores registradas en Supabase que cambiaron las mismas tablas, funciones, políticas o triggers.
-3. Clasificar cada archivo como: **(a)** SQL aplicado manualmente y verificable; **(b)** versión intermedia reemplazada por otra migración aplicada; o **(c)** cambio escrito en Git pero nunca aplicado. Solo la primera categoría podría justificar marcar la versión como `applied`, después de verificar el SQL exacto. Las categorías (b) y (c) requieren tratamiento distinto; no deben marcarse como aplicadas por conveniencia.
-4. Si el CLI propone estas versiones como pendientes, detenerse. Guardar el listado de propuestas sin ejecutar un push y revisar el SQL exacto de cada una antes de decidir si se conserva, se consolida fuera de la carpeta de migraciones o se corrige el seguimiento mediante el procedimiento oficial.
-
-El comando oficial `supabase migration repair` solo modifica el historial de versiones; no ejecuta el SQL de la migración. Precisamente por eso, marcar una versión como `applied` sin evidencia puede falsear el historial, aunque sea menos peligroso que ejecutar SQL antiguo. Documentación: [Supabase Database Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diagnosing-and-fixing-sync-errors).
-
-La conexión de Supabase disponible en esta sesión permite consultas y migraciones, pero no ofrece una acción dedicada para recuperar el resultado de los comandos ejecutados en la terminal del usuario ni para ejecutar `supabase migration repair`. No debe sustituirse el CLI por escrituras manuales en `supabase_migrations.schema_migrations`.
-
-## 5. Límites de esta verificación
-
-- Todas las consultas a Supabase de esta segunda pasada fueron de solo lectura.
-- No se creó una rama de Supabase ni se generó ningún coste adicional.
-- No se ejecutó `supabase migration repair`, `supabase db push` ni ninguna migración en producción.
-- El PR #98, que endurece la política UPDATE de `band_list_items`, sigue en borrador y no forma parte de esta reparación histórica.
+No se creó una rama de Supabase de pago ni se modificó la base en esta revisión. La PR #98 sigue siendo un trabajo separado: su política UPDATE de `band_list_items` debe probarse antes de desplegar; la existencia de la política `band_list_items_update_control_v2` en el catálogo actual refuerza que no hay que aplicar cambios a ciegas.
