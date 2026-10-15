@@ -2008,6 +2008,36 @@ assert.equal(
 );
 
 
+const returnedAmbiguousBlocksWrite = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "audio-red.wav", type: "audio/wav" }
+    }
+  },
+  blocksError: "Failed to fetch"
+});
+assert.equal(
+  returnedAmbiguousBlocksWrite.calls.some(call =>
+    call[0] === "removeStorage" || call[0] === "deleteAttachment" || call[0] === "deleteMaterial"
+  ),
+  false,
+  "Un error de transporte devuelto en el campo error tampoco debe disparar una limpieza destructiva ambigua."
+);
+assert.match(
+  returnedAmbiguousBlocksWrite.notices[0][0],
+  /Conservé los adjuntos por seguridad/,
+  "Los errores de red devueltos como objeto deben dejar una indicación para verificar el material."
+);
+assert.equal(
+  returnedAmbiguousBlocksWrite.calls.some(call => call[0] === "hideForm" || call[0] === "loadMaterials"),
+  false
+);
+
+
 const partialLinkFailureRollback = await runMaterialSaveScenario({
   blocks: [
     { block_type: "attachment", pendingKey: "pending-file" },
