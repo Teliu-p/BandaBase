@@ -75,6 +75,14 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - Tests y Pages build/deployment pasaron en el commit de merge: https://github.com/Teliu-p/BandaBase/actions/runs/38668782713 y https://github.com/Teliu-p/BandaBase/actions/runs/38668781565.
 - La aplicación no cambió funcionalmente; el código descrito se inspeccionó en el padre de la documentación, 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3.
 
+### 2026-10-15 — guardado de Materiales con adjuntos de audio
+
+- Síntoma reportado: al editar un Material e insertar audios, el botón Guardar podía dejar el formulario abierto sin indicar qué ocurría.
+- La inspección estática detectó un retorno silencioso si faltaba currentBand/currentSong/currentUser, ausencia de progreso visible y falta de captura general/compensación para promesas rechazadas en operaciones async. Los logs consultados no mostraron una subida fallida correlacionable, por lo que no se atribuyó el fallo a RLS ni al bucket sin evidencia.
+- PR #105: https://github.com/Teliu-p/BandaBase/pull/105; corrección y regresiones para excepciones de subida y contexto ausente. CI verde: https://github.com/Teliu-p/BandaBase/actions/runs/38807174499 (pruebas de regresión, ESLint y smoke tests Playwright/Chromium).
+- El guardado muestra estados de progreso y bloquea envíos duplicados. Si una operación rechaza antes de persistir los bloques, intenta compensar registros/objetos parciales y deja visible el error; si los bloques ya están guardados, no borra ese contenido por un fallo posterior de refresco.
+- No hubo cambios SQL ni escrituras a producción. La sesión exacta reportada no se reprodujo; tras la integración, confirmar el despliegue y pedir una comprobación real de guardar un audio.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.

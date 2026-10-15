@@ -1,5 +1,14 @@
 /* Persistencia del editor de Materiales. */
 
+let materialSaveInProgress = false;
+
+function setMaterialSaveProgress(message) {
+  if (!materialSaveInProgress) return;
+  const form = document.getElementById("materialForm");
+  const button = form?.querySelector?.('button[type="submit"]');
+  if (button) button.textContent = message;
+}
+
 /* Compensación de escrituras parciales cuando falla la persistencia de bloques. */
 async function cleanupFailedMaterialSave({
   materialId,
@@ -127,6 +136,10 @@ async function saveMaterialDraft() {
     !currentSong ||
     !currentUser
   ) {
+    showNotice(
+      "No se pudo iniciar el guardado porque se perdió el contexto de banda o canción. Recargá la página y volvé a intentarlo.",
+      "error"
+    );
     return;
   }
 
@@ -145,6 +158,8 @@ async function saveMaterialDraft() {
     return;
 
   }
+
+  setMaterialSaveProgress("Preparando guardado…");
 
   const composedBlocks =
     collectMaterialComposerBlocks();
@@ -187,6 +202,10 @@ async function saveMaterialDraft() {
     );
 
   }
+
+  let blocksPersisted = false;
+
+  try {
 
   if (materialId) {
 
@@ -256,6 +275,10 @@ async function saveMaterialDraft() {
   }
 
   const persistedBlocks = [];
+  const pendingAttachmentCount = composedBlocks.filter(
+    block => block.block_type === "attachment" && !block.attachment_id
+  ).length;
+  let processedAttachmentCount = 0;
 
   for (
     const block
@@ -318,6 +341,11 @@ async function saveMaterialDraft() {
       return;
 
     }
+
+    processedAttachmentCount += 1;
+    setMaterialSaveProgress(
+      "Guardando adjunto " + processedAttachmentCount + " de " + pendingAttachmentCount + "…"
+    );
 
     if (
       pending.kind ===
@@ -411,6 +439,10 @@ async function saveMaterialDraft() {
       );
 
     uploadedStoragePaths.push(storagePath);
+
+    setMaterialSaveProgress(
+      "Subiendo archivo " + processedAttachmentCount + " de " + pendingAttachmentCount + "…"
+    );
 
     const {
       error: uploadError
@@ -508,6 +540,8 @@ async function saveMaterialDraft() {
 
   }
 
+  setMaterialSaveProgress("Guardando contenido…");
+
   const {
     error: blocksError
   } =
@@ -552,6 +586,9 @@ async function saveMaterialDraft() {
 
     return;
   }
+
+  blocksPersisted = true;
+  setMaterialSaveProgress("Finalizando guardado…");
 
   const keptIds =
     new Set(
@@ -661,6 +698,36 @@ async function saveMaterialDraft() {
 
   await loadMaterials();
 
+  } catch (error) {
+    console.error("Error inesperado al guardar Materiales:", error);
+
+    if (blocksPersisted) {
+      showNotice(
+        "El material quedó guardado, pero hubo un problema al actualizar la vista: " +
+          (error?.message || String(error || "Error desconocido")),
+        "error"
+      );
+      return;
+    }
+
+    const cleanupErrors = await cleanupFailedMaterialSave({
+      materialId,
+      wasNew: wasNew && Boolean(materialId),
+      originalMaterial,
+      createdAttachmentIds,
+      uploadedStoragePaths
+    });
+
+    showNotice(
+      getMaterialSaveFailureNotice(
+        "No se pudo guardar el material: " +
+          (error?.message || String(error || "Error desconocido")),
+        cleanupErrors
+      ),
+      "error"
+    );
+  }
+
 }
 
 
@@ -674,7 +741,36 @@ document
 
       event.preventDefault();
 
-      await saveMaterialDraft();
+      if (materialSaveInProgress) return;
+
+      const form = document.getElementById("materialForm");
+      const button = form?.querySelector?.('button[type="submit"]');
+      const originalButtonText = button?.textContent || "Guardar material";
+      materialSaveInProgress = true;
+
+      if (button) {
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        button.textContent = "Guardando material…";
+      }
+
+      try {
+        await saveMaterialDraft();
+      } catch (error) {
+        console.error("Error inesperado al iniciar el guardado de Materiales:", error);
+        showNotice(
+          "No se pudo iniciar el guardado: " +
+            (error?.message || String(error || "Error desconocido")),
+          "error"
+        );
+      } finally {
+        materialSaveInProgress = false;
+        if (button) {
+          button.disabled = false;
+          button.removeAttribute("aria-busy");
+          button.textContent = originalButtonText;
+        }
+      }
 
     }
   );
