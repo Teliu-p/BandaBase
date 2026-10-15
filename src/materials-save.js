@@ -128,6 +128,11 @@ function getMaterialSaveFailureNotice(message, cleanupErrors) {
     cleanupErrors.join(" | ");
 }
 
+function isAmbiguousMaterialBlockSaveError(error) {
+  const message = String(error?.message || error || "");
+  return /failed to fetch|network(?:error| request)?|connection (?:lost|reset|closed|interrupted)|(?:request )?timed? out|timeout|aborterror|load failed/i.test(message);
+}
+
 
 async function saveMaterialDraft() {
 
@@ -572,6 +577,14 @@ async function saveMaterialDraft() {
     );
 
   if (blocksError) {
+    if (isAmbiguousMaterialBlockSaveError(blocksError)) {
+      showNotice(
+        "Se interrumpió la conexión mientras se confirmaba el contenido. Conservé los adjuntos por seguridad porque el servidor podría haber guardado el material. Recargá la canción y revisá Materiales antes de volver a intentar.",
+        "error"
+      );
+      return;
+    }
+
     const cleanupErrors = await cleanupFailedMaterialSave({
       materialId,
       wasNew,
