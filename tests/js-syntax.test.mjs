@@ -1744,6 +1744,9 @@ async function runMaterialSaveScenario(options = {}) {
     },
     replaceMaterialBlocks: async (_client, id, blocks) => {
       calls.push(["replaceBlocks", id, blocks]);
+      if (options.throwBlocksError) {
+        throw new Error(options.throwBlocksError);
+      }
       return options.blocksError
         ? { error: { message: options.blocksError } }
         : { error: null };
@@ -1971,6 +1974,37 @@ assert.equal(
 assert.match(
   missingSaveContext.notices[0][0],
   /se perdió el contexto de banda o canción/
+);
+
+
+const ambiguousBlocksWrite = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "audio-final.wav", type: "audio/wav" }
+    }
+  },
+  throwBlocksError: "connection lost while awaiting RPC"
+});
+assert.equal(
+  ambiguousBlocksWrite.calls.some(call =>
+    call[0] === "removeStorage" || call[0] === "deleteAttachment" || call[0] === "deleteMaterial"
+  ),
+  false,
+  "Si la respuesta del RPC se pierde, no deben borrarse adjuntos que el servidor pudo haber confirmado."
+);
+assert.match(
+  ambiguousBlocksWrite.notices[0][0],
+  /Conservé los adjuntos por seguridad/,
+  "El estado ambiguo debe explicarse y pedir verificar el material antes de reintentar."
+);
+assert.equal(
+  ambiguousBlocksWrite.calls.some(call => call[0] === "hideForm" || call[0] === "loadMaterials"),
+  false,
+  "No debe cerrarse el editor ni declarar éxito cuando no se sabe si el RPC confirmó los bloques."
 );
 
 
