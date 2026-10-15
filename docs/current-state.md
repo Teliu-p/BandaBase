@@ -1,17 +1,20 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-14, Argentina.  
-**main inspeccionado:** 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3.  
+**main actual verificado tras la documentación:** d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.  
+**Commit base del código funcional inspeccionado:** 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3 (el commit posterior solo añadió documentación).  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
 ## 1. Código y despliegue
 
+- La PR #103 integró AGENTS.md, AI_CONTEXT.md y cuatro documentos de contexto el 2026-10-14 (Argentina). Fue documentación únicamente y pasó CI y deploy.
+
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Último commit observado de main: 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3 (documentación de migraciones).
-- Actions para ese SHA: Tests pasó y Pages build/deployment pasó. Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Último commit observado de main: d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad (merge de la documentación de contexto; la línea base del código de aplicación es 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3).
+- Actions para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad: Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/38668782713) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/38668781565). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Estado de Supabase observado en solo lectura
