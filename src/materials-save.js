@@ -203,6 +203,7 @@ async function saveMaterialDraft() {
 
   }
 
+  let blocksWriteStarted = false;
   let blocksPersisted = false;
 
   try {
@@ -541,6 +542,9 @@ async function saveMaterialDraft() {
   }
 
   setMaterialSaveProgress("Guardando contenido…");
+  // The RPC and its response can become ambiguous if the network drops after
+  // PostgreSQL commits. Never delete its attachments until that outcome is known.
+  blocksWriteStarted = true;
 
   const {
     error: blocksError
@@ -705,6 +709,14 @@ async function saveMaterialDraft() {
       showNotice(
         "El material quedó guardado, pero hubo un problema al actualizar la vista: " +
           (error?.message || String(error || "Error desconocido")),
+        "error"
+      );
+      return;
+    }
+
+    if (blocksWriteStarted) {
+      showNotice(
+        "Se interrumpió la conexión mientras se confirmaba el contenido. Conservé los adjuntos por seguridad porque el servidor podría haber guardado el material. Recargá la canción y revisá Materiales antes de volver a intentar.",
         "error"
       );
       return;
