@@ -1,0 +1,72 @@
+# Estado técnico actual de BandaBase
+
+**Última inspección:** 2026-10-14, Argentina.  
+**main inspeccionado:** 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3.  
+**Supabase:** evuwcikuxptrgzdzejov.  
+Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
+
+## 1. Código y despliegue
+
+- Repo: Teliu-p/BandaBase; rama principal main.
+- Aplicación publicada: https://teliu-p.github.io/BandaBase/.
+- Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
+- Último commit observado de main: 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3 (documentación de migraciones).
+- Actions para ese SHA: Tests pasó y Pages build/deployment pasó. Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
+
+## 2. Estado de Supabase observado en solo lectura
+
+- Las tablas públicas devueltas por list_tables tenían RLS habilitada.
+- Tablas principales presentes: bands, profiles, band_members, songs, song_singers, materials, material_blocks, material_attachments, comments, comment_blocks, comment_attachments, band_lists, band_list_items, band_list_managers, proposals, proposal_options, proposal_votes, proposal_blocks, proposal_attachments y audit_log, además de tablas heredadas de ensayos/listas/decisiones/problemas.
+- Conteos aproximados devueltos por la herramienta: 15 canciones, 3 miembros en band_members, 3 listas, 4 propuestas, 7 votos y 983 filas de audit_log en el momento de la consulta. Los conteos son volátiles, no deben usarse para suponer que los datos no cambiaron.
+- La columna songs.genre es actualmente text[]; songs incluye estado/preparación, estado activo, campos de repertorio y columnas de papelera.
+- La función de creación de canción en el cliente hace INSERT en songs y atribuye created_by al usuario autenticado. La RLS songs_insert_own requiere pertenencia a banda y que created_by corresponda al auth.uid().
+
+## 3. Diferencia del historial de migraciones
+
+Comparación de los árboles de archivos y list_migrations el 2026-10-14:
+
+- Archivos SQL locales en main: 56.
+- Versiones registradas en Supabase: 44.
+- Local-only (12): 20261007173000_comment_attachments_blocks; 20261007190000_band_list_participation_permissions; 20261007200000_song_genres_array; 20261007203000_proposal_attachments; 20261007210000_proposal_content_blocks; 20261007220000_permissions_audit_and_trash; 20261007221500_secure_anonymous_vote_stats; 20261007223000_permissions_hardening; 20261007224000_allow_member_soft_delete; 20261007225000_allow_users_to_complete_soft_delete; 20261007225500_remove_legacy_comment_access; 20261008180900_harden_material_comment_proposal_storage.
+- Remote-only: ninguna en la comparación.
+- El grupo viejo de versiones remotas sin archivos locales fue recuperado anteriormente y está resuelto. No volver a etiquetarlo como pendiente.
+- Los doce archivos local-only no están obsoletos en bloque: algunos crean tablas/funciones o efectos de los que dependen migraciones registradas posteriores. Varias políticas fueron endurecidas después, pero eso no permite eliminar el archivo entero.
+- Dos archivos tienen operaciones que escriben o transforman datos: normalización de estados de participación y conversión de genre a array. No volver a ejecutarlos completos sin análisis.
+- No ejecutar supabase db push, no hacer migration repair en bloque, no insertar manualmente en schema_migrations ni mover/borrar migraciones para hacer coincidir conteos. Consultar docs/database-migration-history-reconciliation-followup.md para el razonamiento detallado.
+
+## 4. PR y problema de permisos en listas
+
+- PR #98: https://github.com/Teliu-p/BandaBase/pull/98
+- Rama fix/band-list-update-policy-integrity, HEAD observado 9ff8d5b2bcf3bf3a272e47a4af770747aff9af52.
+- Al último chequeo, la PR seguía abierta como draft; no estaba fusionada ni aplicada a producción.
+- En Supabase están simultáneamente las políticas UPDATE band_list_items_update_control y band_list_items_update_control_v2. Las políticas permissive se combinan de forma que una política adicional puede ampliar acceso aunque la otra sea más estricta. La PR propone eliminar la política v2 y endurecer el trigger, pero debe revisarse contra el estado exacto y probarse antes de merge/aplicación.
+- CI previo de la PR pasó pruebas de políticas Postgres aisladas y smoke tests, pero no es una prueba E2E completa contra producción.
+
+## 5. Advertencias del asesor de Supabase observadas
+
+### Seguridad
+
+- get_proposal_vote_stats(uuid[]) y is_band_member(uuid) aparecen como funciones SECURITY DEFINER ejecutables por authenticated. Determinar si es intencional según el cuerpo, datos devueltos y consumo desde cliente; no cambiar permisos solo para silenciar el asesor.
+- La protección de contraseñas filtradas de Auth está deshabilitada. Revisión de configuración recomendada; cambiarla afecta UX del signup.
+
+### Rendimiento / RLS
+
+- Se detectaron 26 claves foráneas sin índice de cobertura.
+- Se listaron 12 índices no usados en la ventana/telemetría revisada; no eliminarlos sin carga representativa.
+- El asesor informó 12 casos de múltiples políticas permissive. Varias son separaciones intencionales de flujo (p. ej. editar/restaurar/papelera), pero cada una debe analizarse; el caso de band_list_items UPDATE es un riesgo ya identificado.
+
+## 6. Incidencias históricas para no reintroducir
+
+Errores que aparecieron en iteraciones previas: canManageComment is not defined; toggleSongrepertoire is not defined; load.songs is not defined; handleAuthSession is not defined; populateColorfilter is not defined; login que parecía no reaccionar; error de save de material relacionado con WITH ORDINALITY. No se deben dar por actuales sin reproducir. Al corregir funciones compartidas o contratos de datos, ejecutar las regresiones relacionadas.
+
+## 7. Qué falta para una comprensión más profunda
+
+- Pruebas autenticadas contra un entorno seguro que ejerciten permisos con roles distintos y RLS real; la suite actual no cubre todo eso.
+- Revisión completa de cada política y SECURITY DEFINER por su intención de negocio, no solo del inventario.
+- Comparación periódica de las tablas/funciones/policies remotas con el estado esperado versionado, sin aplicar reparaciones automáticas.
+- Matriz de cobertura funcional que relacione cada requisito con módulo, función, tabla/RPC/policy y prueba.
+
+## 8. Actualización de este archivo
+
+Cada cambio que modifique el estado abierto debe ajustar esta página en la misma PR. Una incidencia queda cerrada solo si existe evidencia concreta de su resolución. Los recuentos, SHA, estado de PR y lints son fotografías y se tienen que consultar de nuevo antes de actuar.
