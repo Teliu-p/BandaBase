@@ -68,6 +68,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - La base inspeccionada tenía 44 migraciones registradas y 56 archivos SQL locales; doce versiones son local-only y ninguna remote-only.
 - Esta anotación solo se debe conservar como fotografía; después de fusionar esta documentación, la nueva SHA será distinta y debe actualizarse el estado de referencia.
 
+### 2026-10-14 — contexto persistente integrado en main
+
+- PR #103: https://github.com/Teliu-p/BandaBase/pull/103 fue fusionada como commit d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.
+- Añade AGENTS.md y AI_CONTEXT.md como puntos de entrada, más mapas de arquitectura, requisitos, estado actual y decisiones/incidentes.
+- Tests y Pages build/deployment pasaron en el commit de merge: https://github.com/Teliu-p/BandaBase/actions/runs/38668782713 y https://github.com/Teliu-p/BandaBase/actions/runs/38668781565.
+- La aplicación no cambió funcionalmente; el código descrito se inspeccionó en el padre de la documentación, 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
