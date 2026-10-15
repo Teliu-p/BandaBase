@@ -1667,6 +1667,9 @@ async function runMaterialSaveScenario(options = {}) {
       return {
         async upload(path, file) {
           calls.push(["upload", bucket, path, file.name]);
+          if (options.throwUploadError) {
+            throw new Error(options.throwUploadError);
+          }
           return options.uploadError
             ? { error: { message: options.uploadError } }
             : { error: null };
@@ -1681,7 +1684,7 @@ async function runMaterialSaveScenario(options = {}) {
     }
   };
   const context = {
-    currentBand: { id: "band-1" },
+    currentBand: options.missingContext ? null : { id: "band-1" },
     currentSong: { id: "song-1" },
     currentUser: { id: "user-1" },
     editingMaterialId: options.existing ? materialId : null,
@@ -1925,6 +1928,51 @@ assert.ok(
   uploadFailureRollback.calls.some(call => call[0] === "deleteMaterial"),
   "El material nuevo debe borrarse si la subida falla."
 );
+
+const rejectedUploadRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "corte-red.wav", type: "audio/wav" }
+    }
+  },
+  throwUploadError: "network request failed"
+});
+assert.ok(
+  rejectedUploadRollback.calls.some(call => call[0] === "removeStorage"),
+  "Si la subida rechaza su promesa, también se debe intentar limpiar el objeto parcial."
+);
+assert.ok(
+  rejectedUploadRollback.calls.some(call => call[0] === "deleteMaterial"),
+  "Si la subida lanza una excepción, debe eliminarse el registro incompleto del material nuevo."
+);
+assert.match(
+  rejectedUploadRollback.notices[0][0],
+  /network request failed/,
+  "El error de red rechazado debe ser visible, no dejar el formulario silenciosamente en edición."
+);
+assert.equal(
+  rejectedUploadRollback.calls.some(call => call[0] === "hideForm" || call[0] === "loadMaterials"),
+  false,
+  "Un guardado fallido no debe cerrar el editor ni presentarse como exitoso."
+);
+
+const missingSaveContext = await runMaterialSaveScenario({
+  missingContext: true
+});
+assert.equal(
+  missingSaveContext.notices[0][1],
+  "error",
+  "Si falta la sesión/banda/canción, el guardado debe explicar por qué no puede comenzar."
+);
+assert.match(
+  missingSaveContext.notices[0][0],
+  /se perdió el contexto de banda o canción/
+);
+
 
 const partialLinkFailureRollback = await runMaterialSaveScenario({
   blocks: [
