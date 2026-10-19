@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-19, Argentina.  
-**main actual verificado:** a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9.  
+**Último main verificado antes de PR #110:** 6c7915145beb24fed5abc31e75d34b800b427395.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -13,8 +13,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Último commit observado de main: a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9 (corrección de sangría y Materiales inline/audio, PR #108).
-- Actions para el commit actual: Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39217970149) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39217971029). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Último commit observado de main antes de PR #110: 6c7915145beb24fed5abc31e75d34b800b427395 (actualización documental tras PR #108).
+- Para el último commit de main previo a PR #110, Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39218287738) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39218286452). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Corrección de sangría y audio en Materiales (2026-10-19)
