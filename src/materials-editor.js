@@ -677,12 +677,6 @@ function changeMaterialIndentSpaces(direction) {
 }
 
 
-function getMaterialIndentRepeatDelay(repeatCount) {
-  const count = Math.max(0, Number(repeatCount) || 0);
-  return Math.max(25, 115 - Math.floor(count / 5) * 15);
-}
-
-
 function stopMaterialIndentRepeat() {
   if (materialIndentRepeatTimer !== null) {
     window.clearTimeout(materialIndentRepeatTimer);
