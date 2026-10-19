@@ -29,7 +29,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 - Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La PR #107 (https://github.com/Teliu-p/BandaBase/pull/107) contiene la primera tanda de figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Revalidar PR/CI/deploy antes de afirmar que está publicada.
 - El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
-- Marcadores por instante y sincronización con audio no están incluidos en este primer lote: requieren definir un modelo compartido persistente, permisos para actualizar marcadores y comportamiento de seek/pause/resume. No introducir cambios de esquema ni escribir datos remotos a ciegas.
+- PR #110 (abierta): https://github.com/Teliu-p/BandaBase/pull/110 implementa marcadores de tiempo inline en Materiales, persistidos como rich text canónico dentro de `material_blocks.content`; por ejemplo, escribir «Coro», insertar el chip «00:30» y pulsarlo para posicionar los audios de esa canción. El estado seleccionado se reutiliza con audios que se abren después y no inicia automáticamente reproductores pausados. No requiere tabla, columna ni migración de Supabase.
+- Esta implementación cubre el salto por marcador; la sincronización del metrónomo con reproducción/pausa/seek sigue pendiente. Revisar CI y la resolución de PR #110 antes de afirmar que está publicada.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios
