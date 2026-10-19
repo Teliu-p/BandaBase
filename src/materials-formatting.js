@@ -55,7 +55,7 @@ function formatMaterialAudioMarkerLabel(value) {
 
   return hours
     ? hours + ":" + pad(minutes) + ":" + pad(seconds)
-    : pad(minutes) + ":" + pad(seconds);
+    : String(minutes) + ":" + pad(seconds);
 }
 
 
@@ -919,7 +919,6 @@ function appendSanitizedMaterialNode(
     safeMarker.setAttribute("role", "button");
     safeMarker.setAttribute("tabindex", "0");
     safeMarker.textContent = formatMaterialAudioMarkerLabel(markerSeconds);
-    safeMarker.title = "Marcador de audio: " + safeMarker.textContent;
     target.appendChild(safeMarker);
     return;
   }
@@ -1157,7 +1156,7 @@ function renderMaterialRichTextHtml(
         const label = formatMaterialAudioMarkerLabel(markerSeconds);
         return '<button type="button" class="material-audio-marker" data-material-audio-marker ' +
           'data-material-audio-marker-seconds="' + markerSeconds + '" aria-pressed="false" ' +
-          'aria-label="Ir a ' + label + '" title="Saltar el audio a ' + label + '">' +
+          'aria-label="Ir a ' + label + '">' +
           label + "</button>";
       }
       return Array.from(node.childNodes || []).map(child => renderNode(child, insideAnchor)).join("");
