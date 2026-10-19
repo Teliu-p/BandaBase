@@ -156,3 +156,10 @@ function normalizeBandInstruments(values) {
       .filter(value => BAND_INSTRUMENT_OPTIONS.some(item => item.value === value))
   )];
 }
+
+function getAudioGainMultiplier(value = 150) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 1.5;
+  return Math.max(0.5, Math.min(2, numeric / 100));
+}
+
