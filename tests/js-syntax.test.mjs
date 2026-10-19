@@ -728,9 +728,8 @@ assert.match(
 
 assert.ok(
   materialFormattingSource.includes("function materialRichTextHasMarkup") &&
-  materialFormattingSource.includes("material-indent") &&
   materialFormattingSource.includes("material-text-size-"),
-  "La detección del formato enriquecido debe reconocer cursiva, sangría y tamaños de texto."
+  "La detección del formato enriquecido debe reconocer cursiva y tamaños de texto sin depender de bloques de sangría."
 );
 
 assert.ok(
