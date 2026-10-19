@@ -473,7 +473,7 @@ function seekMaterialAudioPlayerToTime(player, seconds) {
     player.currentTime = Math.min(target, player.duration);
     delete player.dataset.materialAudioPendingSeek;
     return true;
-  } catch (error) {
+  } catch {
     player.dataset.materialAudioPendingSeek = String(target);
     return false;
   }
@@ -813,15 +813,20 @@ function bindMaterialViewEvents() {
       }
 
       const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
-      const pendingSeekValue = player.dataset.materialAudioPendingSeek;
       if (player.src && expiresAt > Date.now() + 15000) {
-        if (pendingSeekValue !== undefined) {
+        if (player.dataset.materialAudioPendingSeek !== undefined) {
           const metadataReady = await waitForMaterialAudioMetadata(player);
           if (!metadataReady) {
             showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
             return false;
           }
-          seekMaterialAudioPlayerToTime(player, Number(pendingSeekValue));
+
+          // Read the current pending value after awaiting metadata: the user may
+          // have chosen a different marker while the audio was becoming ready.
+          const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+          if (latestPendingSeek !== undefined) {
+            seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+          }
         }
         return true;
       }
@@ -842,13 +847,17 @@ function bindMaterialViewEvents() {
         // Obtener duración al abrir los detalles, sin precargar el audio completo.
         player.preload = "metadata";
         player.load();
-        if (pendingSeekValue !== undefined) {
+        if (player.dataset.materialAudioPendingSeek !== undefined) {
           const metadataReady = await waitForMaterialAudioMetadata(player);
           if (!metadataReady) {
             showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
             return false;
           }
-          seekMaterialAudioPlayerToTime(player, Number(pendingSeekValue));
+
+          const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+          if (latestPendingSeek !== undefined) {
+            seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+          }
         }
         updateAudioUi();
         return true;
