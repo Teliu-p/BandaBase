@@ -86,10 +86,16 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 ### 2026-10-19 — herramientas musicales del editor
 
 - Requisitos expresados por el usuario: figuras musicales en Materiales, sangría persistente, atajos numéricos, chips de adjunto inline a la altura del renglón, más volumen del metrónomo, marcadores de estructura y metrónomo sincronizado con el audio.
-- El serializador/sanitizador de Materiales es el contrato para cualquier formato persistente. La sangría nueva se limita a `blockquote.material-indent`, no a estilos inline arbitrarios; las figuras se insertan como caracteres Unicode.
+- El serializador/sanitizador de Materiales es el contrato para cualquier formato persistente. Las figuras se insertan como caracteres Unicode. La implementación inicial de sangría mediante `blockquote.material-indent` resultó demasiado grande para la intención del usuario y se corrige con espacios reales de a uno y repetición acelerada al mantener presionado.
 - Los atajos requieren Alt+número para no interferir con dígitos normales. La amplificación del metrónomo tendrá un control acotado y probado. Marcadores y sincronización son hitos separados.
 - No enrutar audio almacenado a Web Audio sin verificar CORS y un fallback funcional: una conexión cross-origin no permitida puede hacer que la reproducción se silencie.
 - Primera tanda en PR #107: https://github.com/Teliu-p/BandaBase/pull/107. CI pasó regresiones, ESLint/no-undef y smoke tests de Chromium en https://github.com/Teliu-p/BandaBase/actions/runs/39212456802. Los marcadores persistentes y la sincronización con audio quedan como requisitos pendientes de implementar y verificar.
+
+### 2026-10-19 — corregir sangría y representación inline de audio
+
+- El usuario aclaró que la sangría debe agregar/quitar un espacio real a la vez, también para cada línea seleccionada, y repetir más rápido si se mantiene el botón. No aplicar bloques de margen/blockquote.
+- El audio debe permanecer alineado en línea igual que en el compositor. Guardarlo no debe convertirlo en una tarjeta grande debajo del texto. Mostrar nombre + play/pause y, al tocar el nombre, un panel flotante con tiempo/seek que no altere la maquetación.
+- PR en preparación: `fix/material-inline-audio-and-space-indent-20261019`. Sin cambios a volumen de audio, base de datos o datos de usuario. Registrar CI y despliegue después de verificar.
 
 ## Formato recomendado para agregar incidentes
 
