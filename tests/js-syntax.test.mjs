@@ -590,10 +590,15 @@ assert.doesNotMatch(
 
 const {
   parseMaterialAudioMarkerTime,
-  formatMaterialAudioMarkerLabel
+  formatMaterialAudioMarkerLabel,
+  getMaterialAudioMarkerSecondsFromPlaybackTime
 } = loadPureFunctions(
   "src/materials-formatting.js",
-  ["parseMaterialAudioMarkerTime", "formatMaterialAudioMarkerLabel"]
+  [
+    "parseMaterialAudioMarkerTime",
+    "formatMaterialAudioMarkerLabel",
+    "getMaterialAudioMarkerSecondsFromPlaybackTime"
+  ]
 );
 assert.equal(parseMaterialAudioMarkerTime("0:30"), 30);
 assert.equal(parseMaterialAudioMarkerTime("1:02"), 62);
@@ -606,6 +611,12 @@ assert.equal(parseMaterialAudioMarkerTime("86401"), null);
 assert.equal(formatMaterialAudioMarkerLabel(30), "0:30");
 assert.equal(formatMaterialAudioMarkerLabel(62), "1:02");
 assert.equal(formatMaterialAudioMarkerLabel(3723), "1:02:03");
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(30.9), 30);
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(3723.99), 3723);
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(0.5), 0);
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(-0.1), null);
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(86400.1), null);
+assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(Number.NaN), null);
 
 const {
   getMaterialNumericShortcutAction
@@ -1591,8 +1602,13 @@ assert.match(
 );
 assert.match(
   materialEditorSource,
-  /function insertMaterialAudioMarker\([\s\S]*?parseMaterialAudioMarkerTime[\s\S]*?insertMaterialNodeAtSelection/,
-  "El editor debe permitir insertar un marcador temporal en la posición del cursor."
+  /function getCurrentMaterialAudioMarkerSeconds\([\s\S]*?document\.activeElement\?\.closest\?\.\("\[data-material-inline-audio\]"\)[\s\S]*?querySelectorAll\("\#materialsList \[data-material-audio\]"\)[\s\S]*?playingPlayers\.length !== 1/,
+  "La inserción debe tomar el tiempo del control de audio enfocado o del único reproductor activo."
+);
+assert.match(
+  materialEditorSource,
+  /function insertMaterialAudioMarker\([\s\S]*?getCurrentMaterialAudioMarkerSeconds\(\)[\s\S]*?window\.prompt[\s\S]*?insertMaterialNodeAtSelection/,
+  "El editor debe insertar el tiempo de reproducción en la posición del cursor y conservar la entrada manual como alternativa."
 );
 assert.doesNotMatch(
   materialEditorSource,
