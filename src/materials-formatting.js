@@ -59,6 +59,13 @@ function formatMaterialAudioMarkerLabel(value) {
 }
 
 
+function getMaterialAudioMarkerSecondsFromPlaybackTime(value) {
+  if (!Number.isFinite(value) || value < 0 || value > 86400) return null;
+  const seconds = Math.floor(value);
+  return Number.isSafeInteger(seconds) ? seconds : null;
+}
+
+
 function getMaterialNumericShortcutAction(event) {
   if (
     !event ||

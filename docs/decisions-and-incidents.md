@@ -99,12 +99,18 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - No cambió el volumen del audio ni se hicieron cambios a base de datos, Storage, permisos o datos.
 - Pendiente de verificación manual: probar guardar y reabrir un material real con audio; la CI cubre regresiones y smoke tests con stubs, no esa sesión autenticada específica.
 
-### 2026-10-19 — marcadores temporales de audio en Materiales (PR #110 en revisión)
+### 2026-10-19 — marcadores temporales de audio en Materiales (PR #110 fusionada)
 
 - Requisito acordado: el usuario escribe el texto de la sección («Coro») y, en el lugar del cursor, inserta un chip cuyo único texto visible es el tiempo, por ejemplo «0:30». El nombre de la sección queda escrito por el usuario como texto normal. El chip es parte del rich text persistido, no un objeto nuevo de base de datos.
 - Al pulsar el chip, todos los adjuntos de audio de todos los Materiales de esa canción se posicionan en el instante indicado, también si la tarjeta está plegada. Un audio que ya sonaba continúa desde ese punto, pero las pistas pausadas no arrancan automáticamente; un Material abierto después hereda el último marcador elegido. Cambiar de canción limpia el estado temporal y libera motores auxiliares.
 - El serializador/sanitizador solo acepta marcadores con segundos enteros en el intervalo permitido y genera HTML canónico; el contenido no se toma como HTML confiable. URL firmada y metadatos se cargan bajo demanda por el clic de marcador. No se modifica el volumen ni se cambia Supabase (esquema, RLS, Storage o datos).
-- Implementación en PR #110: https://github.com/Teliu-p/BandaBase/pull/110. La CI debe pasar; queda pendiente una prueba manual autenticada de guardar, reabrir y saltar por marcadores antes de fusionar/publicar.
+- Implementación en PR #110: https://github.com/Teliu-p/BandaBase/pull/110. Merge `cd9cff753c2da3eb559f11b9d4a5071f979e81b6`; Tests y Pages pasaron en https://github.com/Teliu-p/BandaBase/actions/runs/39327396377 y https://github.com/Teliu-p/BandaBase/actions/runs/39327398433. Queda pendiente la comprobación manual autenticada de guardar, reabrir y saltar por marcadores.
+
+### 2026-10-19 — captura del tiempo de reproducción al insertar marcadores (seguimiento en rama)
+
+- La primera versión de la herramienta ⏱ pedía ingresar el tiempo siempre. El seguimiento intenta capturar el tiempo entero actual del reproductor con foco o del único audio que esté reproduciéndose, de modo que se pueda escribir «Coro» en el texto y colocar el chip temporal en el cursor sin duplicar etiquetas.
+- Si no hay un reproductor identificable de forma inequívoca, se mantiene el ingreso manual del tiempo; los marcadores siguen mostrando solo el valor temporal. Se añaden pruebas de conversión de tiempos fraccionarios y límites (0–24 h), además de comprobaciones de integración del editor.
+- Rama: `feat/material-audio-marker-playhead-20261019`, PR #111: https://github.com/Teliu-p/BandaBase/pull/111. Ejecutar y revisar CI antes de integrar. Sin cambios a Supabase, Storage, datos, RLS o migraciones.
 
 ## Formato recomendado para agregar incidentes
 
