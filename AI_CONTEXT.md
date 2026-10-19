@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección de código previo a la tanda musical:** 2026-10-19 (zona horaria de Argentina)  
+**Última inspección de código antes de la corrección de sangría/audio:** 2026-10-19 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Commit de main observado al iniciar la tanda musical:** e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf. Verificar el HEAD real antes de cada cambio.
+**Commit de main previo a la corrección de sangría/audio:** 966e24f2a357cc37e2e4f7980678321fa359bb4d. Verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
