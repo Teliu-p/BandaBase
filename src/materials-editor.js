@@ -430,17 +430,43 @@ function insertMaterialNotation(symbol, button = null) {
 }
 
 
-function insertMaterialAudioMarker(button = null) {
-  const input = window.prompt(
-    "Tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
-    "0:30"
-  );
-  if (input === null) return false;
+function getCurrentMaterialAudioMarkerSeconds() {
+  // Prefer the audio control that still has focus (including a paused player).
+  const activeAudioWrapper = document.activeElement?.closest?.("[data-material-inline-audio]");
+  const activePlayer = activeAudioWrapper?.querySelector?.("[data-material-audio]");
+  const activeSeconds = getMaterialAudioMarkerSecondsFromPlaybackTime(activePlayer?.currentTime);
+  if (activeSeconds !== null) return activeSeconds;
 
-  const seconds = parseMaterialAudioMarkerTime(input);
+  // Otherwise capture the playhead only when one audio is unambiguously playing.
+  const playingPlayers = Array.from(
+    document.querySelectorAll("#materialsList [data-material-audio]")
+  ).filter(player =>
+    !player.paused &&
+    !player.ended &&
+    Number.isFinite(player.currentTime)
+  );
+
+  if (playingPlayers.length !== 1) return null;
+  return getMaterialAudioMarkerSecondsFromPlaybackTime(playingPlayers[0].currentTime);
+}
+
+
+function insertMaterialAudioMarker(button = null) {
+  let seconds = getCurrentMaterialAudioMarkerSeconds();
+
+  // Keep manual entry available if playback does not identify one audio position.
   if (seconds === null) {
-    showNotice("Tiempo inválido. Usá mm:ss, hh:mm:ss o un número de segundos (máximo 24 horas).", "error");
-    return false;
+    const input = window.prompt(
+      "No se detectó un único audio activo. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
+      "0:30"
+    );
+    if (input === null) return false;
+
+    seconds = parseMaterialAudioMarkerTime(input);
+    if (seconds === null) {
+      showNotice("Tiempo inválido. Usá mm:ss, hh:mm:ss o un número de segundos (máximo 24 horas).", "error");
+      return false;
+    }
   }
 
   const marker = document.createElement("span");
