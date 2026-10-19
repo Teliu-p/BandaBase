@@ -732,8 +732,9 @@ assert.match(
 );
 
 assert.ok(
-  materialFormattingSource.includes('/<(?:strong|em|a)\\\\b|<blockquote\\\\b') &&
-  materialFormattingSource.includes('|<span\\\\b'),
+  materialFormattingSource.includes("function materialRichTextHasMarkup") &&
+  materialFormattingSource.includes("material-indent") &&
+  materialFormattingSource.includes("material-text-size-"),
   "La detección del formato enriquecido debe reconocer cursiva, sangría y tamaños de texto."
 );
 
