@@ -567,24 +567,79 @@ assert.match(
   /BANDABASE_RICH_TEXT_V1:/,
   "El formato enriquecido de Materiales debe tener un formato persistente identificable."
 );
-
 assert.match(
   materialFormattingSource,
   /material-text-size-1/,
   "Debe existir el primer tamaño enriquecido."
 );
-
 assert.match(
   materialFormattingSource,
   /material-text-size-2/,
   "Debe existir el segundo tamaño enriquecido."
 );
-
 assert.match(
   materialFormattingSource,
   /material-text-size-normal/,
   "Debe existir un formato de tamaño normal que permita deshacer A+ o A++ dentro de otro tamaño sin perder el tamaño base."
 );
+assert.match(
+  materialFormattingSource,
+  /BLOCKQUOTE[\s\S]*?material-indent/,
+  "La sangría debe formar parte del rich text permitido y persistir al guardar."
+);
+assert.match(
+  materialFormattingSource,
+  /<blockquote class="material-indent">/,
+  "El renderizado debe restaurar únicamente el wrapper de sangría permitido."
+);
+
+const {
+  getMaterialNumericShortcutAction
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["getMaterialNumericShortcutAction"]
+);
+
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit1" }),
+  "bold"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Numpad9" }),
+  "noteSixteenth"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit0" }),
+  "indentToggle"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: false, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit1" }),
+  null,
+  "Los números normales no deben activar atajos de formato."
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: true, metaKey: false, code: "Digit1" }),
+  null,
+  "No debe secuestrarse una combinación con Ctrl."
+);
+
+const {
+  getAudioGainMultiplier
+} = loadPureFunctions(
+  "src/utils.js",
+  ["getAudioGainMultiplier"]
+);
+
+assert.equal(getAudioGainMultiplier(50), 0.5);
+assert.equal(getAudioGainMultiplier(100), 1);
+assert.equal(getAudioGainMultiplier(150), 1.5);
+assert.equal(getAudioGainMultiplier(200), 2);
+assert.equal(
+  getAudioGainMultiplier(300),
+  2,
+  "El amplificador adicional debe tener un techo de 2x."
+);
+assert.equal(getAudioGainMultiplier("no válido"), 1.5);
 
 const {
   calculateMaterialForcedCaretPadding
@@ -677,8 +732,10 @@ assert.match(
 );
 
 assert.ok(
-  materialFormattingSource.includes('/<(?:strong|em|a)\\b|<span\\b'),
-  "La detección del formato enriquecido debe reconocer cursiva y tamaños de texto."
+  materialFormattingSource.includes("function materialRichTextHasMarkup") &&
+  materialFormattingSource.includes("material-indent") &&
+  materialFormattingSource.includes("material-text-size-"),
+  "La detección del formato enriquecido debe reconocer cursiva, sangría y tamaños de texto."
 );
 
 assert.ok(
@@ -1389,23 +1446,40 @@ assert.match(
   /function\s+toggleMaterialTextSize\s*\(/,
   "Los tamaños de texto de Materiales deben poder alternarse."
 );
-
 assert.match(
   materialEditorSource,
   /currentSize[\s\S]*nextSize[\s\S]*currentSize\s*===/,
   "El segundo clic debe detectar el tamaño actualmente aplicado."
 );
-
 assert.match(
   materialEditorSource,
   /function collectMaterialComposerBlocks\([\s\S]*?splitMaterialComposerNodeByAttachments/,
   "El guardado debe detectar archivos insertados dentro de negrita, cursiva o tamaño."
 );
-
 assert.match(
   materialEditorSource,
   /function openMaterialEditor\([\s\S]*?openMaterialIds\.delete\([\s\S]*?renderMaterials\(\)/,
   "Al editar un material expandido debe cerrarse su vista para no mostrar el mismo contenido duplicado."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+insertMaterialNotation\s*\(/,
+  "Debe haber una acción para insertar figuras musicales en el cursor actual."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+toggleMaterialIndent\s*\([\s\S]*?execCommand\([\s\S]*?indent[\s\S]*?outdent/,
+  "Debe poder agregarse y quitarse sangría desde el editor."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+executeMaterialNumericShortcut\s*\(/,
+  "Los atajos numéricos deben tener un despachador explícito."
+);
+assert.match(
+  materialEditorSource,
+  /material-inline-attachment-label/,
+  "La etiqueta de un adjunto inline debe poder limitarse a la altura de un renglón."
 );
 
 const materialViewSource = readFileSync(
@@ -1418,23 +1492,36 @@ assert.match(
   /function updatePlaybackButton\([\s\S]*?⏸ Pausar audio[\s\S]*?▶ Reanudar audio/,
   "El control personalizado de audio debe reflejar reproducción, pausa y reanudación."
 );
-
 assert.match(
   materialViewSource,
   /player\.addEventListener\([\s\S]*?"play"[\s\S]*?player\.addEventListener\([\s\S]*?"pause"/,
   "Los cambios de estado del reproductor deben actualizar el control visible."
 );
-
 assert.doesNotMatch(
   materialViewSource,
   /button\.hidden\s*=\s*true/,
   "El botón de reproducción no debe ocultarse al iniciar el audio; debe seguir permitiendo pausarlo."
 );
-
 assert.match(
   materialViewSource,
   /material-audio-load[\s\S]*?player\.hidden\s*=\s*false/,
   "El reproductor nativo debe seguir visible junto al control personalizado."
+);
+
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="materialNoteQuarterBtn"[\s\S]*?id="materialNoteEighthBtn"[\s\S]*?id="materialNoteSixteenthBtn"/,
+  "La barra de Materiales debe ofrecer negra, corchea y semicorchea."
+);
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="metronomeVolumeInput"[\s\S]*?min="50"[\s\S]*?max="200"/,
+  "El volumen del metrónomo debe ser ajustable con un límite máximo definido."
+);
+assert.match(
+  readFileSync(join(srcDir, "styles.css"), "utf8"),
+  /\.material-inline-attachment\s*\{[\s\S]*?height:\s*1\.2em/,
+  "Un adjunto inline no debe alterar la altura vertical de un renglón."
 );
 
 const {

@@ -53,13 +53,13 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - songs-controller.js: carga de catálogo, control de filtros, creación, listas asociadas y coordinación de UI.
 - songs-detail.js: detalle y edición de una canción, materiales y comentarios relacionados.
 - songs-comparison.js: comparación de versión propia con original/material asociado.
-- metronome.js: configuración de métrica, temporización de clicks, acentos, subdivisiones y tap tempo.
+- metronome.js: configuración de métrica, temporización de clicks, acentos, subdivisiones, tap tempo y ajuste de ganancia del metrónomo. La sincronización con audio y marcadores es un flujo separado que requiere persistencia y pruebas.
 
 ### Materiales, comentarios y contenido enriquecido
 
 - materials-data.js: materiales, adjuntos, bloques y RPC replace_material_blocks.
-- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces en línea, selección/caret y controles de formato.
-- materials-formatting.js: sanitización, serialización/renderizado de texto enriquecido y enlaces.
+- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales en línea, selección/caret, sangría y atajos numéricos.
+- materials-formatting.js: sanitización, serialización/renderizado de texto enriquecido, enlaces y contenedor permitido de sangría.
 - materials-save.js: proceso de guardado, carga de adjuntos, compensación ante fallos y restauración parcial.
 - materials-view.js: renderizado de bloques, tarjetas y reproducción multimedia bajo demanda.
 - comments-data.js: comentarios de canción/generales, adjuntos, bloques, borrado y RPC replace_comment_blocks.

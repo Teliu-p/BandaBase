@@ -10,6 +10,44 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
     "material-text-size-2"
   ]);
 
+
+function getMaterialNumericShortcutAction(event) {
+  if (
+    !event ||
+    !event.altKey ||
+    event.shiftKey ||
+    event.ctrlKey ||
+    event.metaKey
+  ) {
+    return null;
+  }
+
+  const shortcuts = {
+    Digit1: "bold",
+    Numpad1: "bold",
+    Digit2: "italic",
+    Numpad2: "italic",
+    Digit3: "parentheses",
+    Numpad3: "parentheses",
+    Digit4: "brackets",
+    Numpad4: "brackets",
+    Digit5: "size1",
+    Numpad5: "size1",
+    Digit6: "size2",
+    Numpad6: "size2",
+    Digit7: "noteQuarter",
+    Numpad7: "noteQuarter",
+    Digit8: "noteEighth",
+    Numpad8: "noteEighth",
+    Digit9: "noteSixteenth",
+    Numpad9: "noteSixteenth",
+    Digit0: "indentToggle",
+    Numpad0: "indentToggle"
+  };
+
+  return shortcuts[event.code] || null;
+}
+
 /*
  * Divide a rich-text subtree around inline attachments without losing the
  * formatting wrappers surrounding each text segment. Attachments must become
@@ -605,6 +643,16 @@ function serializeMaterialRichTextNode(
     return "\n";
   }
 
+  if (
+    node.tagName === "BLOCKQUOTE" &&
+    node.classList?.contains("material-indent")
+  ) {
+    const children = Array.from(node.childNodes || [])
+      .map(serializeMaterialRichTextNode)
+      .join("");
+    return '<blockquote class="material-indent">' + children + "</blockquote>";
+  }
+
   const children =
     Array.from(
       node.childNodes || []
@@ -699,7 +747,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
+    /<(?:strong|em|a)\b|<blockquote\b(?=[^>]*\bclass="[^"]*\bmaterial-indent\b[^"]*")|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
       String(html || "")
     )
   );
@@ -835,6 +883,13 @@ function appendSanitizedMaterialNode(
     null;
 
   if (
+    node.tagName === "BLOCKQUOTE" &&
+    node.classList?.contains("material-indent")
+  ) {
+    safeNode = document.createElement("blockquote");
+    safeNode.className = "material-indent";
+
+  } else if (
     node.tagName === "A"
   ) {
 
@@ -1034,6 +1089,16 @@ function renderMaterialRichTextHtml(
       node.tagName === "BR"
     ) {
       return "<br>";
+    }
+
+    if (
+      node.tagName === "BLOCKQUOTE" &&
+      node.classList?.contains("material-indent")
+    ) {
+      const children = Array.from(node.childNodes || [])
+        .map(child => renderNode(child, insideAnchor))
+        .join("");
+      return '<blockquote class="material-indent">' + children + "</blockquote>";
     }
 
     if (

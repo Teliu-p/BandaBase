@@ -3156,7 +3156,9 @@
 }
 
 .material-format-group,
-.material-resource-group {
+.material-resource-group,
+.material-music-group,
+.material-indent-group {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -3198,6 +3200,28 @@
 
 .material-format-btn.is-active {
   font-weight: 800;
+}
+
+.material-note-btn {
+  min-width: 34px;
+  padding-inline: 7px;
+  font-family: "Segoe UI Symbol", "Noto Music", "Apple Symbols", serif;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.material-keyboard-shortcuts {
+  flex: 1 1 100%;
+  color: var(--bb-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.material-composer-editor blockquote.material-indent,
+.material-rich-text blockquote.material-indent {
+  margin: .15em 0 .15em 1.5rem;
+  padding-left: .75rem;
+  border-left: 2px solid var(--bb-border-strong);
 }
 
 .material-format-btn.is-action-feedback {
@@ -3362,27 +3386,65 @@
   border-radius: 7px;
 }
 
+.metronome-volume-field {
+  min-width: 170px;
+}
+
+.metronome-volume-field input[type="range"] {
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  accent-color: var(--bb-accent);
+}
+
+.metronome-volume-field output {
+  color: var(--bb-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .material-inline-attachment {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 3px;
   max-width: 100%;
-  padding: 3px 7px;
-  margin: 0 2px;
+  height: 1.2em;
+  box-sizing: border-box;
+  padding: 0 3px;
+  margin: 0 1px;
   border: 1px solid var(--bb-border);
-  border-radius: 7px;
+  border-radius: 5px;
   background: var(--bb-surface-raised);
   color: var(--bb-text-soft);
   vertical-align: baseline;
+  line-height: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.material-inline-attachment-label {
+  display: inline-block;
+  min-width: 0;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: inherit;
 }
 
 .material-inline-attachment .inline-remove {
+  flex: 0 0 auto;
   margin: 0;
-  padding: 0 3px;
+  padding: 0 2px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 3px;
   background: transparent;
   color: var(--bb-text-muted);
+  font: inherit;
+  font-size: .85em;
+  line-height: 1;
+  height: 1em;
+  min-height: 0;
 }
 
 .material-inline-attachment .inline-remove:hover {
@@ -3397,8 +3459,19 @@
   }
 
   .material-format-group,
-  .material-resource-group {
+  .material-resource-group,
+  .material-music-group,
+  .material-indent-group {
     width: 100%;
+  }
+
+  .material-music-group .material-format-btn,
+  .material-indent-group .material-format-btn {
+    flex: 1 1 0;
+  }
+
+  .material-keyboard-shortcuts {
+    font-size: 11px;
   }
 
   .material-resource-group .btn {
