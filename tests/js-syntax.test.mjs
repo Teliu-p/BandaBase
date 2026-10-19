@@ -589,6 +589,24 @@ assert.doesNotMatch(
 );
 
 const {
+  parseMaterialAudioMarkerTime,
+  formatMaterialAudioMarkerLabel
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["parseMaterialAudioMarkerTime", "formatMaterialAudioMarkerLabel"]
+);
+assert.equal(parseMaterialAudioMarkerTime("0:30"), 30);
+assert.equal(parseMaterialAudioMarkerTime("1:02"), 62);
+assert.equal(parseMaterialAudioMarkerTime("1:02:03"), 3723);
+assert.equal(parseMaterialAudioMarkerTime("30"), 30);
+assert.equal(parseMaterialAudioMarkerTime("0:60"), null);
+assert.equal(parseMaterialAudioMarkerTime("1:60:00"), null);
+assert.equal(parseMaterialAudioMarkerTime("no es un tiempo"), null);
+assert.equal(parseMaterialAudioMarkerTime("86401"), null);
+assert.equal(formatMaterialAudioMarkerLabel(30), "00:30");
+assert.equal(formatMaterialAudioMarkerLabel(3723), "1:02:03");
+
+const {
   getMaterialNumericShortcutAction
 } = loadPureFunctions(
   "src/materials-formatting.js",
@@ -1534,6 +1552,26 @@ assert.match(
   materialViewSource,
   /function closeMaterialAudioPopovers\(/,
   "Los controles de audio flotantes deben cerrarse al reabrir o volver a renderizar Materiales."
+);
+assert.match(
+  materialViewSource,
+  /function seekMaterialAudioPlayerToTime\([\s\S]*?materialAudioPendingSeek[\s\S]*?function selectMaterialAudioMarker\([\s\S]*?querySelectorAll\("\[data-material-audio\]"\)/,
+  "Un marcador debe sincronizar el punto de reproducción de todos los audios de Materiales de la canción."
+);
+assert.match(
+  materialFormattingSource,
+  /classList\?\.contains\(\s*"material-audio-marker"/,
+  "El sanitizador y serializador deben preservar el nodo especial del marcador, sin confiar en HTML arbitrario."
+);
+assert.match(
+  materialEditorSource,
+  /function insertMaterialAudioMarker\([\s\S]*?parseMaterialAudioMarkerTime[\s\S]*?insertMaterialNodeAtSelection/,
+  "El editor debe permitir insertar un marcador temporal en la posición del cursor."
+);
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="materialAudioMarkerBtn"/,
+  "La barra del editor debe exponer la herramienta de insertar marcadores."
 );
 
 assert.match(
