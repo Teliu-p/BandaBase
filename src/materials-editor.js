@@ -1,5 +1,12 @@
 /* Editor y compositor de Materiales. */
 
+let materialIndentRepeatTimer = null;
+let materialIndentRepeatButton = null;
+let materialIndentRepeatDirection = 0;
+let materialIndentRepeatCount = 0;
+let materialIndentPointerHandled = false;
+let materialIndentPointerResetTimer = null;
+
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
  * El clic simple conserva el posicionamiento nativo.
@@ -423,121 +430,169 @@ function insertMaterialNotation(symbol, button = null) {
 }
 
 
-function getMaterialIndentBlock(range, editor) {
-  if (!range || !editor) return null;
-
-  let node =
-    range.startContainer.nodeType === Node.ELEMENT_NODE
-      ? range.startContainer
-      : range.startContainer.parentElement;
-
-  while (node && node !== editor) {
-    if (
-      node.tagName === "BLOCKQUOTE" &&
-      node.classList?.contains("material-indent")
-    ) {
-      return node;
-    }
-    node = node.parentElement;
+function findLastMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: value.length - 1 } : null;
   }
-
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = node.childNodes.length - 1; index >= 0; index--) {
+    const found = findLastMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
   return null;
 }
 
 
-function unwrapMaterialIndentBlock(block) {
-  if (!block?.parentNode) return;
-
-  const parent = block.parentNode;
-  while (block.firstChild) {
-    parent.insertBefore(block.firstChild, block);
+function findPreviousMaterialTextCharacter(range, editor) {
+  const container = range.startContainer;
+  const offset = range.startOffset;
+  if (container.nodeType === Node.TEXT_NODE && offset > 0) {
+    return { node: container, offset: offset - 1 };
   }
-  parent.removeChild(block);
+
+  let cursor = container;
+  if (container.nodeType === Node.ELEMENT_NODE) {
+    for (let index = Math.min(offset, container.childNodes.length) - 1; index >= 0; index--) {
+      const found = findLastMaterialTextCharacter(container.childNodes[index]);
+      if (found) return found.blocked ? null : found;
+    }
+  }
+
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.previousSibling;
+    while (sibling) {
+      const found = findLastMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.previousSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
 }
 
 
-function toggleMaterialIndent(forceIndent = null) {
-  if (!focusMaterialEditorForFormatting()) return false;
-
+function changeMaterialIndentSpaces(direction) {
   const editor = document.getElementById("materialComposerEditor");
   const selection = window.getSelection();
+  if (!editor || !selection) return false;
 
-  if (!editor || !selection?.rangeCount) return false;
-
-  const beforeRange = selection.getRangeAt(0).cloneRange();
+  let range = null;
   if (
-    !editor.contains(beforeRange.startContainer) ||
-    !editor.contains(beforeRange.endContainer)
+    selection.rangeCount &&
+    editor.contains(selection.getRangeAt(0).startContainer) &&
+    editor.contains(selection.getRangeAt(0).endContainer)
   ) {
-    return false;
+    range = selection.getRangeAt(0).cloneRange();
+  } else if (
+    materialSelectionRange &&
+    editor.contains(materialSelectionRange.startContainer) &&
+    editor.contains(materialSelectionRange.endContainer)
+  ) {
+    range = materialSelectionRange.cloneRange();
+  }
+  if (!range) return false;
+
+  if (direction > 0) {
+    const wasCollapsed = range.collapsed;
+    const insertionRange = range.cloneRange();
+    insertionRange.collapse(true);
+    const space = document.createTextNode("\u00a0");
+    insertionRange.insertNode(space);
+    range.setStartAfter(space);
+    if (wasCollapsed) range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    materialSelectionRange = range.cloneRange();
+    updateMaterialFormattingButtonStates();
+    return true;
   }
 
-  const existingBlock = getMaterialIndentBlock(beforeRange, editor);
-  const shouldIndent =
-    forceIndent === null
-      ? !existingBlock
-      : Boolean(forceIndent);
+  const previous = findPreviousMaterialTextCharacter(range, editor);
+  if (!previous) return false;
+  const value = previous.node.nodeValue || "";
+  const character = value[previous.offset];
+  if (character !== " " && character !== "\u00a0") return false;
 
-  try {
-    document.execCommand(shouldIndent ? "indent" : "outdent", false, null);
-  } catch (error) {
-    console.error("No se pudo aplicar la sangría nativa:", error);
-  }
-
-  if (shouldIndent) {
-    const blockquotes = Array.from(editor.querySelectorAll("blockquote"));
-    let selectedBlock = null;
-
-    if (
-      selection.rangeCount &&
-      editor.contains(selection.getRangeAt(0).startContainer)
-    ) {
-      let node = selection.getRangeAt(0).startContainer;
-      node = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-      while (node && node !== editor) {
-        if (node.tagName === "BLOCKQUOTE") {
-          selectedBlock = node;
-          break;
-        }
-        node = node.parentElement;
-      }
-    }
-
-    if (selectedBlock) {
-      selectedBlock.classList.add("material-indent");
-    } else {
-      blockquotes.forEach(blockquote => blockquote.classList.add("material-indent"));
-    }
-
-    if (
-      !selectedBlock &&
-      !beforeRange.collapsed &&
-      editor.contains(beforeRange.startContainer) &&
-      editor.contains(beforeRange.endContainer)
-    ) {
-      const fragment = beforeRange.extractContents();
-      const wrapper = document.createElement("blockquote");
-      wrapper.className = "material-indent";
-      wrapper.appendChild(fragment);
-      beforeRange.insertNode(wrapper);
-
-      const nextRange = document.createRange();
-      nextRange.selectNodeContents(wrapper);
-      selection.removeAllRanges();
-      selection.addRange(nextRange);
-    }
-  } else if (existingBlock) {
-    if (
-      existingBlock.isConnected &&
-      existingBlock.classList.contains("material-indent")
-    ) {
-      unwrapMaterialIndentBlock(existingBlock);
-    }
-  }
-
-  rememberMaterialSelection();
+  const deletionRange = document.createRange();
+  deletionRange.setStart(previous.node, previous.offset);
+  deletionRange.setEnd(previous.node, previous.offset + 1);
+  deletionRange.deleteContents();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
   updateMaterialFormattingButtonStates();
   return true;
+}
+
+
+function getMaterialIndentRepeatDelay(repeatCount) {
+  const count = Math.max(0, Number(repeatCount) || 0);
+  return Math.max(25, 115 - Math.floor(count / 5) * 15);
+}
+
+
+function stopMaterialIndentRepeat() {
+  if (materialIndentRepeatTimer !== null) {
+    window.clearTimeout(materialIndentRepeatTimer);
+  }
+  materialIndentRepeatTimer = null;
+  materialIndentRepeatButton = null;
+  materialIndentRepeatDirection = 0;
+  materialIndentRepeatCount = 0;
+}
+
+
+function scheduleMaterialIndentRepeat() {
+  if (!materialIndentRepeatButton) return;
+  const delay =
+    materialIndentRepeatCount === 0
+      ? 320
+      : getMaterialIndentRepeatDelay(materialIndentRepeatCount);
+  materialIndentRepeatTimer = window.setTimeout(() => {
+    if (!materialIndentRepeatButton) return;
+    changeMaterialIndentSpaces(materialIndentRepeatDirection);
+    materialIndentRepeatCount += 1;
+    scheduleMaterialIndentRepeat();
+  }, delay);
+}
+
+
+function startMaterialIndentRepeat(event, button, direction) {
+  if (event.button !== undefined && event.button !== 0) return;
+  event.preventDefault();
+  stopMaterialIndentRepeat();
+  rememberMaterialSelection();
+  materialIndentPointerHandled = true;
+  materialIndentRepeatButton = button;
+  materialIndentRepeatDirection = direction;
+  materialIndentRepeatCount = 0;
+  changeMaterialIndentSpaces(direction);
+  scheduleMaterialIndentRepeat();
+}
+
+
+function bindMaterialIndentRepeatButton(button, direction) {
+  if (!button) return;
+  button.addEventListener("pointerdown", event => {
+    startMaterialIndentRepeat(event, button, direction);
+  });
+  button.addEventListener("click", () => {
+    if (materialIndentPointerHandled) {
+      materialIndentPointerHandled = false;
+      return;
+    }
+    changeMaterialIndentSpaces(direction);
+  });
+}
+
+
+function toggleMaterialIndent(forceIndent = true) {
+  return changeMaterialIndentSpaces(forceIndent === false ? -1 : 1);
 }
 
 
@@ -545,8 +600,8 @@ function executeMaterialNumericShortcut(action) {
   const editor = document.getElementById("materialComposerEditor");
   if (!editor) return false;
 
-  if (action === "indentToggle") {
-    return toggleMaterialIndent();
+  if (action === "indentMore") {
+    return toggleMaterialIndent(true);
   }
 
   const buttonByAction = {
@@ -2077,17 +2132,23 @@ function bindMaterialFormattingControls() {
   });
   noteSixteenthButton?.addEventListener("click", () => insertMaterialNotation("♬", noteSixteenthButton));
 
-  indentButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
-  });
-  indentButton?.addEventListener("click", () => toggleMaterialIndent(true));
+  bindMaterialIndentRepeatButton(indentButton, 1);
+  bindMaterialIndentRepeatButton(outdentButton, -1);
 
-  outdentButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
-  });
-  outdentButton?.addEventListener("click", () => toggleMaterialIndent(false));
+  const stopRepeat = () => {
+    stopMaterialIndentRepeat();
+    if (materialIndentPointerResetTimer !== null) {
+      window.clearTimeout(materialIndentPointerResetTimer);
+    }
+    materialIndentPointerResetTimer = window.setTimeout(() => {
+      materialIndentPointerHandled = false;
+      materialIndentPointerResetTimer = null;
+    }, 0);
+  };
+
+  document.addEventListener("pointerup", stopRepeat, true);
+  document.addEventListener("pointercancel", stopRepeat, true);
+  window.addEventListener("blur", stopRepeat);
 
 }
 
