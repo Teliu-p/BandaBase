@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección de código antes de la corrección de sangría/audio:** 2026-10-19 (zona horaria de Argentina)  
+**Última inspección:** 2026-10-19 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Commit de main previo a la corrección de sangría/audio:** 966e24f2a357cc37e2e4f7980678321fa359bb4d. Verificar el HEAD real antes de cada cambio.
+**Commit principal verificado después de corregir sangría/audio:** a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9. Verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -58,7 +58,8 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 
 ## Resumen del estado conocido al escribir esta línea de base
 
-- main observado antes de la tanda de herramientas musicales: e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf (posteriors cambios de código y documentación deben actualizar esta fotografía).
+- main observado antes de la tanda de herramientas musicales: e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf (fotografía histórica).
+- PR #108 corrigió la sangría en espacios de a uno y el renderizado inline del audio en Materiales; merge `a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9`. Tests y Pages deploy pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39217970149 y https://github.com/Teliu-p/BandaBase/actions/runs/39217971029.
 - Tras fusionar la documentación, Tests y despliegue de GitHub Pages pasaron para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.

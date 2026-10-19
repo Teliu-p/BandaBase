@@ -95,7 +95,9 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 
 - El usuario aclaró que la sangría debe agregar/quitar un espacio real a la vez, también para cada línea seleccionada, y repetir más rápido si se mantiene el botón. No aplicar bloques de margen/blockquote.
 - El audio debe permanecer alineado en línea igual que en el compositor. Guardarlo no debe convertirlo en una tarjeta grande debajo del texto. Mostrar nombre + play/pause y, al tocar el nombre, un panel flotante con tiempo/seek que no altere la maquetación.
-- PR en preparación: `fix/material-inline-audio-and-space-indent-20261019`. Sin cambios a volumen de audio, base de datos o datos de usuario. Registrar CI y despliegue después de verificar.
+- PR #108: https://github.com/Teliu-p/BandaBase/pull/108 fue fusionada en `a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9`. Tests pasó: https://github.com/Teliu-p/BandaBase/actions/runs/39217970149. El despliegue de GitHub Pages pasó: https://github.com/Teliu-p/BandaBase/actions/runs/39217971029.
+- No cambió el volumen del audio ni se hicieron cambios a base de datos, Storage, permisos o datos.
+- Pendiente de verificación manual: probar guardar y reabrir un material real con audio; la CI cubre regresiones y smoke tests con stubs, no esa sesión autenticada específica.
 
 ## Formato recomendado para agregar incidentes
 
