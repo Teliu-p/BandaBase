@@ -732,8 +732,9 @@ assert.match(
 );
 
 assert.ok(
-  materialFormattingSource.includes('/<(?:strong|em|a)\\b|<span\\b'),
-  "La detección del formato enriquecido debe reconocer cursiva y tamaños de texto."
+  materialFormattingSource.includes('/<(?:strong|em|a)\\\\b|<blockquote\\\\b') &&
+  materialFormattingSource.includes('|<span\\\\b'),
+  "La detección del formato enriquecido debe reconocer cursiva, sangría y tamaños de texto."
 );
 
 assert.ok(
