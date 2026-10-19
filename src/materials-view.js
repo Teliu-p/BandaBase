@@ -448,7 +448,7 @@ function formatMaterialAudioTime(value) {
 
   return hours
     ? hours + ":" + pad(minutes) + ":" + pad(seconds)
-    : minutes + ":" + pad(seconds);
+    : String(minutes).padStart(2, "0") + ":" + pad(seconds);
 }
 
 
