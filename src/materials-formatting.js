@@ -17,6 +17,48 @@ function getMaterialIndentRepeatDelay(repeatCount) {
 }
 
 
+function parseMaterialAudioMarkerTime(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  if (/^\d+$/.test(raw)) {
+    const seconds = Number(raw);
+    return Number.isSafeInteger(seconds) && seconds <= 86400 ? seconds : null;
+  }
+
+  const parts = raw.split(":");
+  if ((parts.length !== 2 && parts.length !== 3) || parts.some(part => !/^\d+$/.test(part))) {
+    return null;
+  }
+
+  const values = parts.map(Number);
+  if (values[values.length - 1] >= 60) return null;
+  if (parts.length === 3 && values[1] >= 60) return null;
+
+  const seconds = parts.length === 2
+    ? values[0] * 60 + values[1]
+    : values[0] * 3600 + values[1] * 60 + values[2];
+
+  return Number.isSafeInteger(seconds) && seconds <= 86400 ? seconds : null;
+}
+
+
+function formatMaterialAudioMarkerLabel(value) {
+  const numeric = Number(value);
+  if (!Number.isSafeInteger(numeric) || numeric < 0) return "00:00";
+
+  const totalSeconds = Math.min(numeric, 86400);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = number => String(number).padStart(2, "0");
+
+  return hours
+    ? hours + ":" + pad(minutes) + ":" + pad(seconds)
+    : pad(minutes) + ":" + pad(seconds);
+}
+
+
 function getMaterialNumericShortcutAction(event) {
   if (
     !event ||
@@ -635,6 +677,16 @@ function serializeMaterialRichTextNode(
     return "";
   }
 
+  if (node.classList?.contains("material-audio-marker")) {
+    const markerSeconds = Number(node.getAttribute("data-audio-marker-seconds"));
+    if (Number.isSafeInteger(markerSeconds) && markerSeconds >= 0 && markerSeconds <= 86400) {
+      const label = formatMaterialAudioMarkerLabel(markerSeconds);
+      return '<span class="material-audio-marker" data-audio-marker-seconds="' +
+        markerSeconds + '">' + escapeMaterialHtmlText(label) + "</span>";
+    }
+    return escapeMaterialHtmlText(node.textContent || "");
+  }
+
   if (
     node.classList?.contains(
       "material-inline-attachment"
@@ -743,7 +795,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
+    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\b(?:material-text-size-(?:normal|[12])|material-audio-marker)\b[^"]*")/i.test(
       String(html || "")
     )
   );
@@ -850,6 +902,25 @@ function appendSanitizedMaterialNode(
     node.nodeType !==
     Node.ELEMENT_NODE
   ) {
+    return;
+  }
+
+  if (node.classList?.contains("material-audio-marker")) {
+    const markerSeconds = Number(node.getAttribute("data-audio-marker-seconds"));
+    if (!Number.isSafeInteger(markerSeconds) || markerSeconds < 0 || markerSeconds > 86400) {
+      target.appendChild(document.createTextNode(node.textContent || ""));
+      return;
+    }
+
+    const safeMarker = document.createElement("span");
+    safeMarker.className = "material-audio-marker";
+    safeMarker.dataset.audioMarkerSeconds = String(markerSeconds);
+    safeMarker.setAttribute("contenteditable", "false");
+    safeMarker.setAttribute("role", "button");
+    safeMarker.setAttribute("tabindex", "0");
+    safeMarker.textContent = formatMaterialAudioMarkerLabel(markerSeconds);
+    safeMarker.title = "Marcador de audio: " + safeMarker.textContent;
+    target.appendChild(safeMarker);
     return;
   }
 
@@ -1078,6 +1149,18 @@ function renderMaterialRichTextHtml(
       node.tagName === "BR"
     ) {
       return "<br>";
+    }
+
+    if (node.classList?.contains("material-audio-marker")) {
+      const markerSeconds = Number(node.getAttribute("data-audio-marker-seconds"));
+      if (Number.isSafeInteger(markerSeconds) && markerSeconds >= 0 && markerSeconds <= 86400) {
+        const label = formatMaterialAudioMarkerLabel(markerSeconds);
+        return '<button type="button" class="material-audio-marker" data-material-audio-marker ' +
+          'data-material-audio-marker-seconds="' + markerSeconds + '" aria-pressed="false" ' +
+          'aria-label="Ir a ' + label + '" title="Saltar el audio a ' + label + '">' +
+          label + "</button>";
+      }
+      return Array.from(node.childNodes || []).map(child => renderNode(child, insideAnchor)).join("");
     }
 
     if (
