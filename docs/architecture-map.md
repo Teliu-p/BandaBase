@@ -58,10 +58,10 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 ### Materiales, comentarios y contenido enriquecido
 
 - materials-data.js: materiales, adjuntos, bloques y RPC replace_material_blocks.
-- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales en línea, selección/caret, sangría y atajos numéricos.
-- materials-formatting.js: sanitización, serialización/renderizado de texto enriquecido, enlaces y contenedor permitido de sangría.
+- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales en línea, selección/caret, atajos numéricos y sangría mediante espacios reales con repetición al mantener presionado.
+- materials-formatting.js: sanitización y serialización/renderizado de texto enriquecido y enlaces. No debe persistir un bloque de margen para representar espacios de sangría.
 - materials-save.js: proceso de guardado, carga de adjuntos, compensación ante fallos y restauración parcial.
-- materials-view.js: renderizado de bloques, tarjetas y reproducción multimedia bajo demanda.
+- materials-view.js: renderizado en flujo de bloques, chips compactos de adjuntos y reproducción de audio bajo demanda con panel flotante de tiempo/progreso.
 - comments-data.js: comentarios de canción/generales, adjuntos, bloques, borrado y RPC replace_comment_blocks.
 - comments-view.js y comments-general.js: renderizado y eventos de comentarios asociados a canciones y comentarios generales.
 - comments-save.js: guardado del compositor de comentarios y limpieza ante fallos.
