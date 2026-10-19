@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-10-19 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último commit de main verificado antes de PR #110:** 6c7915145beb24fed5abc31e75d34b800b427395. Verificar el HEAD real antes de cada cambio.
+**Último HEAD de main verificado:** cd9cff753c2da3eb559f11b9d4a5071f979e81b6 (2026-10-19). Rama de seguimiento de captura de playhead: feat/material-audio-marker-playhead-20261019; verificar PR/CI antes de integrarla.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -60,7 +60,8 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 
 - main observado antes de la tanda de herramientas musicales: e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf (fotografía histórica).
 - PR #108 corrigió la sangría en espacios de a uno y el renderizado inline del audio en Materiales; merge `a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9`. Tests y Pages deploy pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39217970149 y https://github.com/Teliu-p/BandaBase/actions/runs/39217971029.
-- PR #110 añade marcadores de tiempo inline para Materiales en revisión: https://github.com/Teliu-p/BandaBase/pull/110. El chip muestra solo el tiempo (p. ej. «0:30»); al pulsarlo, posiciona los audios adjuntos a todos los Materiales de esa canción, incluidos los plegados, sin arrancar pistas pausadas. Se conserva el rich text persistente existente; no se modifican migraciones/BD/RLS/Storage ni el volumen de audio. Confirmar CI y actualizar SHA/estado cuando se resuelva la PR.
+- PR #110 quedó fusionada en `cd9cff753c2da3eb559f11b9d4a5071f979e81b6`: https://github.com/Teliu-p/BandaBase/pull/110. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39327396377 y https://github.com/Teliu-p/BandaBase/actions/runs/39327398433. El chip muestra solo el tiempo y salta a todos los audios de la canción, incluso Materiales plegados. La verificación manual autenticada sigue pendiente; no se modificó Supabase.
+- El seguimiento `feat/material-audio-marker-playhead-20261019` captura automáticamente el tiempo del audio con foco o del único reproductor activo al insertar un marcador y conserva el ingreso manual como alternativa. Confirmar el número de PR/CI antes de actualizar esta referencia.
 - Tras fusionar la documentación, Tests y despliegue de GitHub Pages pasaron para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.
