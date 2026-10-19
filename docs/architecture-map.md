@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base de observación:** main 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3, inspeccionada el 2026-10-14. Este documento describe la estructura de ese estado y debe volver a verificarse después de refactors.
+**Base de observación:** main cd9cff753c2da3eb559f11b9d4a5071f979e81b6, inspeccionada el 2026-10-19 tras integrar la PR #110. La rama de seguimiento de captura de playhead amplía el editor y debe verificarse antes de fusionar.
 
 ## 1. Arquitectura a alto nivel
 
@@ -58,7 +58,7 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 ### Materiales, comentarios y contenido enriquecido
 
 - materials-data.js: materiales, adjuntos, bloques y RPC replace_material_blocks.
-- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales y marcadores temporales inline, selección/caret, atajos numéricos y sangría mediante espacios reales con repetición al mantener presionado.
+- materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales y marcadores temporales inline; la herramienta de marcador captura el tiempo del control de audio enfocado o del único reproductor activo y conserva la entrada manual como alternativa. Gestiona selección/caret, atajos numéricos y sangría mediante espacios reales con repetición al mantener presionado.
 - materials-formatting.js: sanitización y serialización/renderizado de texto enriquecido, enlaces y marcadores temporales permitidos. El marcador se persiste como un `span` canónico dentro del rich text, no como HTML arbitrario.
 - materials-save.js: proceso de guardado, carga de adjuntos, compensación ante fallos y restauración parcial.
 - materials-view.js: renderizado en flujo de bloques, chips compactos de adjuntos, reproducción de audio bajo demanda con panel flotante de tiempo/progreso y salto a todos los adjuntos de audio de la canción (también en Materiales plegados) al pulsar un marcador.
