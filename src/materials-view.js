@@ -742,6 +742,8 @@ function bindMaterialViewEvents() {
 
         player.src = signedUrl;
         player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
+        // Obtener duración al abrir los detalles, sin precargar el audio completo.
+        player.preload = "metadata";
         player.load();
         updateAudioUi();
         return true;
