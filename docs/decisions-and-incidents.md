@@ -83,6 +83,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - El guardado muestra estados de progreso y bloquea envíos duplicados. Si una operación rechaza antes de iniciar el RPC de bloques, intenta compensar registros/objetos parciales y deja visible el error; si los bloques ya están guardados, no borra ese contenido por un fallo posterior de refresco. Si el RPC de bloques lanzó una excepción y no se sabe si el servidor confirmó la transacción, conserva los adjuntos en lugar de borrarlos a ciegas y pide verificar después de recargar.
 - No hubo cambios SQL ni escrituras a producción. La sesión exacta reportada no se reprodujo; tras la integración, confirmar el despliegue y pedir una comprobación real de guardar un audio.
 
+### 2026-10-19 — herramientas musicales del editor
+
+- Requisitos expresados por el usuario: figuras musicales en Materiales, sangría persistente, atajos numéricos, chips de adjunto inline a la altura del renglón, más volumen del metrónomo, marcadores de estructura y metrónomo sincronizado con el audio.
+- El serializador/sanitizador de Materiales es el contrato para cualquier formato persistente. La sangría nueva se limita a `blockquote.material-indent`, no a estilos inline arbitrarios; las figuras se insertan como caracteres Unicode.
+- Los atajos requieren Alt+Mayús+número para no interferir con dígitos normales. La amplificación del metrónomo tendrá un control acotado y probado. Marcadores y sincronización son hitos separados.
+- No enrutar audio almacenado a Web Audio sin verificar CORS y un fallback funcional: una conexión cross-origin no permitida puede hacer que la reproducción se silencie.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
