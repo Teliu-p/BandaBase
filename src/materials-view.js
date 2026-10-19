@@ -436,140 +436,122 @@ async function loadMaterials() {
 }
 
 
-function renderMaterialViewBlock(
-  block
-) {
+function formatMaterialAudioTime(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return "00:00";
 
-  if (
-    block.block_type ===
-    "text"
-  ) {
+  const totalSeconds = Math.floor(numeric);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = number => String(number).padStart(2, "0");
 
-    const richText =
-      renderMaterialRichTextHtml(
-        block.content || ""
-      );
+  return hours
+    ? hours + ":" + pad(minutes) + ":" + pad(seconds)
+    : String(minutes).padStart(2, "0") + ":" + pad(seconds);
+}
 
+
+function closeMaterialAudioPopover(panel) {
+  if (!panel) return;
+  panel.hidden = true;
+  panel.removeAttribute("data-material-audio-portal");
+  panel.remove();
+  panel.style.left = "";
+  panel.style.top = "";
+  panel.style.width = "";
+  panel._materialAudioOwnerButton?.setAttribute("aria-expanded", "false");
+  panel._materialAudioOwnerButton = null;
+}
+
+
+function closeMaterialAudioPopovers(exceptPanel = null) {
+  document.querySelectorAll("[data-material-audio-portal='true']").forEach(panel => {
+    if (panel !== exceptPanel) closeMaterialAudioPopover(panel);
+  });
+}
+
+
+let materialAudioPopoverDismissalBound = false;
+
+function bindMaterialAudioPopoverDismissal() {
+  if (materialAudioPopoverDismissalBound) return;
+  materialAudioPopoverDismissalBound = true;
+
+  document.addEventListener("pointerdown", event => {
+    document.querySelectorAll("[data-material-audio-portal='true']").forEach(panel => {
+      const owner = panel._materialAudioOwnerWrapper;
+      if (panel.contains(event.target) || owner?.contains(event.target)) return;
+      closeMaterialAudioPopover(panel);
+    });
+  }, true);
+
+  window.addEventListener("scroll", () => closeMaterialAudioPopovers(), true);
+  window.addEventListener("resize", () => closeMaterialAudioPopovers());
+}
+
+
+function renderMaterialViewBlock(block) {
+  if (block.block_type === "text") {
+    const richText = renderMaterialRichTextHtml(block.content || "");
     return (
-      '<div class="material-view-text material-rich-text">' +
+      '<span class="material-view-text material-rich-text">' +
       (
         richText !== null
           ? richText
           : block.content
-            ? renderMaterialAutoLinkedTextHtml(
-                block.content
-              )
+            ? renderMaterialAutoLinkedTextHtml(block.content)
             : ""
       ) +
-      "</div>"
+      "</span>"
     );
-
   }
 
-  const attachment =
-    block.attachment;
+  const attachment = block.attachment;
+  if (!attachment) return "";
 
-  if (!attachment) {
-    return "";
-  }
-
-  const icon =
-    getMaterialAttachmentIcon(
-      attachment
-    );
-
-  const secondaryText =
-    getMaterialAttachmentSecondaryText(
-      attachment
-    );
-
-  const actionLabel =
-    attachment.kind ===
-      "link"
-      ? "Abrir enlace"
-      : "Abrir";
-
+  const icon = getMaterialAttachmentIcon(attachment);
+  const name = attachment.name || (attachment.kind === "link" ? "Enlace" : "Archivo");
+  const attachmentId = escapeHtml(attachment.id || "");
+  const safeName = escapeHtml(name);
 
   if (
-    attachment.kind ===
-      "file" &&
-    String(
-      attachment.mime_type || ""
-    ).startsWith(
-      "audio/"
-    )
+    attachment.kind === "file" &&
+    String(attachment.mime_type || "").startsWith("audio/")
   ) {
-
+    const label = escapeHtml(name);
     return (
-      '<div class="material-view-attachment material-attachment-card material-attachment-audio">' +
-        '<div class="material-attachment-card-main">' +
-          '<span class="material-attachment-icon" aria-hidden="true">' +
-            escapeHtml(icon) +
-          "</span>" +
-          '<div class="material-attachment-info">' +
-            '<strong class="material-attachment-name">' +
-              escapeHtml(
-                attachment.name ||
-                "Audio"
-              ) +
-            "</strong>" +
-            '<span class="material-attachment-meta">' +
-              escapeHtml(
-                secondaryText
-              ) +
-            "</span>" +
-          "</div>" +
-        "</div>" +
-        '<div class="material-audio-lazy-controls">' +
-          '<button type="button" class="btn btn-subtle material-audio-load" data-material-audio-load>▶ Reproducir audio</button>' +
-          '<audio class="material-audio" controls preload="none" data-material-audio="' +
-            escapeHtml(
-              attachment.storage_path || ""
-            ) +
-          '" hidden></audio>' +
-        '</div>' +
-      "</div>"
+      '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '">' +
+        '<button type="button" class="material-inline-audio-play" data-material-audio-play aria-label="Reproducir ' + safeName + '" title="Reproducir audio">▶</button>' +
+        '<button type="button" class="material-inline-audio-name" data-material-audio-details aria-expanded="false" title="Mostrar tiempo y posición">' +
+          label +
+        '</button>' +
+        '<span class="material-inline-audio-panel" data-material-audio-panel hidden>' +
+          '<span class="material-inline-audio-time" data-material-audio-time>00:00 / --:--</span>' +
+          '<input type="range" class="material-inline-audio-seek" data-material-audio-seek min="0" max="1000" step="1" value="0" disabled aria-label="Posición del audio">' +
+        '</span>' +
+        '<audio class="material-audio-engine" preload="none" data-material-audio="' +
+          escapeHtml(attachment.storage_path || "") +
+        '" hidden></audio>' +
+      '</span>'
     );
-
   }
 
-
+  const openLabel = attachment.kind === "link" ? "Abrir enlace" : "Abrir archivo";
   return (
-    '<div class="material-view-attachment material-attachment-card">' +
-      '<div class="material-attachment-card-main">' +
-        '<span class="material-attachment-icon" aria-hidden="true">' +
-          escapeHtml(icon) +
-        "</span>" +
-        '<div class="material-attachment-info">' +
-          '<strong class="material-attachment-name">' +
-            escapeHtml(
-              attachment.name ||
-              "Archivo"
-            ) +
-          "</strong>" +
-          '<span class="material-attachment-meta">' +
-            escapeHtml(
-              secondaryText
-            ) +
-          "</span>" +
-        "</div>" +
-      "</div>" +
-      '<button type="button" class="material-attachment-open btn btn-subtle" data-open-attachment="' +
-        escapeHtml(
-          attachment.id
-        ) +
-      '">' +
-        escapeHtml(
-          actionLabel
-        ) +
-      "</button>" +
-    "</div>"
+    '<span class="material-inline-view-attachment" role="group">' +
+      '<span class="material-inline-view-name" title="' + safeName + '">' +
+        escapeHtml(icon + " " + name) +
+      '</span>' +
+      '<button type="button" class="material-inline-view-open" data-open-attachment="' + attachmentId + '" aria-label="' + escapeHtml(openLabel + ": " + name) + '" title="' + escapeHtml(openLabel) + '">↗</button>' +
+    '</span>'
   );
-
 }
 
 
 function renderMaterials() {
+
+  closeMaterialAudioPopovers();
 
   const materialsList =
     document.getElementById(
@@ -706,252 +688,152 @@ function renderMaterials() {
 
 
 function bindMaterialViewEvents() {
-
-  document
-    .querySelectorAll(
-      "[data-material-audio-load]"
-    )
-    .forEach(
-      button => {
-
-        const wrapper =
-          button.closest(
-            ".material-audio-lazy-controls"
-          );
-
-        const player =
-          wrapper?.querySelector(
-            "[data-material-audio]"
-          );
-
-        if (!player) {
-          return;
-        }
-
-        function updatePlaybackButton() {
-
-          if (
-            button.dataset.loading === "true"
-          ) {
-            return;
-          }
-
-          button.disabled =
-            false;
-
-          if (
-            player.ended
-          ) {
-
-            button.textContent =
-              "↻ Reproducir audio";
-
-          } else if (
-            !player.paused
-          ) {
-
-            button.textContent =
-              "⏸ Pausar audio";
-
-          } else if (
-            player.currentTime > 0
-          ) {
-
-            button.textContent =
-              "▶ Reanudar audio";
-
-          } else {
-
-            button.textContent =
-              "▶ Reproducir audio";
-
-          }
-
-        }
-
-        player.addEventListener(
-          "play",
-          updatePlaybackButton
-        );
-
-        player.addEventListener(
-          "pause",
-          updatePlaybackButton
-        );
-
-        player.addEventListener(
-          "ended",
-          updatePlaybackButton
-        );
-
-        player.addEventListener(
-          "error",
-          function() {
-
-            delete player.dataset.materialAudioUrlExpiresAt;
-
-            updatePlaybackButton();
-
-          }
-        );
-
-        button.addEventListener(
-          "click",
-          async function() {
-
-            if (
-              button.dataset.loading === "true"
-            ) {
-              return;
-            }
-
-            if (
-              !player.paused &&
-              !player.ended
-            ) {
-
-              player.pause();
-
-              updatePlaybackButton();
-
-              return;
-
-            }
-
-            const storagePath =
-              player.dataset.materialAudio;
-
-            if (!storagePath) {
-
-              showNotice(
-                "No se encontró la ruta del audio guardado.",
-                "error"
-              );
-
-              return;
-
-            }
-
-            const urlExpiresAt =
-              Number(
-                player.dataset.materialAudioUrlExpiresAt || 0
-              );
-
-            if (
-              player.src &&
-              urlExpiresAt > Date.now() + 15000
-            ) {
-
-              try {
-
-                await player.play();
-
-                updatePlaybackButton();
-
-                return;
-
-              } catch (error) {
-
-                // Reintentar con una URL firmada nueva si la existente expiró
-                // o el navegador ya no puede reproducirla.
-
-                delete player.dataset.materialAudioUrlExpiresAt;
-
-              }
-
-            }
-
-            button.dataset.loading =
-              "true";
-
-            button.disabled =
-              true;
-
-            button.textContent =
-              "Preparando audio…";
-
-            try {
-
-              const response =
-                await supabaseClient
-                  .storage
-                  .from("materials")
-                  .createSignedUrl(
-                    storagePath,
-                    3600
-                  );
-
-              const signedUrl =
-                response.data?.signedUrl ||
-                null;
-
-              if (
-                response.error ||
-                !signedUrl
-              ) {
-
-                throw (
-                  response.error ||
-                  new Error(
-                    "No se pudo obtener el audio."
-                  )
-                );
-
-              }
-
-              player.src =
-                signedUrl;
-
-              player.dataset.materialAudioUrlExpiresAt =
-                String(
-                  Date.now() + 55 * 60 * 1000
-                );
-
-              player.hidden =
-                false;
-
-              try {
-
-                await player.play();
-
-              } catch (playError) {
-
-                showNotice(
-                  "El audio está cargado, pero no se pudo iniciar automáticamente. Usá el control del reproductor para reproducirlo.",
-                  "error"
-                );
-
-              }
-
-            } catch (error) {
-
-              delete player.dataset.materialAudioUrlExpiresAt;
-
-              showNotice(
-                error?.message ||
-                  "No se pudo cargar el audio. Podés volver a intentarlo.",
-                "error"
-              );
-
-            } finally {
-
-              delete button.dataset.loading;
-
-              button.disabled =
-                false;
-
-              updatePlaybackButton();
-
-            }
-
-          }
-        );
-
+  bindMaterialAudioPopoverDismissal();
+
+  document.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
+    const player = wrapper.querySelector("[data-material-audio]");
+    const playButton = wrapper.querySelector("[data-material-audio-play]");
+    const detailsButton = wrapper.querySelector("[data-material-audio-details]");
+    const panel = wrapper.querySelector("[data-material-audio-panel]");
+    const timeLabel = wrapper.querySelector("[data-material-audio-time]");
+    const seekInput = wrapper.querySelector("[data-material-audio-seek]");
+
+    if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput) return;
+
+    function updateAudioUi() {
+      const isPlaying = !player.paused && !player.ended;
+      playButton.textContent = isPlaying ? "Ⅱ" : "▶";
+      playButton.title = isPlaying ? "Pausar audio" : "Reproducir audio";
+      playButton.setAttribute("aria-label", (isPlaying ? "Pausar " : "Reproducir ") + (wrapper.querySelector(".material-inline-audio-name")?.textContent || "audio"));
+
+      const duration = Number.isFinite(player.duration) && player.duration > 0
+        ? player.duration
+        : null;
+      const currentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
+      timeLabel.textContent = formatMaterialAudioTime(currentTime) + " / " +
+        (duration ? formatMaterialAudioTime(duration) : "--:--");
+
+      seekInput.disabled = !duration;
+      if (duration && document.activeElement !== seekInput) {
+        seekInput.value = String(Math.max(0, Math.min(1000, Math.round(currentTime / duration * 1000))));
       }
-    );
+    }
+
+    async function ensureAudioUrl() {
+      const storagePath = player.dataset.materialAudio;
+      if (!storagePath) {
+        showNotice("No se encontró la ruta del audio guardado.", "error");
+        return false;
+      }
+
+      const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
+      if (player.src && expiresAt > Date.now() + 15000) return true;
+
+      try {
+        const response = await supabaseClient
+          .storage
+          .from("materials")
+          .createSignedUrl(storagePath, 3600);
+
+        const signedUrl = response.data?.signedUrl || null;
+        if (response.error || !signedUrl) {
+          throw response.error || new Error("No se pudo obtener el audio.");
+        }
+
+        player.src = signedUrl;
+        player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
+        // Obtener duración al abrir los detalles, sin precargar el audio completo.
+        player.preload = "metadata";
+        player.load();
+        updateAudioUi();
+        return true;
+      } catch (error) {
+        delete player.dataset.materialAudioUrlExpiresAt;
+        showNotice(error?.message || "No se pudo cargar el audio. Podés volver a intentarlo.", "error");
+        return false;
+      }
+    }
+
+    player.addEventListener("play", updateAudioUi);
+    player.addEventListener("pause", updateAudioUi);
+    player.addEventListener("ended", updateAudioUi);
+    player.addEventListener("timeupdate", updateAudioUi);
+    player.addEventListener("loadedmetadata", updateAudioUi);
+    player.addEventListener("durationchange", updateAudioUi);
+    player.addEventListener("seeked", updateAudioUi);
+    player.addEventListener("error", () => {
+      delete player.dataset.materialAudioUrlExpiresAt;
+      updateAudioUi();
+    });
+
+    seekInput.addEventListener("input", () => {
+      const duration = Number.isFinite(player.duration) ? player.duration : 0;
+      if (duration > 0) {
+        player.currentTime = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
+        updateAudioUi();
+      }
+    });
+
+    playButton.addEventListener("click", async () => {
+      if (playButton.disabled) return;
+
+      if (!player.paused && !player.ended) {
+        player.pause();
+        updateAudioUi();
+        return;
+      }
+
+      playButton.disabled = true;
+      const loaded = await ensureAudioUrl();
+      if (loaded) {
+        try {
+          await player.play();
+        } catch (error) {
+          showNotice(error?.message || "No se pudo reproducir el audio.", "error");
+        }
+      }
+      playButton.disabled = false;
+      updateAudioUi();
+    });
+
+    detailsButton.addEventListener("click", async () => {
+      const isOpen = panel.dataset.materialAudioPortal === "true" && !panel.hidden;
+      if (isOpen) {
+        closeMaterialAudioPopover(panel);
+        return;
+      }
+
+      closeMaterialAudioPopovers(panel);
+      const bounds = detailsButton.getBoundingClientRect();
+      const panelWidth = Math.min(280, Math.max(190, window.innerWidth - 24));
+      const estimatedHeight = 76;
+      const left = Math.max(12, Math.min(bounds.left, window.innerWidth - panelWidth - 12));
+      let top = bounds.bottom + 6;
+      if (top + estimatedHeight > window.innerHeight - 12) {
+        top = Math.max(12, bounds.top - estimatedHeight - 6);
+      }
+
+      panel.hidden = false;
+      panel.dataset.materialAudioPortal = "true";
+      panel._materialAudioOwnerButton = detailsButton;
+      panel._materialAudioOwnerWrapper = wrapper;
+      panel.style.position = "fixed";
+      panel.style.zIndex = "10000";
+      panel.style.left = left + "px";
+      panel.style.top = top + "px";
+      panel.style.width = panelWidth + "px";
+      document.body.appendChild(panel);
+      detailsButton.setAttribute("aria-expanded", "true");
+
+      await ensureAudioUrl();
+      updateAudioUi();
+    });
+
+    updateAudioUi();
+  });
 
 
-  document
+    document
     .querySelectorAll(
       "[data-material-toggle]"
     )

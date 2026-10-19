@@ -1,5 +1,12 @@
 /* Editor y compositor de Materiales. */
 
+let materialIndentRepeatTimer = null;
+let materialIndentRepeatButton = null;
+let materialIndentRepeatDirection = 0;
+let materialIndentRepeatCount = 0;
+let materialIndentPointerHandled = false;
+let materialIndentPointerResetTimer = null;
+
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
  * El clic simple conserva el posicionamiento nativo.
@@ -423,121 +430,310 @@ function insertMaterialNotation(symbol, button = null) {
 }
 
 
-function getMaterialIndentBlock(range, editor) {
-  if (!range || !editor) return null;
-
-  let node =
-    range.startContainer.nodeType === Node.ELEMENT_NODE
-      ? range.startContainer
-      : range.startContainer.parentElement;
-
-  while (node && node !== editor) {
-    if (
-      node.tagName === "BLOCKQUOTE" &&
-      node.classList?.contains("material-indent")
-    ) {
-      return node;
-    }
-    node = node.parentElement;
+function findLastMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: value.length - 1 } : null;
   }
-
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = node.childNodes.length - 1; index >= 0; index--) {
+    const found = findLastMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
   return null;
 }
 
 
-function unwrapMaterialIndentBlock(block) {
-  if (!block?.parentNode) return;
-
-  const parent = block.parentNode;
-  while (block.firstChild) {
-    parent.insertBefore(block.firstChild, block);
+function findFirstMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: 0 } : null;
   }
-  parent.removeChild(block);
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = 0; index < node.childNodes.length; index++) {
+    const found = findFirstMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
+  return null;
 }
 
 
-function toggleMaterialIndent(forceIndent = null) {
-  if (!focusMaterialEditorForFormatting()) return false;
+function findNextMaterialTextCharacterAfter(node, editor) {
+  let cursor = node;
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.nextSibling;
+    while (sibling) {
+      const found = findFirstMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.nextSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
 
+
+function getSelectedMaterialLineBreaks(range, editor) {
+  const breaks = [];
+  const walker = document.createTreeWalker(
+    editor,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+  );
+
+  let node = walker.nextNode();
+  while (node) {
+    if (
+      node.nodeType === Node.TEXT_NODE &&
+      !node.parentElement?.closest(".material-inline-attachment")
+    ) {
+      const value = node.nodeValue || "";
+      for (let offset = 0; offset < value.length; offset++) {
+        if (value[offset] === "\n" && range.comparePoint(node, offset + 1) === 0) {
+          breaks.push({ kind: "text", node, offset: offset + 1 });
+        }
+      }
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName === "BR" &&
+      range.intersectsNode(node)
+    ) {
+      breaks.push({ kind: "br", node });
+    }
+    node = walker.nextNode();
+  }
+
+  return breaks;
+}
+
+
+function findPreviousMaterialTextCharacter(range, editor) {
+  const container = range.startContainer;
+  const offset = range.startOffset;
+  if (container.nodeType === Node.TEXT_NODE && offset > 0) {
+    return { node: container, offset: offset - 1 };
+  }
+
+  let cursor = container;
+  if (container.nodeType === Node.ELEMENT_NODE) {
+    for (let index = Math.min(offset, container.childNodes.length) - 1; index >= 0; index--) {
+      const found = findLastMaterialTextCharacter(container.childNodes[index]);
+      if (found) return found.blocked ? null : found;
+    }
+  }
+
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.previousSibling;
+    while (sibling) {
+      const found = findLastMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.previousSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
+
+
+function changeMaterialIndentSpaces(direction) {
   const editor = document.getElementById("materialComposerEditor");
   const selection = window.getSelection();
+  if (!editor || !selection) return false;
 
-  if (!editor || !selection?.rangeCount) return false;
-
-  const beforeRange = selection.getRangeAt(0).cloneRange();
+  let range = null;
   if (
-    !editor.contains(beforeRange.startContainer) ||
-    !editor.contains(beforeRange.endContainer)
+    selection.rangeCount &&
+    editor.contains(selection.getRangeAt(0).startContainer) &&
+    editor.contains(selection.getRangeAt(0).endContainer)
   ) {
-    return false;
+    range = selection.getRangeAt(0).cloneRange();
+  } else if (
+    materialSelectionRange &&
+    editor.contains(materialSelectionRange.startContainer) &&
+    editor.contains(materialSelectionRange.endContainer)
+  ) {
+    range = materialSelectionRange.cloneRange();
+  }
+  if (!range) return false;
+
+  const isCollapsed = range.collapsed;
+  const lineBreaks = isCollapsed
+    ? []
+    : getSelectedMaterialLineBreaks(range, editor);
+
+  if (direction > 0) {
+    // If a selection spans several explicit lines, prefix each selected line
+    // with one real, persistent space. Insert from the end backward so offsets
+    // in earlier text nodes remain valid.
+    for (let index = lineBreaks.length - 1; index >= 0; index--) {
+      const lineBreak = lineBreaks[index];
+      const insertionRange = document.createRange();
+      if (lineBreak.kind === "text") {
+        insertionRange.setStart(lineBreak.node, lineBreak.offset);
+      } else {
+        insertionRange.setStartAfter(lineBreak.node);
+      }
+      insertionRange.collapse(true);
+      insertionRange.insertNode(document.createTextNode("\u00a0"));
+    }
+
+    const insertionRange = range.cloneRange();
+    insertionRange.collapse(true);
+    const space = document.createTextNode("\u00a0");
+    insertionRange.insertNode(space);
+    range.setStartAfter(space);
+    if (isCollapsed) range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    materialSelectionRange = range.cloneRange();
+    updateMaterialFormattingButtonStates();
+    return true;
   }
 
-  const existingBlock = getMaterialIndentBlock(beforeRange, editor);
-  const shouldIndent =
-    forceIndent === null
-      ? !existingBlock
-      : Boolean(forceIndent);
-
-  try {
-    document.execCommand(shouldIndent ? "indent" : "outdent", false, null);
-  } catch (error) {
-    console.error("No se pudo aplicar la sangría nativa:", error);
-  }
-
-  if (shouldIndent) {
-    const blockquotes = Array.from(editor.querySelectorAll("blockquote"));
-    let selectedBlock = null;
-
-    if (
-      selection.rangeCount &&
-      editor.contains(selection.getRangeAt(0).startContainer)
-    ) {
-      let node = selection.getRangeAt(0).startContainer;
-      node = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-      while (node && node !== editor) {
-        if (node.tagName === "BLOCKQUOTE") {
-          selectedBlock = node;
-          break;
+  // Remove one character from each selected line, beginning with the last
+  // line so DOM offsets stay stable. Only actual leading spaces are removed.
+  for (let index = lineBreaks.length - 1; index >= 0; index--) {
+    const lineBreak = lineBreaks[index];
+    let character = null;
+    if (lineBreak.kind === "text") {
+      const value = lineBreak.node.nodeValue || "";
+      if (value[lineBreak.offset] === " " || value[lineBreak.offset] === "\u00a0") {
+        character = { node: lineBreak.node, offset: lineBreak.offset };
+      }
+    } else {
+      const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
+      if (found) {
+        const value = found.node.nodeValue || "";
+        if (value[found.offset] === " " || value[found.offset] === "\u00a0") {
+          character = found;
         }
-        node = node.parentElement;
       }
     }
 
-    if (selectedBlock) {
-      selectedBlock.classList.add("material-indent");
-    } else {
-      blockquotes.forEach(blockquote => blockquote.classList.add("material-indent"));
-    }
-
-    if (
-      !selectedBlock &&
-      !beforeRange.collapsed &&
-      editor.contains(beforeRange.startContainer) &&
-      editor.contains(beforeRange.endContainer)
-    ) {
-      const fragment = beforeRange.extractContents();
-      const wrapper = document.createElement("blockquote");
-      wrapper.className = "material-indent";
-      wrapper.appendChild(fragment);
-      beforeRange.insertNode(wrapper);
-
-      const nextRange = document.createRange();
-      nextRange.selectNodeContents(wrapper);
-      selection.removeAllRanges();
-      selection.addRange(nextRange);
-    }
-  } else if (existingBlock) {
-    if (
-      existingBlock.isConnected &&
-      existingBlock.classList.contains("material-indent")
-    ) {
-      unwrapMaterialIndentBlock(existingBlock);
+    if (character) {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(character.node, character.offset);
+      deletionRange.setEnd(character.node, character.offset + 1);
+      deletionRange.deleteContents();
     }
   }
 
-  rememberMaterialSelection();
+  const previous = findPreviousMaterialTextCharacter(range, editor);
+  if (previous) {
+    const value = previous.node.nodeValue || "";
+    const character = value[previous.offset];
+    if (character === " " || character === "\u00a0") {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(previous.node, previous.offset);
+      deletionRange.setEnd(previous.node, previous.offset + 1);
+      deletionRange.deleteContents();
+    } else if (isCollapsed) {
+      return false;
+    } else {
+      const current = range.startContainer;
+      if (current.nodeType === Node.TEXT_NODE) {
+        const valueAtStart = current.nodeValue || "";
+        if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+          const deletionRange = document.createRange();
+          deletionRange.setStart(current, range.startOffset);
+          deletionRange.setEnd(current, range.startOffset + 1);
+          deletionRange.deleteContents();
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  } else {
+    if (!isCollapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+      const current = range.startContainer;
+      const valueAtStart = current.nodeValue || "";
+      if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+        const deletionRange = document.createRange();
+        deletionRange.setStart(current, range.startOffset);
+        deletionRange.setEnd(current, range.startOffset + 1);
+        deletionRange.deleteContents();
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
   updateMaterialFormattingButtonStates();
   return true;
+}
+
+
+function stopMaterialIndentRepeat() {
+  if (materialIndentRepeatTimer !== null) {
+    window.clearTimeout(materialIndentRepeatTimer);
+  }
+  materialIndentRepeatTimer = null;
+  materialIndentRepeatButton = null;
+  materialIndentRepeatDirection = 0;
+  materialIndentRepeatCount = 0;
+}
+
+
+function scheduleMaterialIndentRepeat() {
+  if (!materialIndentRepeatButton) return;
+  const delay =
+    materialIndentRepeatCount === 0
+      ? 320
+      : getMaterialIndentRepeatDelay(materialIndentRepeatCount);
+  materialIndentRepeatTimer = window.setTimeout(() => {
+    if (!materialIndentRepeatButton) return;
+    changeMaterialIndentSpaces(materialIndentRepeatDirection);
+    materialIndentRepeatCount += 1;
+    scheduleMaterialIndentRepeat();
+  }, delay);
+}
+
+
+function startMaterialIndentRepeat(event, button, direction) {
+  if (event.button !== undefined && event.button !== 0) return;
+  event.preventDefault();
+  stopMaterialIndentRepeat();
+  rememberMaterialSelection();
+  materialIndentPointerHandled = true;
+  materialIndentRepeatButton = button;
+  materialIndentRepeatDirection = direction;
+  materialIndentRepeatCount = 0;
+  changeMaterialIndentSpaces(direction);
+  scheduleMaterialIndentRepeat();
+}
+
+
+function bindMaterialIndentRepeatButton(button, direction) {
+  if (!button) return;
+  button.addEventListener("pointerdown", event => {
+    startMaterialIndentRepeat(event, button, direction);
+  });
+  button.addEventListener("click", () => {
+    if (materialIndentPointerHandled) {
+      materialIndentPointerHandled = false;
+      return;
+    }
+    changeMaterialIndentSpaces(direction);
+  });
+}
+
+
+function toggleMaterialIndent(forceIndent = true) {
+  return changeMaterialIndentSpaces(forceIndent === false ? -1 : 1);
 }
 
 
@@ -545,8 +741,8 @@ function executeMaterialNumericShortcut(action) {
   const editor = document.getElementById("materialComposerEditor");
   if (!editor) return false;
 
-  if (action === "indentToggle") {
-    return toggleMaterialIndent();
+  if (action === "indentMore") {
+    return toggleMaterialIndent(true);
   }
 
   const buttonByAction = {
@@ -2077,17 +2273,23 @@ function bindMaterialFormattingControls() {
   });
   noteSixteenthButton?.addEventListener("click", () => insertMaterialNotation("♬", noteSixteenthButton));
 
-  indentButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
-  });
-  indentButton?.addEventListener("click", () => toggleMaterialIndent(true));
+  bindMaterialIndentRepeatButton(indentButton, 1);
+  bindMaterialIndentRepeatButton(outdentButton, -1);
 
-  outdentButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
-  });
-  outdentButton?.addEventListener("click", () => toggleMaterialIndent(false));
+  const stopRepeat = () => {
+    stopMaterialIndentRepeat();
+    if (materialIndentPointerResetTimer !== null) {
+      window.clearTimeout(materialIndentPointerResetTimer);
+    }
+    materialIndentPointerResetTimer = window.setTimeout(() => {
+      materialIndentPointerHandled = false;
+      materialIndentPointerResetTimer = null;
+    }, 0);
+  };
+
+  document.addEventListener("pointerup", stopRepeat, true);
+  document.addEventListener("pointercancel", stopRepeat, true);
+  window.addEventListener("blur", stopRepeat);
 
 }
 

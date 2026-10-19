@@ -11,6 +11,12 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
   ]);
 
 
+function getMaterialIndentRepeatDelay(repeatCount) {
+  const count = Math.max(0, Number(repeatCount) || 0);
+  return Math.max(25, 115 - Math.floor(count / 5) * 15);
+}
+
+
 function getMaterialNumericShortcutAction(event) {
   if (
     !event ||
@@ -41,8 +47,8 @@ function getMaterialNumericShortcutAction(event) {
     Numpad8: "noteEighth",
     Digit9: "noteSixteenth",
     Numpad9: "noteSixteenth",
-    Digit0: "indentToggle",
-    Numpad0: "indentToggle"
+    Digit0: "indentMore",
+    Numpad0: "indentMore"
   };
 
   return shortcuts[event.code] || null;
@@ -643,16 +649,6 @@ function serializeMaterialRichTextNode(
     return "\n";
   }
 
-  if (
-    node.tagName === "BLOCKQUOTE" &&
-    node.classList?.contains("material-indent")
-  ) {
-    const children = Array.from(node.childNodes || [])
-      .map(serializeMaterialRichTextNode)
-      .join("");
-    return '<blockquote class="material-indent">' + children + "</blockquote>";
-  }
-
   const children =
     Array.from(
       node.childNodes || []
@@ -747,7 +743,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(?:strong|em|a)\b|<blockquote\b(?=[^>]*\bclass="[^"]*\bmaterial-indent\b[^"]*")|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
+    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\bmaterial-text-size-(?:normal|[12])\b[^"]*")/i.test(
       String(html || "")
     )
   );
@@ -883,13 +879,6 @@ function appendSanitizedMaterialNode(
     null;
 
   if (
-    node.tagName === "BLOCKQUOTE" &&
-    node.classList?.contains("material-indent")
-  ) {
-    safeNode = document.createElement("blockquote");
-    safeNode.className = "material-indent";
-
-  } else if (
     node.tagName === "A"
   ) {
 
@@ -1089,16 +1078,6 @@ function renderMaterialRichTextHtml(
       node.tagName === "BR"
     ) {
       return "<br>";
-    }
-
-    if (
-      node.tagName === "BLOCKQUOTE" &&
-      node.classList?.contains("material-indent")
-    ) {
-      const children = Array.from(node.childNodes || [])
-        .map(child => renderNode(child, insideAnchor))
-        .join("");
-      return '<blockquote class="material-indent">' + children + "</blockquote>";
     }
 
     if (
