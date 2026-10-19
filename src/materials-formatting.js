@@ -10,6 +10,44 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
     "material-text-size-2"
   ]);
 
+
+function getMaterialNumericShortcutAction(event) {
+  if (
+    !event ||
+    !event.altKey ||
+    !event.shiftKey ||
+    event.ctrlKey ||
+    event.metaKey
+  ) {
+    return null;
+  }
+
+  const shortcuts = {
+    Digit1: "bold",
+    Numpad1: "bold",
+    Digit2: "italic",
+    Numpad2: "italic",
+    Digit3: "parentheses",
+    Numpad3: "parentheses",
+    Digit4: "brackets",
+    Numpad4: "brackets",
+    Digit5: "size1",
+    Numpad5: "size1",
+    Digit6: "size2",
+    Numpad6: "size2",
+    Digit7: "noteQuarter",
+    Numpad7: "noteQuarter",
+    Digit8: "noteEighth",
+    Numpad8: "noteEighth",
+    Digit9: "noteSixteenth",
+    Numpad9: "noteSixteenth",
+    Digit0: "indentToggle",
+    Numpad0: "indentToggle"
+  };
+
+  return shortcuts[event.code] || null;
+}
+
 /*
  * Divide a rich-text subtree around inline attachments without losing the
  * formatting wrappers surrounding each text segment. Attachments must become
