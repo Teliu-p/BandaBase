@@ -636,6 +636,12 @@ async function selectMaterialAudioMarker(seconds) {
     button.classList.toggle("is-active", active);
   });
 
+  // Update any in-flight player load immediately, so an older loadedmetadata
+  // event cannot briefly apply a previously selected timestamp.
+  materialsList.querySelectorAll("[data-material-audio]").forEach(player => {
+    player.dataset.materialAudioPendingSeek = String(seconds);
+  });
+
   // Include audio attachments from every Material, even if its card is folded.
   // Metadata is fetched only in direct response to clicking a timestamp marker.
   const attachments = getMaterialAudioAttachmentsForCurrentSong();
