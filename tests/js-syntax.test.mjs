@@ -1476,7 +1476,7 @@ assert.match(
   "Mantener presionado el control de sangría debe permitir repetir la acción con aceleración."
 );
 const { getMaterialIndentRepeatDelay } = loadPureFunctions(
-  "src/materials-editor.js",
+  "src/materials-formatting.js",
   ["getMaterialIndentRepeatDelay"]
 );
 assert.ok(getMaterialIndentRepeatDelay(10) < getMaterialIndentRepeatDelay(0));
