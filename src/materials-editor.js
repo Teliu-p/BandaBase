@@ -448,6 +448,72 @@ function findLastMaterialTextCharacter(node) {
 }
 
 
+function findFirstMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: 0 } : null;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = 0; index < node.childNodes.length; index++) {
+    const found = findFirstMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
+  return null;
+}
+
+
+function findNextMaterialTextCharacterAfter(node, editor) {
+  let cursor = node;
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.nextSibling;
+    while (sibling) {
+      const found = findFirstMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.nextSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
+
+
+function getSelectedMaterialLineBreaks(range, editor) {
+  const breaks = [];
+  const walker = document.createTreeWalker(
+    editor,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+  );
+
+  let node = walker.nextNode();
+  while (node) {
+    if (
+      node.nodeType === Node.TEXT_NODE &&
+      !node.parentElement?.closest(".material-inline-attachment")
+    ) {
+      const value = node.nodeValue || "";
+      for (let offset = 0; offset < value.length; offset++) {
+        if (value[offset] === "\n" && range.comparePoint(node, offset + 1) === 0) {
+          breaks.push({ kind: "text", node, offset: offset + 1 });
+        }
+      }
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName === "BR" &&
+      range.intersectsNode(node)
+    ) {
+      breaks.push({ kind: "br", node });
+    }
+    node = walker.nextNode();
+  }
+
+  return breaks;
+}
+
+
 function findPreviousMaterialTextCharacter(range, editor) {
   const container = range.startContainer;
   const offset = range.startOffset;
@@ -497,14 +563,33 @@ function changeMaterialIndentSpaces(direction) {
   }
   if (!range) return false;
 
+  const isCollapsed = range.collapsed;
+  const lineBreaks = isCollapsed
+    ? []
+    : getSelectedMaterialLineBreaks(range, editor);
+
   if (direction > 0) {
-    const wasCollapsed = range.collapsed;
+    // If a selection spans several explicit lines, prefix each selected line
+    // with one real, persistent space. Insert from the end backward so offsets
+    // in earlier text nodes remain valid.
+    for (let index = lineBreaks.length - 1; index >= 0; index--) {
+      const lineBreak = lineBreaks[index];
+      const insertionRange = document.createRange();
+      if (lineBreak.kind === "text") {
+        insertionRange.setStart(lineBreak.node, lineBreak.offset);
+      } else {
+        insertionRange.setStartAfter(lineBreak.node);
+      }
+      insertionRange.collapse(true);
+      insertionRange.insertNode(document.createTextNode("\u00a0"));
+    }
+
     const insertionRange = range.cloneRange();
     insertionRange.collapse(true);
     const space = document.createTextNode("\u00a0");
     insertionRange.insertNode(space);
     range.setStartAfter(space);
-    if (wasCollapsed) range.collapse(true);
+    if (isCollapsed) range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
     materialSelectionRange = range.cloneRange();
@@ -512,16 +597,78 @@ function changeMaterialIndentSpaces(direction) {
     return true;
   }
 
-  const previous = findPreviousMaterialTextCharacter(range, editor);
-  if (!previous) return false;
-  const value = previous.node.nodeValue || "";
-  const character = value[previous.offset];
-  if (character !== " " && character !== "\u00a0") return false;
+  // Remove one character from each selected line, beginning with the last
+  // line so DOM offsets stay stable. Only actual leading spaces are removed.
+  for (let index = lineBreaks.length - 1; index >= 0; index--) {
+    const lineBreak = lineBreaks[index];
+    let character = null;
+    if (lineBreak.kind === "text") {
+      const value = lineBreak.node.nodeValue || "";
+      if (value[lineBreak.offset] === " " || value[lineBreak.offset] === "\u00a0") {
+        character = { node: lineBreak.node, offset: lineBreak.offset };
+      }
+    } else {
+      const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
+      if (found) {
+        const value = found.node.nodeValue || "";
+        if (value[found.offset] === " " || value[found.offset] === "\u00a0") {
+          character = found;
+        }
+      }
+    }
 
-  const deletionRange = document.createRange();
-  deletionRange.setStart(previous.node, previous.offset);
-  deletionRange.setEnd(previous.node, previous.offset + 1);
-  deletionRange.deleteContents();
+    if (character) {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(character.node, character.offset);
+      deletionRange.setEnd(character.node, character.offset + 1);
+      deletionRange.deleteContents();
+    }
+  }
+
+  const previous = findPreviousMaterialTextCharacter(range, editor);
+  if (previous) {
+    const value = previous.node.nodeValue || "";
+    const character = value[previous.offset];
+    if (character === " " || character === "\u00a0") {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(previous.node, previous.offset);
+      deletionRange.setEnd(previous.node, previous.offset + 1);
+      deletionRange.deleteContents();
+    } else if (isCollapsed) {
+      return false;
+    } else {
+      const current = range.startContainer;
+      if (current.nodeType === Node.TEXT_NODE) {
+        const valueAtStart = current.nodeValue || "";
+        if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+          const deletionRange = document.createRange();
+          deletionRange.setStart(current, range.startOffset);
+          deletionRange.setEnd(current, range.startOffset + 1);
+          deletionRange.deleteContents();
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  } else {
+    if (!isCollapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+      const current = range.startContainer;
+      const valueAtStart = current.nodeValue || "";
+      if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+        const deletionRange = document.createRange();
+        deletionRange.setStart(current, range.startOffset);
+        deletionRange.setEnd(current, range.startOffset + 1);
+        deletionRange.deleteContents();
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
   selection.removeAllRanges();
   selection.addRange(range);
   materialSelectionRange = range.cloneRange();
