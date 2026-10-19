@@ -89,6 +89,7 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - El serializador/sanitizador de Materiales es el contrato para cualquier formato persistente. La sangría nueva se limita a `blockquote.material-indent`, no a estilos inline arbitrarios; las figuras se insertan como caracteres Unicode.
 - Los atajos requieren Alt+número para no interferir con dígitos normales. La amplificación del metrónomo tendrá un control acotado y probado. Marcadores y sincronización son hitos separados.
 - No enrutar audio almacenado a Web Audio sin verificar CORS y un fallback funcional: una conexión cross-origin no permitida puede hacer que la reproducción se silencie.
+- Primera tanda en PR #107: https://github.com/Teliu-p/BandaBase/pull/107. CI pasó regresiones, ESLint/no-undef y smoke tests de Chromium en https://github.com/Teliu-p/BandaBase/actions/runs/39212456802. Los marcadores persistentes y la sincronización con audio quedan como requisitos pendientes de implementar y verificar.
 
 ## Formato recomendado para agregar incidentes
 
