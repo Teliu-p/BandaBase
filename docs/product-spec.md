@@ -54,8 +54,15 @@ BandaBase organiza el trabajo musical de una banda de iglesia: catálogo, prepar
 
 - Texto, archivos y enlaces pueden coexistir en la misma secuencia de contenido y conservar su orden al guardar.
 - Reproducción de audio debe funcionar directamente en la interfaz, sin obligar a instalar una aplicación ni descargar manualmente el archivo.
+- Se deben poder definir marcadores con nombre en instantes del audio (Intro, Verso, Coro, Puente, etc.) y saltar a ellos con un toque; los marcadores deben guardarse para la banda, no solo localmente en el navegador.
+- El metrónomo debe poder alinearse con una pista reproducida y conservar la relación entre BPM/métrica y posición temporal al pausar, reanudar, saltar a un marcador o mover la reproducción. Diferenciar sincronización por BPM conocido del análisis automático de tempo.
+- Mejorar el volumen percibido del metrónomo mediante una ganancia ajustable. La ganancia de pistas de audio debe investigarse aparte y solo activarse si el procesamiento funciona con CORS en los objetos de Storage y conserva un fallback de reproducción nativa.
 - Cargar audio/metadatos de forma perezosa para cuidar datos y almacenamiento; no precargar medios pesados innecesariamente.
 - Formato deseado: negrita, cursiva, resaltado, paréntesis, corchetes y dos niveles de ampliación de tamaño que se puedan alternar/desactivar.
+- Insertar figuras musicales (negra, corchea, semicorchea y futuras variantes) en el punto actual del cursor para escribir ritmos y tiempos dentro de Materiales.
+- Permitir aplicar/quitar sangría a texto seleccionado y conservarla después de guardar/reabrir el material.
+- Permitir atajos numéricos para herramientas del editor sin interferir con números escritos normalmente.
+- Los adjuntos insertados en línea deben tener altura acotada a un renglón; el nombre puede truncarse, pero el chip de archivo no debe estirar la distancia vertical del texto que comparte línea.
 - Los estados visuales de los controles de formato deben reflejar la selección actual.
 - Tarjetas de archivos/enlaces deberían resultar familiares y claras, similares en legibilidad a una conversación de mensajería.
 - Doble clic en una posición del editor debe colocar el cursor en el lugar previsto cuando corresponda.
