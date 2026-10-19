@@ -87,7 +87,7 @@ const commentsViewSource = readFileSync(
 
 assert.match(
   materialsViewSource,
-  /data-material-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
+  /data-material-audio-play[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
   "Materiales debe solicitar la URL del audio solo desde la acción explícita de reproducir."
 );
 assert.match(
@@ -582,15 +582,10 @@ assert.match(
   /material-text-size-normal/,
   "Debe existir un formato de tamaño normal que permita deshacer A+ o A++ dentro de otro tamaño sin perder el tamaño base."
 );
-assert.match(
+assert.doesNotMatch(
   materialFormattingSource,
-  /BLOCKQUOTE[\s\S]*?material-indent/,
-  "La sangría debe formar parte del rich text permitido y persistir al guardar."
-);
-assert.match(
-  materialFormattingSource,
-  /<blockquote class="material-indent">/,
-  "El renderizado debe restaurar únicamente el wrapper de sangría permitido."
+  /blockquote[^>]*material-indent/,
+  "La sangría debe guardarse como espacios, no como un bloque que desplace el texto demasiado."
 );
 
 const {
@@ -610,7 +605,7 @@ assert.equal(
 );
 assert.equal(
   getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit0" }),
-  "indentToggle"
+  "indentMore"
 );
 assert.equal(
   getMaterialNumericShortcutAction({ altKey: false, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit1" }),
@@ -1468,9 +1463,25 @@ assert.match(
 );
 assert.match(
   materialEditorSource,
-  /function\s+toggleMaterialIndent\s*\([\s\S]*?execCommand\([\s\S]*?indent[\s\S]*?outdent/,
-  "Debe poder agregarse y quitarse sangría desde el editor."
+  /function\s+changeMaterialIndentSpaces\s*\([\s\S]*?createTextNode\("\\u00a0"\)/,
+  "La sangría debe agregar o quitar espacios reales, no aplicar un bloque de formato grande."
 );
+assert.match(
+  materialEditorSource,
+  /function\s+getSelectedMaterialLineBreaks\s*\(/,
+  "Al seleccionar varias líneas, la sangría debe aplicarse línea por línea."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+getMaterialIndentRepeatDelay\s*\(/,
+  "Mantener presionado el control de sangría debe permitir repetir la acción con aceleración."
+);
+const { getMaterialIndentRepeatDelay } = loadPureFunctions(
+  "src/materials-editor.js",
+  ["getMaterialIndentRepeatDelay"]
+);
+assert.ok(getMaterialIndentRepeatDelay(10) < getMaterialIndentRepeatDelay(0));
+assert.ok(getMaterialIndentRepeatDelay(40) <= 25);
 assert.match(
   materialEditorSource,
   /function\s+executeMaterialNumericShortcut\s*\(/,
@@ -1489,23 +1500,41 @@ const materialViewSource = readFileSync(
 
 assert.match(
   materialViewSource,
-  /function updatePlaybackButton\([\s\S]*?⏸ Pausar audio[\s\S]*?▶ Reanudar audio/,
-  "El control personalizado de audio debe reflejar reproducción, pausa y reanudación."
+  /function formatMaterialAudioTime\([\s\S]*?padStart\([\s\S]*?return hours/,
+  "El tiempo del audio debe mostrarse en mm:ss y hh:mm:ss cuando corresponda."
+);
+const { formatMaterialAudioTime } = loadPureFunctions(
+  "src/materials-view.js",
+  ["formatMaterialAudioTime"]
+);
+assert.equal(formatMaterialAudioTime(0), "00:00");
+assert.equal(formatMaterialAudioTime(61), "01:01");
+assert.equal(formatMaterialAudioTime(3605), "1:00:05");
+assert.equal(formatMaterialAudioTime(Number.NaN), "00:00");
+assert.match(
+  materialViewSource,
+  /data-material-audio-play[\s\S]*?createSignedUrl[\s\S]*?player\.src\s*=\s*signedUrl/,
+  "El audio debe cargar una URL firmada de forma perezosa al interactuar."
 );
 assert.match(
   materialViewSource,
-  /player\.addEventListener\([\s\S]*?"play"[\s\S]*?player\.addEventListener\([\s\S]*?"pause"/,
-  "Los cambios de estado del reproductor deben actualizar el control visible."
+  /data-material-audio-details[\s\S]*?data-material-audio-panel[\s\S]*?data-material-audio-seek/,
+  "Al tocar el nombre del audio deben aparecer el tiempo y el control de posición."
+);
+assert.match(
+  materialViewSource,
+  /'<span class="material-view-text material-rich-text">/,
+  "Los bloques de texto guardados deben poder compartir renglón con sus adjuntos."
 );
 assert.doesNotMatch(
   materialViewSource,
-  /button\.hidden\s*=\s*true/,
-  "El botón de reproducción no debe ocultarse al iniciar el audio; debe seguir permitiendo pausarlo."
+  /material-attachment-card material-attachment-audio/,
+  "Los audios guardados no deben volver a convertirse en tarjetas grandes debajo del texto."
 );
 assert.match(
   materialViewSource,
-  /material-audio-load[\s\S]*?player\.hidden\s*=\s*false/,
-  "El reproductor nativo debe seguir visible junto al control personalizado."
+  /function closeMaterialAudioPopovers\(/,
+  "Los controles de audio flotantes deben cerrarse al reabrir o volver a renderizar Materiales."
 );
 
 assert.match(
