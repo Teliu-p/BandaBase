@@ -99,6 +99,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - No cambió el volumen del audio ni se hicieron cambios a base de datos, Storage, permisos o datos.
 - Pendiente de verificación manual: probar guardar y reabrir un material real con audio; la CI cubre regresiones y smoke tests con stubs, no esa sesión autenticada específica.
 
+### 2026-10-19 — marcadores temporales de audio en Materiales (PR #110 en revisión)
+
+- Requisito acordado: el usuario escribe el texto de la sección («Coro») y, en el lugar del cursor, inserta un chip cuyo único texto visible es el tiempo, por ejemplo «0:30». El nombre de la sección queda escrito por el usuario como texto normal. El chip es parte del rich text persistido, no un objeto nuevo de base de datos.
+- Al pulsar el chip, todos los adjuntos de audio de todos los Materiales de esa canción se posicionan en el instante indicado, también si la tarjeta está plegada. Un audio que ya sonaba continúa desde ese punto, pero las pistas pausadas no arrancan automáticamente; un Material abierto después hereda el último marcador elegido. Cambiar de canción limpia el estado temporal y libera motores auxiliares.
+- El serializador/sanitizador solo acepta marcadores con segundos enteros en el intervalo permitido y genera HTML canónico; el contenido no se toma como HTML confiable. URL firmada y metadatos se cargan bajo demanda por el clic de marcador. No se modifica el volumen ni se cambia Supabase (esquema, RLS, Storage o datos).
+- Implementación en PR #110: https://github.com/Teliu-p/BandaBase/pull/110. La CI debe pasar; queda pendiente una prueba manual autenticada de guardar, reabrir y saltar por marcadores antes de fusionar/publicar.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.

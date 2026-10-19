@@ -589,6 +589,25 @@ assert.doesNotMatch(
 );
 
 const {
+  parseMaterialAudioMarkerTime,
+  formatMaterialAudioMarkerLabel
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["parseMaterialAudioMarkerTime", "formatMaterialAudioMarkerLabel"]
+);
+assert.equal(parseMaterialAudioMarkerTime("0:30"), 30);
+assert.equal(parseMaterialAudioMarkerTime("1:02"), 62);
+assert.equal(parseMaterialAudioMarkerTime("1:02:03"), 3723);
+assert.equal(parseMaterialAudioMarkerTime("30"), 30);
+assert.equal(parseMaterialAudioMarkerTime("0:60"), null);
+assert.equal(parseMaterialAudioMarkerTime("1:60:00"), null);
+assert.equal(parseMaterialAudioMarkerTime("no es un tiempo"), null);
+assert.equal(parseMaterialAudioMarkerTime("86401"), null);
+assert.equal(formatMaterialAudioMarkerLabel(30), "0:30");
+assert.equal(formatMaterialAudioMarkerLabel(62), "1:02");
+assert.equal(formatMaterialAudioMarkerLabel(3723), "1:02:03");
+
+const {
   getMaterialNumericShortcutAction
 } = loadPureFunctions(
   "src/materials-formatting.js",
@@ -1534,6 +1553,56 @@ assert.match(
   materialViewSource,
   /function closeMaterialAudioPopovers\(/,
   "Los controles de audio flotantes deben cerrarse al reabrir o volver a renderizar Materiales."
+);
+assert.match(
+  materialViewSource,
+  /function seekMaterialAudioPlayerToTime\([\s\S]*?materialAudioPendingSeek[\s\S]*?function selectMaterialAudioMarker\([\s\S]*?querySelectorAll\("\[data-material-audio\]"\)/,
+  "Un marcador debe sincronizar el punto de reproducción de los audios de Materiales."
+);
+assert.match(
+  materialViewSource,
+  /function getMaterialAudioAttachmentsForCurrentSong\([\s\S]*?currentMaterials[\s\S]*?material\.attachments[\s\S]*?mime_type/,
+  "El destino de un marcador debe incluir también los audios adjuntos a Materiales que estén plegados."
+);
+assert.match(
+  materialViewSource,
+  /function selectMaterialAudioMarker\([\s\S]*?getMaterialAudioAttachmentsForCurrentSong\(\)[\s\S]*?ensureMaterialAudioSourceForMarker[\s\S]*?waitForMaterialAudioMetadata/,
+  "Al activar un marcador se deben cargar los metadatos bajo demanda para posicionar todos los audios de la canción."
+);
+assert.match(
+  materialViewSource,
+  /materialAudioSeekEnginePool[\s\S]*?disposeMaterialAudioSeekEnginePool/,
+  "Los motores temporales para audios de Materiales plegados deben liberarse al cambiar de canción."
+);
+assert.match(
+  materialViewSource,
+  /if \(positioned && wasPlaying && player\.paused\)[\s\S]*?player\.play\(\)/,
+  "Si un audio que ya sonaba necesita renovar su URL, debe intentar continuar; los audios pausados no deben arrancar solos."
+);
+assert.match(
+  materialViewSource,
+  /materialAudioMarkerSelectionVersion[\s\S]*?selectionVersion !== materialAudioMarkerSelectionVersion/,
+  "Un clic posterior sobre otro marcador debe prevalecer si la carga del anterior termina más tarde."
+);
+assert.match(
+  materialFormattingSource,
+  /classList\?\.contains\(\s*"material-audio-marker"/,
+  "El sanitizador y serializador deben preservar el nodo especial del marcador, sin confiar en HTML arbitrario."
+);
+assert.match(
+  materialEditorSource,
+  /function insertMaterialAudioMarker\([\s\S]*?parseMaterialAudioMarkerTime[\s\S]*?insertMaterialNodeAtSelection/,
+  "El editor debe permitir insertar un marcador temporal en la posición del cursor."
+);
+assert.doesNotMatch(
+  materialEditorSource,
+  /marker\.title = ["']Marcador de audio/,
+  "El marcador del editor debe mostrar solo el tiempo; el nombre de la sección queda como texto normal."
+);
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="materialAudioMarkerBtn"/,
+  "La barra del editor debe exponer la herramienta de insertar marcadores."
 );
 
 assert.match(

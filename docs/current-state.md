@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-19, Argentina.  
-**main actual verificado:** a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9.  
+**Último main verificado antes de PR #110:** 6c7915145beb24fed5abc31e75d34b800b427395.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -13,8 +13,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Último commit observado de main: a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9 (corrección de sangría y Materiales inline/audio, PR #108).
-- Actions para el commit actual: Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39217970149) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39217971029). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Último commit observado de main antes de PR #110: 6c7915145beb24fed5abc31e75d34b800b427395 (actualización documental tras PR #108).
+- Para el último commit de main previo a PR #110, Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39218287738) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39218286452). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Corrección de sangría y audio en Materiales (2026-10-19)
@@ -29,7 +29,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 - Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La PR #107 (https://github.com/Teliu-p/BandaBase/pull/107) contiene la primera tanda de figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Revalidar PR/CI/deploy antes de afirmar que está publicada.
 - El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
-- Marcadores por instante y sincronización con audio no están incluidos en este primer lote: requieren definir un modelo compartido persistente, permisos para actualizar marcadores y comportamiento de seek/pause/resume. No introducir cambios de esquema ni escribir datos remotos a ciegas.
+- PR #110 (abierta): https://github.com/Teliu-p/BandaBase/pull/110 implementa marcadores de tiempo inline en Materiales, persistidos como rich text canónico dentro de `material_blocks.content`; por ejemplo, escribir «Coro», insertar el chip «0:30» y pulsarlo para posicionar todos los audios adjuntos a la canción, también los que pertenezcan a materiales plegados. El chip muestra solo el tiempo. Las pistas pausadas no arrancan automáticamente; las que ya sonaban continúan desde el punto elegido y el marcador elegido se aplica también a reproductores que se abran después. No requiere tabla, columna ni migración de Supabase.
+- La acción carga URLs firmadas y metadatos bajo demanda al tocar el marcador; audios que fallan en la carga muestran aviso. Esta implementación cubre el salto por marcador; la sincronización del metrónomo con reproducción/pausa/seek sigue pendiente. Revisar CI y la resolución de PR #110 antes de afirmar que está publicada.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios

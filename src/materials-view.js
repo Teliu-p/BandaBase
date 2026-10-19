@@ -7,6 +7,11 @@ let openMaterialIds = new Set();
 let materialDraftInitialAttachmentIds = new Set();
 let materialSelectionRange = null;
 let materialPendingAttachments = {};
+let materialAudioMarkerStateSongId = null;
+let materialAudioMarkerTimeSeconds = null;
+let materialAudioMarkerSelectionVersion = 0;
+// Audio engines created on demand for attachments in currently folded Materials.
+let materialAudioSeekEnginePool = new Map();
 const COMPARISON_MATERIAL_TYPE = "ComparacionOriginal";
 
 
@@ -249,6 +254,14 @@ async function loadMaterials() {
     return;
   }
 
+  const songId = String(currentSong.id || "");
+  if (materialAudioMarkerStateSongId !== songId) {
+    materialAudioMarkerStateSongId = songId;
+    materialAudioMarkerTimeSeconds = null;
+    materialAudioMarkerSelectionVersion += 1;
+    disposeMaterialAudioSeekEnginePool();
+  }
+
   materialsList.innerHTML =
     "Cargando...";
 
@@ -449,6 +462,236 @@ function formatMaterialAudioTime(value) {
   return hours
     ? hours + ":" + pad(minutes) + ":" + pad(seconds)
     : String(minutes).padStart(2, "0") + ":" + pad(seconds);
+}
+
+
+function seekMaterialAudioPlayerToTime(player, seconds) {
+  const target = Number(seconds);
+  if (!player || !Number.isSafeInteger(target) || target < 0 || target > 86400) return false;
+
+  if (player.readyState < 1 || !Number.isFinite(player.duration) || player.duration <= 0) {
+    player.dataset.materialAudioPendingSeek = String(target);
+    return false;
+  }
+
+  try {
+    player.currentTime = Math.min(target, player.duration);
+    delete player.dataset.materialAudioPendingSeek;
+    return true;
+  } catch {
+    player.dataset.materialAudioPendingSeek = String(target);
+    return false;
+  }
+}
+
+
+function waitForMaterialAudioMetadata(player) {
+  if (player.readyState >= 1 && Number.isFinite(player.duration) && player.duration > 0) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise(resolve => {
+    let settled = false;
+    let timeoutId = null;
+    const cleanup = () => {
+      player.removeEventListener("loadedmetadata", onLoaded);
+      player.removeEventListener("error", onError);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+    const finish = ready => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(ready);
+    };
+    const onLoaded = () => finish(
+      Number.isFinite(player.duration) && player.duration > 0
+    );
+    const onError = () => finish(false);
+
+    player.addEventListener("loadedmetadata", onLoaded);
+    player.addEventListener("error", onError);
+    timeoutId = window.setTimeout(() => finish(false), 10000);
+
+    if (player.readyState >= 1 && Number.isFinite(player.duration) && player.duration > 0) {
+      finish(true);
+    }
+  });
+}
+
+
+function disposeMaterialAudioSeekEnginePool() {
+  for (const player of materialAudioSeekEnginePool.values()) {
+    try {
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+    } catch {
+      // Releasing a temporary media engine must not block song navigation.
+    }
+    player.remove();
+  }
+  materialAudioSeekEnginePool.clear();
+}
+
+
+function getMaterialAudioAttachmentsForCurrentSong() {
+  const attachmentsById = new Map();
+
+  (currentMaterials || []).forEach(material => {
+    (material.attachments || []).forEach(attachment => {
+      if (
+        attachment?.id &&
+        attachment.kind === "file" &&
+        String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
+        attachment.storage_path
+      ) {
+        attachmentsById.set(String(attachment.id), attachment);
+      }
+    });
+  });
+
+  return Array.from(attachmentsById.values());
+}
+
+
+function getMaterialAudioPlayerForMarker(attachment, visiblePlayers) {
+  const attachmentId = String(attachment.id);
+  const visiblePlayer = visiblePlayers.find(player =>
+    String(player.closest("[data-material-audio-id]")?.dataset.materialAudioId || "") === attachmentId
+  );
+
+  if (visiblePlayer) {
+    const pooledPlayer = materialAudioSeekEnginePool.get(attachmentId);
+    if (pooledPlayer) {
+      try {
+        pooledPlayer.pause();
+        pooledPlayer.removeAttribute("src");
+        pooledPlayer.load();
+      } catch {
+        // Ignore cleanup errors for an already-positioned temporary engine.
+      }
+      pooledPlayer.remove();
+      materialAudioSeekEnginePool.delete(attachmentId);
+    }
+
+    return { player: visiblePlayer, isTemporary: false };
+  }
+
+  let player = materialAudioSeekEnginePool.get(attachmentId);
+  if (!player || !player.isConnected) {
+    player = document.createElement("audio");
+    player.className = "material-audio-engine";
+    player.hidden = true;
+    player.preload = "none";
+    player.dataset.materialAudio = attachment.storage_path;
+    document.body.appendChild(player);
+    materialAudioSeekEnginePool.set(attachmentId, player);
+  }
+
+  player.dataset.materialAudio = attachment.storage_path;
+  return { player, isTemporary: true };
+}
+
+
+async function ensureMaterialAudioSourceForMarker(player, attachment) {
+  const storagePath = attachment.storage_path || player.dataset.materialAudio;
+  if (!storagePath) return false;
+
+  const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
+  if (player.src && expiresAt > Date.now() + 15000) return true;
+
+  try {
+    const response = await supabaseClient
+      .storage
+      .from("materials")
+      .createSignedUrl(storagePath, 3600);
+    const signedUrl = response.data?.signedUrl || null;
+
+    if (response.error || !signedUrl) return false;
+
+    player.src = signedUrl;
+    player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
+    player.preload = "metadata";
+    player.load();
+    return true;
+  } catch {
+    delete player.dataset.materialAudioUrlExpiresAt;
+    return false;
+  }
+}
+
+
+async function selectMaterialAudioMarker(seconds) {
+  if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) return;
+
+  const selectionVersion = ++materialAudioMarkerSelectionVersion;
+  materialAudioMarkerTimeSeconds = seconds;
+  const materialsList = document.getElementById("materialsList");
+  if (!materialsList) return;
+
+  materialsList.querySelectorAll("[data-material-audio-marker]").forEach(button => {
+    const active = Number(button.dataset.materialAudioMarkerSeconds) === seconds;
+    button.setAttribute("aria-pressed", String(active));
+    button.classList.toggle("is-active", active);
+  });
+
+  // Update any in-flight player load immediately, so an older loadedmetadata
+  // event cannot briefly apply a previously selected timestamp.
+  materialsList.querySelectorAll("[data-material-audio]").forEach(player => {
+    player.dataset.materialAudioPendingSeek = String(seconds);
+  });
+
+  // Include audio attachments from every Material, even if its card is folded.
+  // Metadata is fetched only in direct response to clicking a timestamp marker.
+  const attachments = getMaterialAudioAttachmentsForCurrentSong();
+  if (!attachments.length) return;
+
+  const visiblePlayers = Array.from(
+    materialsList.querySelectorAll("[data-material-audio]")
+  );
+
+  const results = await Promise.all(attachments.map(async attachment => {
+    const { player, isTemporary } = getMaterialAudioPlayerForMarker(attachment, visiblePlayers);
+    const wasPlaying = !player.paused && !player.ended;
+
+    const sourceReady = await ensureMaterialAudioSourceForMarker(player, attachment);
+    if (selectionVersion !== materialAudioMarkerSelectionVersion) return null;
+    if (!sourceReady) return false;
+
+    const metadataReady = await waitForMaterialAudioMetadata(player);
+    if (selectionVersion !== materialAudioMarkerSelectionVersion) return null;
+    if (!metadataReady) return false;
+
+    const positioned = seekMaterialAudioPlayerToTime(player, seconds);
+    if (positioned && wasPlaying && player.paused) {
+      // Refreshing an expired signed URL can pause an active player; preserve
+      // its prior play state, but never start a previously paused track.
+      try {
+        await player.play();
+      } catch {
+        // The position is still set; keep other audio markers usable.
+      }
+    }
+
+    if (isTemporary && !positioned) {
+      player.dataset.materialAudioPendingSeek = String(seconds);
+    }
+    return positioned;
+  }));
+
+  if (selectionVersion !== materialAudioMarkerSelectionVersion) return;
+
+  const failed = results.filter(result => result === false).length;
+  if (failed > 0) {
+    const succeeded = results.filter(result => result === true).length;
+    showNotice(
+      succeeded
+        ? "El marcador se posicionó en " + succeeded + " de " + attachments.length + " audios; algunos no pudieron cargarse."
+        : "No se pudo posicionar el marcador en los audios. Comprobá la conexión e intentá nuevamente.",
+      "error"
+    );
+  }
 }
 
 
@@ -700,6 +943,26 @@ function bindMaterialViewEvents() {
 
     if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput) return;
 
+    const attachmentId = String(wrapper.dataset.materialAudioId || "");
+    const pooledPlayer = attachmentId
+      ? materialAudioSeekEnginePool.get(attachmentId)
+      : null;
+    if (pooledPlayer) {
+      try {
+        pooledPlayer.pause();
+        pooledPlayer.removeAttribute("src");
+        pooledPlayer.load();
+      } catch {
+        // Ignore errors while replacing the temporary engine with the visible player.
+      }
+      pooledPlayer.remove();
+      materialAudioSeekEnginePool.delete(attachmentId);
+    }
+
+    if (materialAudioMarkerTimeSeconds !== null && player.dataset.materialAudioPendingSeek === undefined) {
+      player.dataset.materialAudioPendingSeek = String(materialAudioMarkerTimeSeconds);
+    }
+
     function updateAudioUi() {
       const isPlaying = !player.paused && !player.ended;
       playButton.textContent = isPlaying ? "Ⅱ" : "▶";
@@ -727,7 +990,23 @@ function bindMaterialViewEvents() {
       }
 
       const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
-      if (player.src && expiresAt > Date.now() + 15000) return true;
+      if (player.src && expiresAt > Date.now() + 15000) {
+        if (player.dataset.materialAudioPendingSeek !== undefined) {
+          const metadataReady = await waitForMaterialAudioMetadata(player);
+          if (!metadataReady) {
+            showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
+            return false;
+          }
+
+          // Read the current pending value after awaiting metadata: the user may
+          // have chosen a different marker while the audio was becoming ready.
+          const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+          if (latestPendingSeek !== undefined) {
+            seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+          }
+        }
+        return true;
+      }
 
       try {
         const response = await supabaseClient
@@ -745,6 +1024,18 @@ function bindMaterialViewEvents() {
         // Obtener duración al abrir los detalles, sin precargar el audio completo.
         player.preload = "metadata";
         player.load();
+        if (player.dataset.materialAudioPendingSeek !== undefined) {
+          const metadataReady = await waitForMaterialAudioMetadata(player);
+          if (!metadataReady) {
+            showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
+            return false;
+          }
+
+          const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+          if (latestPendingSeek !== undefined) {
+            seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+          }
+        }
         updateAudioUi();
         return true;
       } catch (error) {
@@ -758,7 +1049,13 @@ function bindMaterialViewEvents() {
     player.addEventListener("pause", updateAudioUi);
     player.addEventListener("ended", updateAudioUi);
     player.addEventListener("timeupdate", updateAudioUi);
-    player.addEventListener("loadedmetadata", updateAudioUi);
+    player.addEventListener("loadedmetadata", () => {
+      const pendingSeekValue = player.dataset.materialAudioPendingSeek;
+      if (pendingSeekValue !== undefined) {
+        seekMaterialAudioPlayerToTime(player, Number(pendingSeekValue));
+      }
+      updateAudioUi();
+    });
     player.addEventListener("durationchange", updateAudioUi);
     player.addEventListener("seeked", updateAudioUi);
     player.addEventListener("error", () => {
@@ -832,6 +1129,20 @@ function bindMaterialViewEvents() {
     updateAudioUi();
   });
 
+  document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
+    button.addEventListener("click", () => {
+      const seconds = Number(button.dataset.materialAudioMarkerSeconds);
+      selectMaterialAudioMarker(seconds);
+    });
+  });
+
+  if (materialAudioMarkerTimeSeconds !== null) {
+    document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
+      const active = Number(button.dataset.materialAudioMarkerSeconds) === materialAudioMarkerTimeSeconds;
+      button.setAttribute("aria-pressed", String(active));
+      button.classList.toggle("is-active", active);
+    });
+  }
 
     document
     .querySelectorAll(

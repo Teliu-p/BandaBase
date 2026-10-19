@@ -430,6 +430,37 @@ function insertMaterialNotation(symbol, button = null) {
 }
 
 
+function insertMaterialAudioMarker(button = null) {
+  const input = window.prompt(
+    "Tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
+    "0:30"
+  );
+  if (input === null) return false;
+
+  const seconds = parseMaterialAudioMarkerTime(input);
+  if (seconds === null) {
+    showNotice("Tiempo inválido. Usá mm:ss, hh:mm:ss o un número de segundos (máximo 24 horas).", "error");
+    return false;
+  }
+
+  const marker = document.createElement("span");
+  marker.className = "material-audio-marker";
+  marker.dataset.audioMarkerSeconds = String(seconds);
+  marker.setAttribute("contenteditable", "false");
+  marker.setAttribute("role", "button");
+  marker.setAttribute("tabindex", "0");
+  marker.textContent = formatMaterialAudioMarkerLabel(seconds);
+  marker.setAttribute("aria-label", "Ir a " + marker.textContent);
+
+  insertMaterialNodeAtSelection(marker);
+
+  if (button) showMaterialFormatActionFeedback(button);
+  document.getElementById("materialComposerEditor")?.focus();
+  rememberMaterialSelection();
+  return true;
+}
+
+
 function findLastMaterialTextCharacter(node) {
   if (!node) return null;
   if (node.nodeType === Node.TEXT_NODE) {
@@ -2112,6 +2143,7 @@ function bindMaterialFormattingControls() {
   const noteQuarterButton = document.getElementById("materialNoteQuarterBtn");
   const noteEighthButton = document.getElementById("materialNoteEighthBtn");
   const noteSixteenthButton = document.getElementById("materialNoteSixteenthBtn");
+  const audioMarkerButton = document.getElementById("materialAudioMarkerBtn");
   const indentButton = document.getElementById("materialIndentBtn");
   const outdentButton = document.getElementById("materialOutdentBtn");
 
@@ -2272,6 +2304,12 @@ function bindMaterialFormattingControls() {
     rememberMaterialSelection();
   });
   noteSixteenthButton?.addEventListener("click", () => insertMaterialNotation("♬", noteSixteenthButton));
+
+  audioMarkerButton?.addEventListener("mousedown", event => {
+    event.preventDefault();
+    rememberMaterialSelection();
+  });
+  audioMarkerButton?.addEventListener("click", () => insertMaterialAudioMarker(audioMarkerButton));
 
   bindMaterialIndentRepeatButton(indentButton, 1);
   bindMaterialIndentRepeatButton(outdentButton, -1);
