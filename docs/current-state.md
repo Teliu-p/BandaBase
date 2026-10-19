@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-19, Argentina.  
-**main actual verificado:** cd9cff753c2da3eb559f11b9d4a5071f979e81b6. La rama de seguimiento de captura de playhead está pendiente de CI y revisión.  
+**Último cambio funcional fusionado y verificado:** 2497e01ab23169936b49d7141672db7dab4e9904 (PR #111, 2026-10-19). Verificar el HEAD real antes de cada cambio; los cambios posteriores de documentación no alteran este baseline funcional.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -13,8 +13,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Main actual al auditar: cd9cff753c2da3eb559f11b9d4a5071f979e81b6 (PR #110 fusionada).
-- Para el HEAD actual, Tests pasó y Pages build/deployment pasó: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39327396377) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39327398433). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Base funcional previa a PR #111: cd9cff753c2da3eb559f11b9d4a5071f979e81b6 (PR #110 fusionada).
+- PR #111 fusionada en `2497e01ab23169936b49d7141672db7dab4e9904`; para este commit pasaron Tests y Pages: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39332251159) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39332250632). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Corrección de sangría y audio en Materiales (2026-10-19)
@@ -31,7 +31,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
 - PR #110 fue fusionada en `cd9cff753c2da3eb559f11b9d4a5071f979e81b6`: https://github.com/Teliu-p/BandaBase/pull/110. Los marcadores se persisten como rich text canónico dentro de `material_blocks.content`; el chip muestra solo el tiempo y salta a todos los audios de la canción, incluidos los adjuntos de Materiales plegados. Las pistas pausadas no arrancan automáticamente y el marcador elegido se aplica a reproductores abiertos después. No requiere tabla, columna ni migración de Supabase.
 - CI y Pages para el commit de merge pasaron (enlaces en la sección 1). Sigue pendiente la prueba manual autenticada de guardar/reabrir un Material con audio y probar los saltos.
-- Seguimiento en rama `feat/material-audio-marker-playhead-20261019` / PR #111: https://github.com/Teliu-p/BandaBase/pull/111. La herramienta ⏱ captura el tiempo del control de audio enfocado o del único reproductor que se está reproduciendo; cuando no puede identificar un punto sin ambigüedad, conserva el ingreso manual. La PR está abierta y no está en `main`; no cambia Supabase. Confirmar CI antes de integrar.
+- PR #111 quedó fusionada: https://github.com/Teliu-p/BandaBase/pull/111. La herramienta ⏱ captura el tiempo del control de audio enfocado o del único reproductor que se está reproduciendo; cuando no puede identificar un punto sin ambigüedad, conserva el ingreso manual. No cambia Supabase, Storage, datos, RLS ni migraciones.
+- Pendiente manual: con sesión autenticada, guardar/reabrir un Material que contenga audio y probar inserción/salto por marcador. La CI usa stubs y no cubre esa sesión real.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios

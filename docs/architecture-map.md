@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base de observación:** main cd9cff753c2da3eb559f11b9d4a5071f979e81b6, inspeccionada el 2026-10-19 tras integrar la PR #110. La rama de seguimiento de captura de playhead amplía el editor y debe verificarse antes de fusionar.
+**Base funcional de observación:** main 2497e01ab23169936b49d7141672db7dab4e9904, inspeccionada el 2026-10-19 tras integrar la PR #111. Verificar el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 

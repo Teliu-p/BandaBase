@@ -110,7 +110,7 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 
 - La primera versión de la herramienta ⏱ pedía ingresar el tiempo siempre. El seguimiento intenta capturar el tiempo entero actual del reproductor con foco o del único audio que esté reproduciéndose, de modo que se pueda escribir «Coro» en el texto y colocar el chip temporal en el cursor sin duplicar etiquetas.
 - Si no hay un reproductor identificable de forma inequívoca, se mantiene el ingreso manual del tiempo; los marcadores siguen mostrando solo el valor temporal. Se añaden pruebas de conversión de tiempos fraccionarios y límites (0–24 h), además de comprobaciones de integración del editor.
-- Rama: `feat/material-audio-marker-playhead-20261019`, PR #111: https://github.com/Teliu-p/BandaBase/pull/111. Ejecutar y revisar CI antes de integrar. Sin cambios a Supabase, Storage, datos, RLS o migraciones.
+- Rama: `feat/material-audio-marker-playhead-20261019`, PR #111: https://github.com/Teliu-p/BandaBase/pull/111, fusionada como `2497e01ab23169936b49d7141672db7dab4e9904`. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39332251159 y https://github.com/Teliu-p/BandaBase/actions/runs/39332250632. Pendiente prueba manual autenticada de audio real. Sin cambios a Supabase, Storage, datos, RLS o migraciones.
 
 ## Formato recomendado para agregar incidentes
 
