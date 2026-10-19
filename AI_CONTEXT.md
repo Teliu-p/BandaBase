@@ -1,9 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última línea de base inspeccionada:** 2026-10-14 (zona horaria de Argentina)  
+**Última inspección de código previo a la tanda musical:** 2026-10-19 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Commit de main actual al cerrar esta documentación:** d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad  
-**Commit base del código funcional inspeccionado:** 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3 (el commit d1bb... añade documentación solamente).
+**Commit de main observado al iniciar la tanda musical:** e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf. Verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -59,7 +58,7 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 
 ## Resumen del estado conocido al escribir esta línea de base
 
-- main actual al cerrar esta documentación: d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad (commit de documentación). El código funcional fue inspeccionado en 0d4cad4846d0f00ffa8ffe7fc645046a138d05e3; la PR #103 no cambió código de aplicación.
+- main observado antes de la tanda de herramientas musicales: e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf (posteriors cambios de código y documentación deben actualizar esta fotografía).
 - Tras fusionar la documentación, Tests y despliegue de GitHub Pages pasaron para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.
