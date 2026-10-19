@@ -519,7 +519,7 @@ function renderMaterialViewBlock(block) {
     attachment.kind === "file" &&
     String(attachment.mime_type || "").startsWith("audio/")
   ) {
-    const label = escapeHtml(icon + " " + name);
+    const label = escapeHtml(name);
     return (
       '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '">' +
         '<button type="button" class="material-inline-audio-play" data-material-audio-play aria-label="Reproducir ' + safeName + '" title="Reproducir audio">▶</button>' +
