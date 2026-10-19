@@ -17,6 +17,13 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Actions para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad: Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/38668782713) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/38668781565). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
+## 2. Revisión de herramientas musicales del editor (2026-10-19)
+
+- Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La rama `feat/material-music-tools-20261019` prepara figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Confirmar CI/PR/deploy antes de considerarlos integrados.
+- El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
+- Marcadores por instante y sincronización con audio no están incluidos en este primer lote: requieren definir un modelo compartido persistente, permisos para actualizar marcadores y comportamiento de seek/pause/resume. No introducir cambios de esquema ni escribir datos remotos a ciegas.
+- No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
+
 ## 2. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
