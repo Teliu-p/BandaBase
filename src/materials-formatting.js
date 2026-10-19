@@ -15,7 +15,7 @@ function getMaterialNumericShortcutAction(event) {
   if (
     !event ||
     !event.altKey ||
-    !event.shiftKey ||
+    event.shiftKey ||
     event.ctrlKey ||
     event.metaKey
   ) {
