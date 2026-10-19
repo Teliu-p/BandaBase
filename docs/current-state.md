@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-19, Argentina.  
-**Último main verificado antes de PR #110:** 6c7915145beb24fed5abc31e75d34b800b427395.  
+**main actual verificado:** cd9cff753c2da3eb559f11b9d4a5071f979e81b6. La rama de seguimiento de captura de playhead está pendiente de CI y revisión.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -13,8 +13,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Último commit observado de main antes de PR #110: 6c7915145beb24fed5abc31e75d34b800b427395 (actualización documental tras PR #108).
-- Para el último commit de main previo a PR #110, Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39218287738) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39218286452). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Main actual al auditar: cd9cff753c2da3eb559f11b9d4a5071f979e81b6 (PR #110 fusionada).
+- Para el HEAD actual, Tests pasó y Pages build/deployment pasó: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39327396377) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39327398433). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Corrección de sangría y audio en Materiales (2026-10-19)
@@ -29,8 +29,9 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 - Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La PR #107 (https://github.com/Teliu-p/BandaBase/pull/107) contiene la primera tanda de figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Revalidar PR/CI/deploy antes de afirmar que está publicada.
 - El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
-- PR #110 (abierta): https://github.com/Teliu-p/BandaBase/pull/110 implementa marcadores de tiempo inline en Materiales, persistidos como rich text canónico dentro de `material_blocks.content`; por ejemplo, escribir «Coro», insertar el chip «0:30» y pulsarlo para posicionar todos los audios adjuntos a la canción, también los que pertenezcan a materiales plegados. El chip muestra solo el tiempo. Las pistas pausadas no arrancan automáticamente; las que ya sonaban continúan desde el punto elegido y el marcador elegido se aplica también a reproductores que se abran después. No requiere tabla, columna ni migración de Supabase.
-- La acción carga URLs firmadas y metadatos bajo demanda al tocar el marcador; audios que fallan en la carga muestran aviso. Esta implementación cubre el salto por marcador; la sincronización del metrónomo con reproducción/pausa/seek sigue pendiente. Revisar CI y la resolución de PR #110 antes de afirmar que está publicada.
+- PR #110 fue fusionada en `cd9cff753c2da3eb559f11b9d4a5071f979e81b6`: https://github.com/Teliu-p/BandaBase/pull/110. Los marcadores se persisten como rich text canónico dentro de `material_blocks.content`; el chip muestra solo el tiempo y salta a todos los audios de la canción, incluidos los adjuntos de Materiales plegados. Las pistas pausadas no arrancan automáticamente y el marcador elegido se aplica a reproductores abiertos después. No requiere tabla, columna ni migración de Supabase.
+- CI y Pages para el commit de merge pasaron (enlaces en la sección 1). Sigue pendiente la prueba manual autenticada de guardar/reabrir un Material con audio y probar los saltos.
+- Seguimiento en rama `feat/material-audio-marker-playhead-20261019`: la herramienta ⏱ captura el tiempo del control de audio enfocado o del único reproductor que se está reproduciendo; cuando no puede identificar un punto sin ambigüedad, conserva el ingreso manual. Esta rama aún no está en `main`; no cambia Supabase. Actualizar este estado tras abrir la PR y consultar su CI.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios
