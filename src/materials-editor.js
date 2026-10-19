@@ -450,7 +450,7 @@ function insertMaterialAudioMarker(button = null) {
   marker.setAttribute("role", "button");
   marker.setAttribute("tabindex", "0");
   marker.textContent = formatMaterialAudioMarkerLabel(seconds);
-  marker.title = "Marcador de audio: " + marker.textContent;
+  marker.setAttribute("aria-label", "Ir a " + marker.textContent);
 
   insertMaterialNodeAtSelection(marker);
 
