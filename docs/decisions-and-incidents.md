@@ -87,7 +87,7 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 
 - Requisitos expresados por el usuario: figuras musicales en Materiales, sangría persistente, atajos numéricos, chips de adjunto inline a la altura del renglón, más volumen del metrónomo, marcadores de estructura y metrónomo sincronizado con el audio.
 - El serializador/sanitizador de Materiales es el contrato para cualquier formato persistente. La sangría nueva se limita a `blockquote.material-indent`, no a estilos inline arbitrarios; las figuras se insertan como caracteres Unicode.
-- Los atajos requieren Alt+Mayús+número para no interferir con dígitos normales. La amplificación del metrónomo tendrá un control acotado y probado. Marcadores y sincronización son hitos separados.
+- Los atajos requieren Alt+número para no interferir con dígitos normales. La amplificación del metrónomo tendrá un control acotado y probado. Marcadores y sincronización son hitos separados.
 - No enrutar audio almacenado a Web Audio sin verificar CORS y un fallback funcional: una conexión cross-origin no permitida puede hacer que la reproducción se silencie.
 
 ## Formato recomendado para agregar incidentes
