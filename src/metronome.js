@@ -284,6 +284,22 @@ const METRONOME_POSITION_EPSILON =
   0.00001;
 
 
+function getMetronomeVolumeMultiplier(value = 150) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 1.5;
+  return Math.max(0.5, Math.min(2, numeric / 100));
+}
+
+
+function updateMetronomeVolumeDisplay() {
+  const input = document.getElementById("metronomeVolumeInput");
+  const output = document.getElementById("metronomeVolumeValue");
+  if (!input || !output) return;
+  output.value = input.value + "%";
+  output.textContent = input.value + "%";
+}
+
+
 function metronomeElements() {
 
   return {
@@ -652,12 +668,20 @@ function scheduleMetronomeSound(
         ? 720
         : 520;
 
-  const volume =
+  const baseVolume =
     accentLevel === "strong"
-      ? 0.16
+      ? 0.22
       : accentLevel === "group"
-        ? 0.11
-        : 0.075;
+        ? 0.16
+        : 0.11;
+
+  const volumeInput =
+    document.getElementById("metronomeVolumeInput");
+
+  const volume =
+    baseVolume * getMetronomeVolumeMultiplier(
+      volumeInput?.value ?? 150
+    );
 
   oscillator.type =
     "sine";
@@ -1194,6 +1218,12 @@ function bindMetronomeControls() {
     "click",
     tapMetronomeTempo
   );
+
+  const volumeInput =
+    document.getElementById("metronomeVolumeInput");
+
+  volumeInput?.addEventListener("input", updateMetronomeVolumeDisplay);
+  updateMetronomeVolumeDisplay();
 
 
   document.getElementById(
