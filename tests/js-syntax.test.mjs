@@ -1471,9 +1471,9 @@ assert.match(
   "Al seleccionar varias líneas, la sangría debe aplicarse línea por línea."
 );
 assert.match(
-  materialEditorSource,
+  materialFormattingSource,
   /function\s+getMaterialIndentRepeatDelay\s*\(/,
-  "Mantener presionado el control de sangría debe permitir repetir la acción con aceleración."
+  "La repetición de sangría debe acelerar mediante una función pura que pueda probarse."
 );
 const { getMaterialIndentRepeatDelay } = loadPureFunctions(
   "src/materials-formatting.js",
