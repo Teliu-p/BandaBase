@@ -1580,6 +1580,11 @@ assert.match(
   "Si un audio que ya sonaba necesita renovar su URL, debe intentar continuar; los audios pausados no deben arrancar solos."
 );
 assert.match(
+  materialViewSource,
+  /materialAudioMarkerSelectionVersion[\s\S]*?selectionVersion !== materialAudioMarkerSelectionVersion/,
+  "Un clic posterior sobre otro marcador debe prevalecer si la carga del anterior termina más tarde."
+);
+assert.match(
   materialFormattingSource,
   /classList\?\.contains\(\s*"material-audio-marker"/,
   "El sanitizador y serializador deben preservar el nodo especial del marcador, sin confiar en HTML arbitrario."
