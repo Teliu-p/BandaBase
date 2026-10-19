@@ -60,6 +60,7 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 
 - main observado antes de la tanda de herramientas musicales: e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf (fotografía histórica).
 - PR #108 corrigió la sangría en espacios de a uno y el renderizado inline del audio en Materiales; merge `a553d7ecb3b9621fd85dc7a74e9c3fd7b2c721a9`. Tests y Pages deploy pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39217970149 y https://github.com/Teliu-p/BandaBase/actions/runs/39217971029.
+- PR #110 añade marcadores de tiempo inline para Materiales en revisión: https://github.com/Teliu-p/BandaBase/pull/110. Se conserva el rich text persistente existente; no se modifican migraciones/BD/RLS/Storage ni el volumen de audio. Confirmar CI y actualizar SHA/estado cuando se resuelva la PR.
 - Tras fusionar la documentación, Tests y despliegue de GitHub Pages pasaron para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.
