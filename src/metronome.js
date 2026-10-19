@@ -284,13 +284,6 @@ const METRONOME_POSITION_EPSILON =
   0.00001;
 
 
-function getMetronomeVolumeMultiplier(value = 150) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 1.5;
-  return Math.max(0.5, Math.min(2, numeric / 100));
-}
-
-
 function updateMetronomeVolumeDisplay() {
   const input = document.getElementById("metronomeVolumeInput");
   const output = document.getElementById("metronomeVolumeValue");
@@ -679,7 +672,7 @@ function scheduleMetronomeSound(
     document.getElementById("metronomeVolumeInput");
 
   const volume =
-    baseVolume * getMetronomeVolumeMultiplier(
+    baseVolume * getAudioGainMultiplier(
       volumeInput?.value ?? 150
     );
 
