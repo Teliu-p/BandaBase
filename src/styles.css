@@ -3283,6 +3283,36 @@
   font-size: 1.5rem;
 }
 
+.material-composer-editor .material-audio-marker,
+.material-rich-text .material-audio-marker {
+  display: inline-block;
+  box-sizing: border-box;
+  max-height: 1.2em;
+  margin: 0 1px;
+  padding: 0 .25em;
+  border: 1px solid var(--bb-border-strong);
+  border-radius: 5px;
+  background: var(--bb-surface-inset);
+  color: var(--bb-accent);
+  font: inherit;
+  font-size: .84em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  vertical-align: .04em;
+  white-space: nowrap;
+}
+
+.material-rich-text button.material-audio-marker {
+  appearance: none;
+  cursor: pointer;
+}
+
+.material-rich-text button.material-audio-marker:hover,
+.material-rich-text button.material-audio-marker.is-active {
+  border-color: var(--bb-accent);
+  background: var(--bb-surface-raised);
+}
+
 .material-rich-text {
   line-height: 1.6;
 }
