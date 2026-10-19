@@ -564,6 +564,17 @@ const materialFormattingSource = readFileSync(
 
 assert.match(
   materialFormattingSource,
+  /BLOCKQUOTE[\s\S]*?material-indent/,
+  "La sangría debe formar parte del rich text permitido y persistir al guardar."
+);
+assert.match(
+  materialFormattingSource,
+  /<blockquote class="material-indent">/,
+  "El renderizado de rich text debe restaurar únicamente el wrapper de sangría permitido."
+);
+
+assert.match(
+  materialFormattingSource,
   /BANDABASE_RICH_TEXT_V1:/,
   "El formato enriquecido de Materiales debe tener un formato persistente identificable."
 );
@@ -585,6 +596,55 @@ assert.match(
   /material-text-size-normal/,
   "Debe existir un formato de tamaño normal que permita deshacer A+ o A++ dentro de otro tamaño sin perder el tamaño base."
 );
+
+
+const {
+  getMaterialNumericShortcutAction
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["getMaterialNumericShortcutAction"]
+);
+
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, code: "Digit1" }),
+  "bold"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, code: "Numpad9" }),
+  "noteSixteenth"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, code: "Digit0" }),
+  "indentToggle"
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: false, shiftKey: true, ctrlKey: false, metaKey: false, code: "Digit1" }),
+  null,
+  "Los números normales no deben activar atajos de formato."
+);
+assert.equal(
+  getMaterialNumericShortcutAction({ altKey: true, shiftKey: true, ctrlKey: true, metaKey: false, code: "Digit1" }),
+  null,
+  "No debe secuestrarse una combinación con Ctrl."
+);
+
+const {
+  getAudioGainMultiplier
+} = loadPureFunctions(
+  "src/utils.js",
+  ["getAudioGainMultiplier"]
+);
+
+assert.equal(getAudioGainMultiplier(50), 0.5);
+assert.equal(getAudioGainMultiplier(100), 1);
+assert.equal(getAudioGainMultiplier(150), 1.5);
+assert.equal(getAudioGainMultiplier(200), 2);
+assert.equal(
+  getAudioGainMultiplier(300),
+  2,
+  "El amplificador adicional debe tener un techo de 2x."
+);
+assert.equal(getAudioGainMultiplier("no válido"), 1.5);
 
 const {
   calculateMaterialForcedCaretPadding
@@ -1389,6 +1449,26 @@ assert.match(
   /function\s+toggleMaterialTextSize\s*\(/,
   "Los tamaños de texto de Materiales deben poder alternarse."
 );
+assert.match(
+  materialEditorSource,
+  /function\s+insertMaterialNotation\s*\(/,
+  "Debe haber una acción para insertar figuras musicales en el cursor actual."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+toggleMaterialIndent\s*\([\s\S]*?execCommand\([\s\S]*?indent[\s\S]*?outdent/,
+  "Debe poder agregarse y quitarse sangría desde el editor."
+);
+assert.match(
+  materialEditorSource,
+  /function\s+executeMaterialNumericShortcut\s*\(/,
+  "Los atajos numéricos deben tener un despachador explícito."
+);
+assert.match(
+  materialEditorSource,
+  /material-inline-attachment-label/,
+  "La etiqueta de un adjunto inline debe poder limitarse a la altura de un renglón."
+);
 
 assert.match(
   materialEditorSource,
@@ -1435,6 +1515,22 @@ assert.match(
   materialViewSource,
   /material-audio-load[\s\S]*?player\.hidden\s*=\s*false/,
   "El reproductor nativo debe seguir visible junto al control personalizado."
+);
+
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="materialNoteQuarterBtn"[\s\S]*?id="materialNoteEighthBtn"[\s\S]*?id="materialNoteSixteenthBtn"/,
+  "La barra de Materiales debe ofrecer negra, corchea y semicorchea."
+);
+assert.match(
+  readFileSync(join(root, "index.html"), "utf8"),
+  /id="metronomeVolumeInput"[\s\S]*?min="50"[\s\S]*?max="200"/,
+  "El volumen del metrónomo debe ser ajustable con un límite máximo definido."
+);
+assert.match(
+  readFileSync(join(srcDir, "styles.css"), "utf8"),
+  /\.material-inline-attachment\s*\{[\s\S]*?height:\s*1\.2em/,
+  "Un adjunto inline no debe alterar la altura vertical del texto de un renglón."
 );
 
 const {
