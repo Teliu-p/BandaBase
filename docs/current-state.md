@@ -19,12 +19,12 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 ## 2. Revisión de herramientas musicales del editor (2026-10-19)
 
-- Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La rama `feat/material-music-tools-20261019` prepara figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Confirmar CI/PR/deploy antes de considerarlos integrados.
+- Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La PR #107 (https://github.com/Teliu-p/BandaBase/pull/107) contiene la primera tanda de figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Revalidar PR/CI/deploy antes de afirmar que está publicada.
 - El rich text tiene prefijo propio, serializador y sanitizador con lista permitida. No guardar HTML arbitrario ni confiar en `execCommand` sin incluir el formato en esa ruta de persistencia.
 - Marcadores por instante y sincronización con audio no están incluidos en este primer lote: requieren definir un modelo compartido persistente, permisos para actualizar marcadores y comportamiento de seek/pause/resume. No introducir cambios de esquema ni escribir datos remotos a ciegas.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
-## 2. Incidente de guardado de Materiales con audios
+## 3. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
 - Inspección de código encontró dos fallos de manejo defensivo: el guardado retornaba silenciosamente si faltaba el contexto de banda/canción y no tenía una captura general para promesas asíncronas rechazadas por Storage/RPC/red. Tampoco mostraba progreso durante el guardado.
@@ -34,7 +34,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - La consulta de logs no aportó una subida fallida correlacionable; no hay evidencia suficiente para atribuir el síntoma a una política RLS o a una migración. El fallo exacto de la sesión del usuario no se reprodujo; esta corrección hace visibles esos caminos y evita silencios ante excepciones.
 - No se modificó esquema, políticas, datos ni Storage de producción. Revisar el estado de PR/merge/deploy antes de afirmar que el arreglo ya está publicado.
 
-## 3. Estado de Supabase observado en solo lectura
+## 4. Estado de Supabase observado en solo lectura
 
 - Las tablas públicas devueltas por list_tables tenían RLS habilitada.
 - Tablas principales presentes: bands, profiles, band_members, songs, song_singers, materials, material_blocks, material_attachments, comments, comment_blocks, comment_attachments, band_lists, band_list_items, band_list_managers, proposals, proposal_options, proposal_votes, proposal_blocks, proposal_attachments y audit_log, además de tablas heredadas de ensayos/listas/decisiones/problemas.
@@ -42,7 +42,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - La columna songs.genre es actualmente text[]; songs incluye estado/preparación, estado activo, campos de repertorio y columnas de papelera.
 - La función de creación de canción en el cliente hace INSERT en songs y atribuye created_by al usuario autenticado. La RLS songs_insert_own requiere pertenencia a banda y que created_by corresponda al auth.uid().
 
-## 4. Diferencia del historial de migraciones
+## 5. Diferencia del historial de migraciones
 
 Comparación de los árboles de archivos y list_migrations el 2026-10-14:
 
@@ -55,7 +55,7 @@ Comparación de los árboles de archivos y list_migrations el 2026-10-14:
 - Dos archivos tienen operaciones que escriben o transforman datos: normalización de estados de participación y conversión de genre a array. No volver a ejecutarlos completos sin análisis.
 - No ejecutar supabase db push, no hacer migration repair en bloque, no insertar manualmente en schema_migrations ni mover/borrar migraciones para hacer coincidir conteos. Consultar docs/database-migration-history-reconciliation-followup.md para el razonamiento detallado.
 
-## 5. PR y problema de permisos en listas
+## 6. PR y problema de permisos en listas
 
 - PR #98: https://github.com/Teliu-p/BandaBase/pull/98
 - Rama fix/band-list-update-policy-integrity, HEAD observado 9ff8d5b2bcf3bf3a272e47a4af770747aff9af52.
@@ -63,7 +63,7 @@ Comparación de los árboles de archivos y list_migrations el 2026-10-14:
 - En Supabase están simultáneamente las políticas UPDATE band_list_items_update_control y band_list_items_update_control_v2. Las políticas permissive se combinan de forma que una política adicional puede ampliar acceso aunque la otra sea más estricta. La PR propone eliminar la política v2 y endurecer el trigger, pero debe revisarse contra el estado exacto y probarse antes de merge/aplicación.
 - CI previo de la PR pasó pruebas de políticas Postgres aisladas y smoke tests, pero no es una prueba E2E completa contra producción.
 
-## 6. Advertencias del asesor de Supabase observadas
+## 7. Advertencias del asesor de Supabase observadas
 
 ### Seguridad
 
@@ -76,17 +76,17 @@ Comparación de los árboles de archivos y list_migrations el 2026-10-14:
 - Se listaron 12 índices no usados en la ventana/telemetría revisada; no eliminarlos sin carga representativa.
 - El asesor informó 12 casos de múltiples políticas permissive. Varias son separaciones intencionales de flujo (p. ej. editar/restaurar/papelera), pero cada una debe analizarse; el caso de band_list_items UPDATE es un riesgo ya identificado.
 
-## 7. Incidencias históricas para no reintroducir
+## 8. Incidencias históricas para no reintroducir
 
 Errores que aparecieron en iteraciones previas: canManageComment is not defined; toggleSongrepertoire is not defined; load.songs is not defined; handleAuthSession is not defined; populateColorfilter is not defined; login que parecía no reaccionar; error de save de material relacionado con WITH ORDINALITY. No se deben dar por actuales sin reproducir. Al corregir funciones compartidas o contratos de datos, ejecutar las regresiones relacionadas.
 
-## 8. Qué falta para una comprensión más profunda
+## 9. Qué falta para una comprensión más profunda
 
 - Pruebas autenticadas contra un entorno seguro que ejerciten permisos con roles distintos y RLS real; la suite actual no cubre todo eso.
 - Revisión completa de cada política y SECURITY DEFINER por su intención de negocio, no solo del inventario.
 - Comparación periódica de las tablas/funciones/policies remotas con el estado esperado versionado, sin aplicar reparaciones automáticas.
 - Matriz de cobertura funcional que relacione cada requisito con módulo, función, tabla/RPC/policy y prueba.
 
-## 9. Actualización de este archivo
+## 10. Actualización de este archivo
 
 Cada cambio que modifique el estado abierto debe ajustar esta página en la misma PR. Una incidencia queda cerrada solo si existe evidencia concreta de su resolución. Los recuentos, SHA, estado de PR y lints son fotografías y se tienen que consultar de nuevo antes de actuar.
