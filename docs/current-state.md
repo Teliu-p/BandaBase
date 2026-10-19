@@ -17,6 +17,13 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Actions para d1bb3f58a3f1bb95ed16c668a5a44476cf10d3ad: Tests pasó y Pages build/deployment pasó. [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/38668782713) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/38668781565). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
+## 2. Corrección de sangría y audio en Materiales (2026-10-19)
+
+- Solicitud de corrección: la sangría tipo `blockquote.material-indent` añadida en PR #107 desplazaba demasiado el texto. La rama `fix/material-inline-audio-and-space-indent-20261019` la reemplaza por espacios reales a pasos de uno, con repetición acelerada durante una pulsación sostenida. En selección de varias líneas, la intención es aplicar el paso línea por línea.
+- Al guardar, los bloques de texto eran renderizados como `div` y los audios como tarjetas grandes por separado, aunque en el editor el archivo se veía como chip inline. Esta rama devuelve texto como spans inline y archivos como chips compactos; audio usa botón reproducir/pausar y un panel flotante con tiempo, duración y seek, sin controles nativos grandes.
+- La rama también elimina el wrapper de indentación anterior del serializador/sanitizador para que no vuelva a aparecer como bloque con margen al reabrir contenido antiguo.
+- Esta rama no cambia el volumen del audio ni el esquema, permisos, datos o Storage de Supabase. Pendiente de validar en CI y en una canción real antes de considerar publicado el arreglo.
+
 ## 2. Revisión de herramientas musicales del editor (2026-10-19)
 
 - Main observado al iniciar esta tarea: `e75c2d13e231bfe1c059ea92a7a82cbe53ef26cf`. La PR #107 (https://github.com/Teliu-p/BandaBase/pull/107) contiene la primera tanda de figuras musicales, sangría permitida en rich text, atajos numéricos, chips de adjuntos limitados a un renglón y ganancia ajustable del metrónomo. Revalidar PR/CI/deploy antes de afirmar que está publicada.
