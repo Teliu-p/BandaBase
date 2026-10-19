@@ -9,6 +9,7 @@ let materialSelectionRange = null;
 let materialPendingAttachments = {};
 let materialAudioMarkerStateSongId = null;
 let materialAudioMarkerTimeSeconds = null;
+let materialAudioMarkerSelectionVersion = 0;
 // Audio engines created on demand for attachments in currently folded Materials.
 let materialAudioSeekEnginePool = new Map();
 const COMPARISON_MATERIAL_TYPE = "ComparacionOriginal";
@@ -257,6 +258,7 @@ async function loadMaterials() {
   if (materialAudioMarkerStateSongId !== songId) {
     materialAudioMarkerStateSongId = songId;
     materialAudioMarkerTimeSeconds = null;
+    materialAudioMarkerSelectionVersion += 1;
     disposeMaterialAudioSeekEnginePool();
   }
 
@@ -623,6 +625,7 @@ async function ensureMaterialAudioSourceForMarker(player, attachment) {
 async function selectMaterialAudioMarker(seconds) {
   if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) return;
 
+  const selectionVersion = ++materialAudioMarkerSelectionVersion;
   materialAudioMarkerTimeSeconds = seconds;
   const materialsList = document.getElementById("materialsList");
   if (!materialsList) return;
@@ -647,9 +650,11 @@ async function selectMaterialAudioMarker(seconds) {
     const wasPlaying = !player.paused && !player.ended;
 
     const sourceReady = await ensureMaterialAudioSourceForMarker(player, attachment);
+    if (selectionVersion !== materialAudioMarkerSelectionVersion) return null;
     if (!sourceReady) return false;
 
     const metadataReady = await waitForMaterialAudioMetadata(player);
+    if (selectionVersion !== materialAudioMarkerSelectionVersion) return null;
     if (!metadataReady) return false;
 
     const positioned = seekMaterialAudioPlayerToTime(player, seconds);
@@ -669,12 +674,14 @@ async function selectMaterialAudioMarker(seconds) {
     return positioned;
   }));
 
-  const failed = results.filter(result => !result).length;
+  if (selectionVersion !== materialAudioMarkerSelectionVersion) return;
+
+  const failed = results.filter(result => result === false).length;
   if (failed > 0) {
-    const succeeded = results.length - failed;
+    const succeeded = results.filter(result => result === true).length;
     showNotice(
       succeeded
-        ? "El marcador se posicionó en " + succeeded + " de " + results.length + " audios; algunos no pudieron cargarse."
+        ? "El marcador se posicionó en " + succeeded + " de " + attachments.length + " audios; algunos no pudieron cargarse."
         : "No se pudo posicionar el marcador en los audios. Comprobá la conexión e intentá nuevamente.",
       "error"
     );
