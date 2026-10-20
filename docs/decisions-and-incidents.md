@@ -154,6 +154,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 - Los iconos de la línea miden 1,35 em para un interlineado de 1,6 em (≈85%); no se revierte el tamaño de los botones. No se modifican Supabase, Storage, datos, RLS ni migraciones.
 - La CI de la PR pasó regresiones, ESLint y smoke tests. Los workflows de Tests y Pages de main están verificándose para el merge. Falta comprobar visualmente la computadora afectada; no se modifican Supabase, Storage, datos, RLS ni migraciones.
 
+### 2026-10-20 — ajustar las figuras musicales al alto de una mayúscula (PR #121)
+
+- El usuario precisó que las figuras no deben superar el alto de una mayúscula y deben tener un tamaño visual equivalente. Seguimiento en PR #121: https://github.com/Teliu-p/BandaBase/pull/121.
+- El CSS cambia la caja inline de `1.35em` a `0.72em`, quita el desplazamiento vertical anterior y alinea con la línea base; las parejas usan `0.86em` de ancho y el mismo alto. No se modifican los botones de la barra.
+- Se actualiza la regresión para fijar esas dimensiones. En el momento de registrar esta entrada, falta verificar CI del último commit de la PR y confirmar visualmente el resultado en navegador. No se modifican Supabase, datos, Storage, políticas, RLS ni migraciones.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
