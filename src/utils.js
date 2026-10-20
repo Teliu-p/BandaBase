@@ -163,3 +163,16 @@ function getAudioGainMultiplier(value = 150) {
   return Math.max(0.5, Math.min(2, numeric / 100));
 }
 
+
+
+const STORAGE_UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+
+function getStorageUploadSizeError(file) {
+  if (!file || !Number.isFinite(Number(file.size)) || Number(file.size) <= STORAGE_UPLOAD_MAX_BYTES) {
+    return null;
+  }
+
+  const sizeMiB = (Number(file.size) / (1024 * 1024)).toFixed(1);
+  const name = String(file.name || "El archivo");
+  return name + " pesa " + sizeMiB + " MiB. El límite actual de subida es 50 MiB; elegí un archivo más pequeño o comprimilo.";
+}

@@ -1222,6 +1222,26 @@ const {
   ]
 );
 
+const {
+  STORAGE_UPLOAD_MAX_BYTES,
+  getStorageUploadSizeError
+} = loadPureFunctions(
+  "src/utils.js",
+  ["STORAGE_UPLOAD_MAX_BYTES", "getStorageUploadSizeError"]
+);
+assert.equal(STORAGE_UPLOAD_MAX_BYTES, 50 * 1024 * 1024);
+assert.equal(
+  getStorageUploadSizeError({ name: "audio.wav", size: STORAGE_UPLOAD_MAX_BYTES }),
+  null,
+  "Un archivo dentro del límite permitido debe poder seleccionarse."
+);
+assert.match(
+  getStorageUploadSizeError({ name: "audio-grande.wav", size: STORAGE_UPLOAD_MAX_BYTES + 1 }),
+  /audio-grande\.wav.*50 MiB/,
+  "Un archivo mayor al límite debe rechazarse con un mensaje claro."
+);
+assert.equal(getStorageUploadSizeError(null), null);
+
 assert.equal(parseDuration("3:05"), 185);
 assert.equal(parseDuration(" 90 "), 90);
 assert.equal(parseDuration("2:70"), 190);
