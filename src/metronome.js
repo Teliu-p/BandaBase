@@ -626,10 +626,6 @@ function updateMetronomeDisplay() {
       config
     );
 
-  playButton.disabled =
-    !valid &&
-    !metronomeRunning;
-
   const syncInput = document.getElementById("metronomeSyncAudioInput");
   const syncEnabled = Boolean(syncInput?.checked);
 
@@ -937,7 +933,7 @@ function scheduleMetronomeAhead() {
       config
     )
   ) {
-    stopMetronome();
+    stopMetronome({ preserveSync: metronomeSyncEnabled });
 
     return;
   }
@@ -963,7 +959,7 @@ function scheduleMetronomeAhead() {
     !barQuarterNotes ||
     !clickQuarterNotes
   ) {
-    stopMetronome();
+    stopMetronome({ preserveSync: metronomeSyncEnabled });
 
     return;
   }
@@ -985,7 +981,6 @@ function scheduleMetronomeAhead() {
 
     const audioTime = player.currentTime;
     const playbackRate = player.playbackRate;
-    const currentQuarterPosition = audioTime * config.bpm / 60;
 
     if (
       !Number.isFinite(metronomeNextSyncQuarterPosition) ||
@@ -1004,10 +999,6 @@ function scheduleMetronomeAhead() {
       stopMetronome({ preserveSync: true });
       return;
     }
-
-    const scheduleAudioUntil =
-      audioTime +
-      METRONOME_SCHEDULE_AHEAD_SECONDS * playbackRate;
 
     while (true) {
       const targetQuarterPosition = metronomeNextSyncQuarterPosition;
@@ -1313,14 +1304,17 @@ function restartMetronomeFromForm() {
 
   if (metronomeSyncEnabled) {
     const player = metronomeSyncAudioPlayer;
-    if (!metronomeRunning) {
-      updateMetronomeDisplay();
+    const config = readMetronomeFormValues();
+    if (!isValidMetronomeConfig(config)) {
+      stopMetronome({ preserveSync: true });
       return;
     }
 
-    const config = readMetronomeFormValues();
-    if (!isValidMetronomeConfig(config)) {
-      stopMetronome();
+    if (!metronomeRunning) {
+      updateMetronomeDisplay();
+      if (player && !player.paused && !player.ended) {
+        void startMetronome(player);
+      }
       return;
     }
 
@@ -1393,6 +1387,18 @@ function handleMetronomeSyncAudioEvent(event) {
       metronomeSyncAudioPlayer = player;
     }
     void startMetronome(player);
+    return;
+  }
+
+  if (
+    (event.type === "pause" || event.type === "ended") &&
+    metronomeSyncAudioPlayer === null
+  ) {
+    const playingPlayers = getPlayingMaterialAudioPlayers();
+    if (playingPlayers.length === 1) {
+      metronomeSyncAudioPlayer = playingPlayers[0];
+      void startMetronome(playingPlayers[0]);
+    }
     return;
   }
 
