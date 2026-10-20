@@ -158,7 +158,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 
 - El usuario precisó que las figuras no deben superar el alto de una mayúscula y deben tener un tamaño visual equivalente. Seguimiento en PR #121: https://github.com/Teliu-p/BandaBase/pull/121.
 - El CSS cambia la caja inline de `1.35em` a `0.72em`, quita el desplazamiento vertical anterior y alinea con la línea base; las parejas usan `0.86em` de ancho y el mismo alto. No se modifican los botones de la barra.
-- Se actualiza la regresión para fijar esas dimensiones. En el momento de registrar esta entrada, falta verificar CI del último commit de la PR y confirmar visualmente el resultado en navegador. No se modifican Supabase, datos, Storage, políticas, RLS ni migraciones.
+- La primera calibración (`0.72em`, en PR #121) midió la caja, no la tinta dibujada; el `viewBox` deja margen interno. La revisión posterior encontró que el trazo quedaba más chico que una mayúscula, por lo que PR #122 corrige la caja/posición. La CI y la inspección visual de esa revisión quedan pendientes. No se modifican Supabase, datos, Storage, políticas, RLS ni migraciones.
+
+### 2026-10-20 — calibración de la altura visual del SVG musical (PR #122)
+
+- Al revisar las coordenadas del `viewBox` se comprobó que las notas con plica ocupan aproximadamente el 78% de la caja SVG. Para que la tinta visible se aproxime a la altura de una mayúscula, el seguimiento usa una caja de `0.96em` con `vertical-align: -0.145em` para las figuras con plica; la blanca ajusta su caja a `0.9em`/`-0.096em` por el contorno, la redonda usa `-0.133em` y las parejas `0.925em` × `0.82em`/`-0.106em`. Los trazos principales suben a `2.8` unidades SVG para acercarse al grosor de las letras.
+- Las regresiones comprueban caja, alineación y anchura de parejas. Los Tests y Pages de main para PR #121 pasaron. La CI de la revisión con las dimensiones finales de PR #122 pasó en `becfc32f847e2a7160d7e5286b7739aafb9899c4` ([Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39445031361)); la actualización documental posterior vuelve a ejecutar CI. La verificación visual real sigue pendiente. No se cambian botones, contenido almacenado, Supabase, datos, Storage, políticas, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
 

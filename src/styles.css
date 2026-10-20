@@ -3259,17 +3259,29 @@
 .material-notation-symbol {
   display: inline-block;
   box-sizing: border-box;
-  width: .72em;
-  height: .72em;
+  width: .96em;
+  height: .96em;
   margin: 0 .04em;
   color: inherit;
   line-height: 1;
-  vertical-align: baseline;
+  vertical-align: -.145em;
   white-space: nowrap;
 }
 
+.material-notation-symbol[data-material-notation="noteHalf"] {
+  width: .9em;
+  height: .9em;
+  vertical-align: -.096em;
+}
+
+.material-notation-symbol[data-material-notation="noteWhole"] {
+  vertical-align: -.133em;
+}
+
 .material-notation-symbol[data-material-notation$="Pair"] {
-  width: .86em;
+  width: .925em;
+  height: .82em;
+  vertical-align: -.106em;
 }
 
 .material-notation-svg {

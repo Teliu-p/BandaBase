@@ -1902,6 +1902,11 @@ for (const [notationKey] of materialNotationTestCases) {
     "La figura " + notationKey + " debe conservar el puntillo en su representación vectorial."
   );
 }
+assert.match(
+  getMaterialNotationSvgMarkup("noteQuarter"),
+  /stroke-width="2\.8"/,
+  "El trazo de la figura debe tener un grosor consistente con el grosor visual de las letras."
+);
 assert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
 assert.equal(getMaterialNotationHtml("unknownNotation"), "");
 
@@ -1962,13 +1967,23 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.72em[\s\S]*?height:\s*\.72em[\s\S]*?vertical-align:\s*baseline/,
-  "Las figuras dentro del renglón deben limitarse a la altura visual de una mayúscula y alinearse a la línea base."
+  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.96em[\s\S]*?vertical-align:\s*-\.145em/,
+  "Las figuras dentro del renglón deben tener altura visual similar a una mayúscula y apoyar la nota en la línea base."
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.86em/,
-  "Las parejas pueden ocupar más ancho, pero deben conservar el mismo límite de altura que una figura individual."
+  /\.material-notation-symbol\[data-material-notation="noteHalf"\]\s*\{[\s\S]*?height:\s*\.9em[\s\S]*?vertical-align:\s*-\.096em/,
+  "La blanca debe compensar el contorno más grueso para apoyar su nota en la línea base."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\[data-material-notation="noteWhole"\]\s*\{[\s\S]*?vertical-align:\s*-\.133em/,
+  "La redonda debe apoyar su cabeza en la misma línea base."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.925em[\s\S]*?height:\s*\.82em[\s\S]*?vertical-align:\s*-\.106em/,
+  "Las parejas deben mantener una altura similar a la mayúscula y apoyar sus cabezas en la línea base."
 );
 assert.match(
   materialNotationCss,
