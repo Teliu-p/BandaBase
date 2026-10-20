@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-20, Argentina.  
-**Último cambio funcional fusionado:** `ddaf9a073b5fbf5def723e4bbab02781ba439800` (PR #114, 2026-10-20). La CI de la rama pasó; confirmar los runs de main de este SHA antes de declarar finalizado el despliegue.  
+**Último cambio funcional fusionado:** `b96bd579234c86f99d89c693bba9727fa21761c2` (PR #115, 2026-10-20). Tests de main y Pages pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39386371929) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39386371276).  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -47,11 +47,11 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Corrige el cálculo del origen de calibración del metrónomo a partir de `elapsedContextSeconds * playbackRate`, necesario si se calibra con el audio a una velocidad distinta de 1×.
 - CI comprobada para el estado de código previo a las actualizaciones documentales: https://github.com/Teliu-p/BandaBase/actions/runs/39364004244 (npm tests, ESLint/no-undef y smoke tests de Chromium, éxito). No equivale a prueba audible autenticada ni a una prueba de descarga contra una cuenta real. La comprobación más reciente se repetirá tras documentar.
 
-## 3B. Figuras, silencios y puntillo en Materiales (rama de trabajo)
+## 3B. Figuras, silencios y puntillo en Materiales (PR #115 fusionada)
 
-- La PR #115 (https://github.com/Teliu-p/BandaBase/pull/115), rama `feat/material-note-rest-dotted`, amplía la barra del compositor con semicorchea, corchea, negra, blanca y redonda, sus cinco silencios equivalentes, y un puntillo con estado visual que se consume en la siguiente figura o silencio. Está abierta; aún no debe considerarse integrada ni desplegada.
+- La PR #115 (https://github.com/Teliu-p/BandaBase/pull/115), rama `feat/material-note-rest-dotted`, fue fusionada como `b96bd579234c86f99d89c693bba9727fa21761c2`. Tests de main y Pages pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39386371929) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39386371276).
 - Los símbolos se insertan como texto musical Unicode en el rich text existente. La modificación no altera el esquema, los datos, las políticas, RLS, Storage ni las migraciones de Supabase.
-- Se añaden pruebas para los diez símbolos, sus formas con puntillo, el orden de controles y el restablecimiento del puntillo. La rama y su CI deben comprobarse antes de considerar el cambio integrado o desplegado.
+- Se añadieron pruebas para los diez símbolos, sus formas con puntillo, el orden de controles y el restablecimiento del puntillo. La CI pasó tanto en la PR como en main. No se hizo una comprobación visual manual en el navegador del usuario; conviene verificar que los glifos se vean con la fuente disponible.
 
 ## 4. Incidente de guardado de Materiales con audios
 

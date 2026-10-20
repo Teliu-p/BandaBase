@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-10-20 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último cambio funcional fusionado en main:** `ddaf9a073b5fbf5def723e4bbab02781ba439800` (PR #114, 2026-10-20). La PR pasó CI en rama; confirmar el resultado de Tests y Pages para el HEAD de main antes de afirmar el despliegue. Verificar el HEAD real antes de cada cambio.
+**Último cambio funcional fusionado en main:** `b96bd579234c86f99d89c693bba9727fa21761c2` (PR #115, 2026-10-20). Tests y Pages de main pasaron para este SHA: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39386371929) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39386371276). La representación visual de los glifos aún debe revisarse manualmente. Verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -65,7 +65,7 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 - PR #112 quedó fusionada como `611043389f58a962152f16cabdedd5c18b165865`: https://github.com/Teliu-p/BandaBase/pull/112. Añade sincronización opcional con un audio de Materiales usando BPM/métrica conocidos, sigue play/pause/seek/marcadores y reduce la anticipación inicial del clic. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39350807878 y https://github.com/Teliu-p/BandaBase/actions/runs/39350808799.
 - PR #113 fusionada como `3c6588dc282c3337f7dba2a78e38a19511a59b9a`: https://github.com/Teliu-p/BandaBase/pull/113. Agrega «Guardar ajuste manual» al metrónomo y persiste la fase en localStorage por canción/adjunto. Tests y Pages pasaron; falta validación manual audible con audio real.
 - PR #114 fusionada como `ddaf9a073b5fbf5def723e4bbab02781ba439800`: https://github.com/Teliu-p/BandaBase/pull/114. Restaura velocidad ajustable de los audios de Materiales con conservación de afinación, agrega descargas en Materiales/Comentarios/Propuestas y corrige la calibración del metrónomo cuando el audio no corre a 1×. CI de la rama pasó; no se modificó Supabase. Las pruebas de main y el despliegue de Pages del merge deben confirmarse con el HEAD actual. No se ha hecho prueba audible autenticada con una grabación real.
-- PR #115 (https://github.com/Teliu-p/BandaBase/pull/115), rama `feat/material-note-rest-dotted`: amplía las figuras de Materiales, añade los cinco silencios equivalentes y un puntillo activable para la siguiente inserción. Sigue abierta; no considerar la funcionalidad fusionada o desplegada hasta comprobar CI y el merge.
+- PR #115 (https://github.com/Teliu-p/BandaBase/pull/115), rama `feat/material-note-rest-dotted`, fue fusionada como `b96bd579234c86f99d89c693bba9727fa21761c2`. Amplía las figuras de Materiales, añade los cinco silencios equivalentes y el puntillo de la siguiente inserción. Tests y Pages pasaron; no se modificó Supabase.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.
 - La PR #103 quedó fusionada en main: https://github.com/Teliu-p/BandaBase/pull/103.
