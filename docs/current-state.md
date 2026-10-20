@@ -67,6 +67,12 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - El icono dentro del renglón mide 1,35 em frente a una línea de 1,6 em (aprox. 85%). Los botones conservan su tamaño actual. No se toca Supabase, Storage, políticas ni migraciones.
 - La CI de la PR pasó las regresiones, ESLint y smoke tests de Chromium; Tests y Pages del merge de main están verificándose. La prueba de Chromium automatizada confirma que se generan los diez SVG, pero no sustituye la inspección visual en la computadora afectada.
 
+## 3E. Ajuste de tamaño de figuras musicales al alto de una mayúscula (seguimiento PR #121)
+
+- La PR #121 (https://github.com/Teliu-p/BandaBase/pull/121), rama `fix/materials-notation-cap-height-20261020`, reduce la caja de las figuras/silencios inline a `0.72em` de alto y las alinea con la línea base del texto. Las parejas conservan mayor ancho (`0.86em`) sin aumentar el alto; la barra de botones permanece intacta.
+- La regresión CSS comprueba altura, línea base y ancho de parejas. No se modifica el SVG, el contenido guardado, Supabase, Storage, RLS ni migraciones.
+- La CI del commit final de la rama y la inspección visual manual todavía deben confirmarse antes de considerar publicado este ajuste.
+
 ## 4. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
