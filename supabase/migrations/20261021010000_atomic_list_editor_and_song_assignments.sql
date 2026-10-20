@@ -212,3 +212,11 @@ BEGIN
   END LOOP;
 END;
 $function$;
+
+-- These RPCs are only callable by signed-in clients.
+REVOKE ALL ON FUNCTION public.save_band_list_with_managers(uuid, uuid, text, text, text, jsonb, uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_band_list_with_managers(uuid, uuid, text, text, text, jsonb, uuid[]) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.replace_song_list_assignments(uuid, uuid[], uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.replace_song_list_assignments(uuid, uuid[], uuid[]) TO authenticated;
+
