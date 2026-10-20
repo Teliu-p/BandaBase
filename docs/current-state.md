@@ -67,11 +67,11 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - El icono dentro del renglón mide 1,35 em frente a una línea de 1,6 em (aprox. 85%). Los botones conservan su tamaño actual. No se toca Supabase, Storage, políticas ni migraciones.
 - La CI de la PR pasó las regresiones, ESLint y smoke tests de Chromium; Tests y Pages del merge de main están verificándose. La prueba de Chromium automatizada confirma que se generan los diez SVG, pero no sustituye la inspección visual en la computadora afectada.
 
-## 3E. Ajuste de tamaño de figuras musicales al alto de una mayúscula (seguimiento PR #121)
+## 3E. Ajuste de tamaño de figuras musicales al alto de una mayúscula (PR #121 y seguimiento #122)
 
-- La PR #121 (https://github.com/Teliu-p/BandaBase/pull/121), rama `fix/materials-notation-cap-height-20261020`, reduce la caja de las figuras/silencios inline a `0.72em` de alto y las alinea con la línea base del texto. Las parejas conservan mayor ancho (`0.86em`) sin aumentar el alto; la barra de botones permanece intacta.
-- La regresión CSS comprueba altura, línea base y ancho de parejas. No se modifica el SVG, el contenido guardado, Supabase, Storage, RLS ni migraciones.
-- La CI del commit final de la rama y la inspección visual manual todavía deben confirmarse antes de considerar publicado este ajuste.
+- La PR #121 (https://github.com/Teliu-p/BandaBase/pull/121) fue fusionada como `d1c53a10c9d6ef459058c5e1e8ad4b2e9e923386`. Tests y Pages de main pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39444107185) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39444106008). Ese primer ajuste redujo la caja a `0.72em`, pero la revisión del `viewBox` mostró que el margen interno hacía que la tinta visible quedara más pequeña que una mayúscula.
+- El seguimiento PR #122 (https://github.com/Teliu-p/BandaBase/pull/122), rama `fix/materials-notation-visual-cap-height-20261020`, usa una caja de `0.9em` con `vertical-align: -0.14em`; así el trazo visible de las figuras más altas mide aproximadamente `0.70em` desde la línea base. Las parejas miden `1.02em` de ancho, con el mismo alto.
+- La regresión CSS fija estas dimensiones y la alineación; los botones de la barra permanecen intactos. No se modifica el dibujo SVG, el contenido guardado, Supabase, Storage, RLS ni migraciones. La CI de la PR #122 y la inspección visual manual aún deben confirmarse.
 
 ## 4. Incidente de guardado de Materiales con audios
 
