@@ -1380,6 +1380,23 @@ function handleMetronomeSyncAudioEvent(event) {
   if (!player?.matches?.("#materialsList audio[data-material-audio]")) return;
 
   if (event.type === "play") {
+    const otherPlayingPlayers = getPlayingMaterialAudioPlayers().filter(
+      candidate => candidate !== player
+    );
+
+    if (otherPlayingPlayers.length) {
+      if (metronomeRunning || metronomeStarting) {
+        stopMetronome({ preserveSync: true });
+      }
+      metronomeSyncAudioPlayer = null;
+      showNotice(
+        "Para sincronizar el metrónomo, dejá un solo audio reproduciéndose. Pausá los demás.",
+        "info"
+      );
+      updateMetronomeDisplay();
+      return;
+    }
+
     if (metronomeSyncAudioPlayer !== player) {
       if (metronomeRunning || metronomeStarting) {
         stopMetronome({ preserveSync: true });
