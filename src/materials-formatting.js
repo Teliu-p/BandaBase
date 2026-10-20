@@ -888,13 +888,10 @@ function renderMaterialRichTextTextNode(
   value,
   insideAnchor = false
 ) {
-  const text = String(value || "");
-
-  if (insideAnchor) {
-    return escapeMaterialHtmlText(text).replaceAll("\n", "<br>");
-  }
-
-  return renderMaterialAutoLinkedTextHtml(text);
+  return renderMaterialNotationTextHtml(
+    String(value || ""),
+    insideAnchor
+  );
 }
 
 
@@ -924,6 +921,13 @@ function serializeMaterialRichTextNode(
     Node.ELEMENT_NODE
   ) {
     return "";
+  }
+
+  if (node.classList?.contains("material-notation-symbol")) {
+    const notation = getMaterialNotationInfoFromNode(node);
+    return notation
+      ? getMaterialNotationHtml(notation.notationKey, notation.dotted)
+      : "";
   }
 
   if (node.classList?.contains("material-audio-marker")) {
@@ -1044,7 +1048,7 @@ function materialRichTextHasMarkup(
 ) {
 
   return (
-    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\b(?:material-text-size-(?:normal|[12])|material-audio-marker)\b[^"]*")/i.test(
+    /<(?:strong|em|a)\b|<span\b(?=[^>]*\bclass="[^"]*\b(?:material-text-size-(?:normal|[12])|material-audio-marker|material-notation-symbol)\b[^"]*")/i.test(
       String(html || "")
     )
   );
@@ -1128,29 +1132,27 @@ function appendSanitizedMaterialNode(
     node.nodeType ===
     Node.TEXT_NODE
   ) {
-
-    if (insideAnchor) {
-      target.appendChild(
-        document.createTextNode(
-          node.nodeValue || ""
-        )
-      );
-    } else {
-      target.appendChild(
-        createMaterialAutoLinkFragment(
-          node.nodeValue || ""
-        )
-      );
-    }
-
+    appendMaterialRichTextTextWithNotation(
+      target,
+      node.nodeValue || "",
+      insideAnchor
+    );
     return;
-
   }
 
   if (
     node.nodeType !==
     Node.ELEMENT_NODE
   ) {
+    return;
+  }
+
+  if (node.classList?.contains("material-notation-symbol")) {
+    const notation = getMaterialNotationInfoFromNode(node);
+    const safeNotation = notation
+      ? createMaterialNotationElement(notation.notationKey, notation.dotted)
+      : null;
+    if (safeNotation) target.appendChild(safeNotation);
     return;
   }
 
@@ -1315,13 +1317,20 @@ function createMaterialRichTextFragment(
   content
 ) {
 
-  const html =
+  let html =
     getMaterialRichTextHtml(
       content
     );
 
   if (html === null) {
-    return null;
+    const legacyPattern = new RegExp(
+      MATERIAL_LEGACY_NOTATION_PATTERN.source,
+      "u"
+    );
+    if (!legacyPattern.test(String(content || ""))) {
+      return null;
+    }
+    html = renderMaterialNotationTextHtml(content);
   }
 
   const template =
@@ -1354,13 +1363,20 @@ function renderMaterialRichTextHtml(
   content
 ) {
 
-  const html =
+  let html =
     getMaterialRichTextHtml(
       content
     );
 
   if (html === null) {
-    return null;
+    const legacyPattern = new RegExp(
+      MATERIAL_LEGACY_NOTATION_PATTERN.source,
+      "u"
+    );
+    if (!legacyPattern.test(String(content || ""))) {
+      return null;
+    }
+    html = renderMaterialNotationTextHtml(content);
   }
 
   const template =
@@ -1397,6 +1413,13 @@ function renderMaterialRichTextHtml(
       node.tagName === "BR"
     ) {
       return "<br>";
+    }
+
+    if (node.classList?.contains("material-notation-symbol")) {
+      const notation = getMaterialNotationInfoFromNode(node);
+      return notation
+        ? getMaterialNotationHtml(notation.notationKey, notation.dotted)
+        : "";
     }
 
     if (node.classList?.contains("material-audio-marker")) {
