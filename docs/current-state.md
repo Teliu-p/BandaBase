@@ -70,7 +70,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 ## 3E. Ajuste de tamaño de figuras musicales al alto de una mayúscula (PR #121 y seguimiento #122)
 
 - La PR #121 (https://github.com/Teliu-p/BandaBase/pull/121) fue fusionada como `d1c53a10c9d6ef459058c5e1e8ad4b2e9e923386`. Tests y Pages de main pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39444107185) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39444106008). Ese primer ajuste redujo la caja a `0.72em`, pero la revisión del `viewBox` mostró que el margen interno hacía que la tinta visible quedara más pequeña que una mayúscula.
-- El seguimiento PR #122 (https://github.com/Teliu-p/BandaBase/pull/122), rama `fix/materials-notation-visual-cap-height-20261020`, usa una caja de `0.9em` con `vertical-align: -0.14em`; así el trazo visible de las figuras más altas mide aproximadamente `0.70em` desde la línea base. Las parejas miden `1.02em` de ancho, con el mismo alto.
+- El seguimiento PR #122 (https://github.com/Teliu-p/BandaBase/pull/122), rama `fix/materials-notation-visual-cap-height-20261020`, usa para figuras individuales una caja de `0.96em` con `vertical-align: -0.15em`. Las parejas usan `0.96em` de ancho, `0.84em` de alto y `vertical-align: -0.12em`. Esta compensación del margen del `viewBox` deja la tinta de las figuras más altas a aproximadamente `0.70em` desde la línea base.
 - La regresión CSS fija estas dimensiones y la alineación; los botones de la barra permanecen intactos. No se modifica el dibujo SVG, el contenido guardado, Supabase, Storage, RLS ni migraciones. La CI de la PR #122 y la inspección visual manual aún deben confirmarse.
 
 ## 4. Incidente de guardado de Materiales con audios
