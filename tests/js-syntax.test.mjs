@@ -1934,8 +1934,8 @@ assert.match(
 );
 
 assert.match(materialEditorSource,
-  /getMaterialNotationSymbol\([\s\S]*?materialNotationDotPending/,
-  "La inserción de figuras debe consultar el estado del puntillo.");
+  /function insertMaterialNotation\([\s\S]*?materialNotationDotPending[\s\S]*?createMaterialNotationElement/,
+  "La inserción de figuras debe consultar el estado del puntillo y crear un icono vectorial.");
 assert.match(materialEditorSource,
   /function insertMaterialNotation\([\s\S]*?combineAdjacentMaterialNotationPairsAtCaret\(editor\)/,
   "Al insertar una figura, el editor debe recomponer las parejas consecutivas de corcheas y semicorcheas.");
