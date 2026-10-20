@@ -33,6 +33,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - CI y Pages para el commit de merge pasaron (enlaces en la sección 1). Sigue pendiente la prueba manual autenticada de guardar/reabrir un Material con audio y probar los saltos.
 - PR #111 quedó fusionada: https://github.com/Teliu-p/BandaBase/pull/111. La herramienta ⏱ captura el tiempo del control de audio enfocado o del único reproductor que se está reproduciendo; cuando no puede identificar un punto sin ambigüedad, conserva el ingreso manual. No cambia Supabase, Storage, datos, RLS ni migraciones.
 - Pendiente manual: con sesión autenticada, guardar/reabrir un Material que contenga audio y probar inserción/salto por marcador. La CI usa stubs y no cubre esa sesión real.
+- Seguimiento del metrónomo en la rama `feat/metronome-audio-sync-20261019`: modo opcional sincronizado con el audio de referencia, basado en BPM/métrica conocidos; incluye play/pause/seek, cambios de marcador y cancelación de clics futuros. Reduce la anticipación del primer clic de 50 ms a 10 ms y conserva el planificador a 120 ms para los clics siguientes. Aún no está en `main`; requiere CI y prueba manual de audio antes de integrar.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios
