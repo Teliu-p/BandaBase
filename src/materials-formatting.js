@@ -61,7 +61,7 @@ const MATERIAL_NOTATION_LABELS = Object.freeze({
 const MATERIAL_NOTATION_SVG_BODIES = Object.freeze({
   noteSixteenth:
     '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="currentColor"/>' +
-    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
     '<path d="M16 5C24 6 23 11 18 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
     '<path d="M16 9C23 10 22 15 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
   noteEighth:
@@ -75,7 +75,7 @@ const MATERIAL_NOTATION_SVG_BODIES = Object.freeze({
     '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
     '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
   noteWhole:
-    '<ellipse cx="13" cy="22" rx="7" ry="4.2" transform="rotate(-22 13 22)" fill="none" stroke="currentColor" stroke-width="2.7"/>',
+    '<ellipse cx="13" cy="22" rx="7" ry="4.2" transform="rotate(-22 13 22)" fill="none" stroke="currentColor" stroke-width="2.8"/>',
   restSixteenth:
     '<path d="M15 5L11 14L17 17L12 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<circle cx="20" cy="5" r="2.5" fill="currentColor"/><circle cx="16.5" cy="11" r="2.5" fill="currentColor"/>',
