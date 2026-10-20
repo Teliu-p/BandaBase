@@ -3239,10 +3239,11 @@
 }
 
 .material-note-btn {
-  min-width: 34px;
+  min-width: 36px;
+  height: 38px;
   padding-inline: 7px;
   font-family: "Segoe UI Symbol", "Noto Music", "Apple Symbols", serif;
-  font-size: 19px;
+  font-size: 24px;
   line-height: 1;
 }
 

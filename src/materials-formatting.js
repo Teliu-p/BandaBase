@@ -84,7 +84,16 @@ function getMaterialAudioMarkerSecondsFromPlaybackTime(value) {
 }
 
 
-function getMaterialNumericShortcutAction(event) {
+function combineMaterialNotationPairs(value) {
+  return String(value ?? "")
+    .replace(/\u{1D160}[ \u00a0]{1,2}\u{1D160}/gu, "♫")
+    .replace(/\u{1D161}[ \u00a0]{1,2}\u{1D161}/gu, "♬")
+    .replace(/([♫♬])[ \u00a0]{1,2}(?=[♫♬\u{1D160}\u{1D161}])/gu, "$1")
+    .replace(/([\u{1D160}\u{1D161}])[ \u00a0]{1,2}(?=[♫♬])/gu, "$1");
+}
+
+
+function getMaterialShortcutAction(event) {
   if (
     !event ||
     !event.altKey ||
@@ -108,14 +117,22 @@ function getMaterialNumericShortcutAction(event) {
     Numpad5: "size1",
     Digit6: "size2",
     Numpad6: "size2",
-    Digit7: "noteQuarter",
-    Numpad7: "noteQuarter",
-    Digit8: "noteEighth",
-    Numpad8: "noteEighth",
-    Digit9: "noteSixteenth",
-    Numpad9: "noteSixteenth",
-    Digit0: "indentMore",
-    Numpad0: "indentMore"
+    Digit0: "clearFormatting",
+    Numpad0: "clearFormatting",
+    KeyQ: "noteSixteenth",
+    KeyW: "noteEighth",
+    KeyE: "noteQuarter",
+    KeyR: "noteHalf",
+    KeyT: "noteWhole",
+    KeyA: "restSixteenth",
+    KeyS: "restEighth",
+    KeyD: "restQuarter",
+    KeyF: "restHalf",
+    KeyG: "restWhole",
+    KeyZ: "notationDot",
+    KeyX: "audioMarker",
+    KeyC: "indentMore",
+    KeyV: "indentLess"
   };
 
   return shortcuts[event.code] || null;

@@ -53,6 +53,13 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Los símbolos se insertan como texto musical Unicode en el rich text existente. La modificación no altera el esquema, los datos, las políticas, RLS, Storage ni las migraciones de Supabase.
 - Se añadieron pruebas para los diez símbolos, sus formas con puntillo, el orden de controles y el restablecimiento del puntillo. La CI pasó tanto en la PR como en main. No se hizo una comprobación visual manual en el navegador del usuario; conviene verificar que los glifos se vean con la fuente disponible.
 
+## 3C. Unión visual de figuras y nuevos atajos (PR #117 abierta)
+
+- La PR #117 (https://github.com/Teliu-p/BandaBase/pull/117), rama `feat/materials-note-beaming-shortcuts`, agrupa de a dos las corcheas y semicorcheas consecutivas sin puntillo usando los glifos Unicode de notas ligadas visualmente (`♫` y `♬`). No pretende ser un grabador de partituras completo: el compositor sigue siendo texto inline, sin pentagrama ni alturas.
+- Aumenta los símbolos de la barra sin alterar el tamaño de las figuras insertadas en los renglones del material.
+- Atajos: Alt+1–6 conserva funciones; Alt+Q/W/E/R/T inserta figuras; Alt+A/S/D/F/G inserta silencios; Alt+Z puntillo; Alt+X marcador; Alt+C/Alt+V agrega/quita sangría; Alt+0 restablece el formato normal y desactiva el puntillo.
+- La PR está abierta. Esperar la CI sobre el último HEAD y revisar el diff antes de integrar. Falta comprobar manualmente el renderizado real de los glifos; no se cambia Supabase ni sus migraciones.
+
 ## 4. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
