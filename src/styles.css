@@ -3247,6 +3247,43 @@
   line-height: 1;
 }
 
+.material-notation-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+
+.material-notation-symbol {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 1.35em;
+  height: 1.35em;
+  margin: 0 .04em;
+  color: inherit;
+  line-height: 1;
+  vertical-align: -.28em;
+  white-space: nowrap;
+}
+
+.material-notation-symbol[data-material-notation$="Pair"] {
+  width: 1.55em;
+}
+
+.material-notation-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: inherit;
+}
+
+.material-notation-fallback {
+  display: none !important;
+}
+
 .material-keyboard-shortcuts {
   flex: 1 1 100%;
   color: var(--bb-text-muted);
@@ -3281,6 +3318,7 @@
   min-height: 220px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  line-height: 1.6;
 }
 
 .material-composer-editor strong,
