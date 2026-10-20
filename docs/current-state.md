@@ -38,6 +38,15 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Pendiente de verificación manual: probar la calibración y reanudación con una grabación real, idealmente con silencio al inicio o anacrusa. La CI usa stubs y no puede verificar alineación audible.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
+## 3A. Recuperar velocidad de audio y descarga de adjuntos (PR #114, rama de trabajo)
+
+- Estado observado al documentar: PR #114 abierta en https://github.com/Teliu-p/BandaBase/pull/114; la rama `feat/material-audio-speed-download-20261020` incorpora cambios de UI y pruebas. Verificar estado y SHA actuales antes de actuar.
+- Materiales vuelve a disponer de velocidades 25%, 50%, 75%, 100%, 125%, 150%, 175% y 200%, más entrada porcentual personalizada de 25% a 200%. Se configura `HTMLMediaElement.playbackRate` y se solicita `preservesPitch`/alias del navegador. La velocidad recordada queda por ID de adjunto mientras la página siga abierta; no se almacena en Supabase.
+- Se agrega descarga forzada por URL firmada a archivos de Materiales, comentarios de canción/generales y Propuestas. Se usan los metadatos de adjunto y una URL de corta duración; no se modifican objetos, filas, políticas, RLS o migraciones.
+- La reproducción de audios usa el `<audio>` nativo bajo demanda. En el código inspeccionado no hay temporizador que vaya avanzando el audio ni reconstrucción de la señal en JavaScript; por eso no se identificó una fuente de deriva acumulativa dentro del reproductor. El metrónomo sincronizado sigue una cuadrícula de BPM conocido y `audio.currentTime`, no detecta golpes de la forma de onda. No hay prueba automatizada que mida deriva audible en un archivo real; queda pendiente comprobarlo con una grabación real.
+- Corrige el cálculo del origen de calibración del metrónomo a partir de `elapsedContextSeconds * playbackRate`, necesario si se calibra con el audio a una velocidad distinta de 1×.
+- CI comprobada para el estado de código previo a las actualizaciones documentales: https://github.com/Teliu-p/BandaBase/actions/runs/39364004244 (npm tests, ESLint/no-undef y smoke tests de Chromium, éxito). No equivale a prueba audible autenticada ni a una prueba de descarga contra una cuenta real. La comprobación más reciente se repetirá tras documentar.
+
 ## 4. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
