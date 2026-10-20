@@ -663,6 +663,9 @@ for (const [code, action] of expectedMaterialShortcuts) {
     "Alt+" + code + " debe activar la función " + action + "."
   );
 }
+assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad1")), "bold");
+assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad6")), "size2");
+assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad0")), "clearFormatting");
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit7")), null);
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit8")), null);
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit9")), null);
@@ -1892,6 +1895,11 @@ assert.match(
   readFileSync(join(srcDir, "styles.css"), "utf8"),
   /\.material-inline-attachment\s*\{[\s\S]*?height:\s*1\.2em/,
   "Un adjunto inline no debe alterar la altura vertical de un renglón."
+);
+assert.match(
+  readFileSync(join(srcDir, "styles.css"), "utf8"),
+  /\.material-note-btn\s*\{[\s\S]*?font-size:\s*24px/,
+  "Los botones de figuras y silencios deben mostrarse más grandes, sin escalar el texto musical en el renglón."
 );
 
 const {
