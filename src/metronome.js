@@ -246,10 +246,12 @@ function getMetronomeClickIntervalSeconds(
 function getMetronomeNextSyncQuarterPosition(
   audioSeconds,
   bpm,
-  subdivision
+  subdivision,
+  audioZeroTime = 0
 ) {
   const seconds = Number(audioSeconds);
   const numericBpm = Number(bpm);
+  const zeroTime = Number(audioZeroTime);
   const clickQuarterNotes = getMetronomeSubdivisionQuarterNotes(subdivision);
 
   if (
@@ -257,19 +259,17 @@ function getMetronomeNextSyncQuarterPosition(
     seconds < 0 ||
     !Number.isFinite(numericBpm) ||
     numericBpm <= 0 ||
+    !Number.isFinite(zeroTime) ||
     !clickQuarterNotes
   ) {
     return null;
   }
 
-  const currentQuarterPosition = seconds * numericBpm / 60;
-  return Math.max(
-    0,
-    Math.ceil(
-      (currentQuarterPosition - METRONOME_POSITION_EPSILON) /
-      clickQuarterNotes
-    ) * clickQuarterNotes
-  );
+  const currentQuarterPosition = (seconds - zeroTime) * numericBpm / 60;
+  return Math.ceil(
+    (currentQuarterPosition - METRONOME_POSITION_EPSILON) /
+    clickQuarterNotes
+  ) * clickQuarterNotes;
 }
 
 
@@ -292,30 +292,32 @@ function getMetronomeSyncClickContextTime(
   targetQuarterPosition,
   bpm,
   playbackRate,
-  contextTime
+  contextTime,
+  audioZeroTime = 0
 ) {
   const audioSeconds = Number(currentAudioSeconds);
   const quarterPosition = Number(targetQuarterPosition);
   const numericBpm = Number(bpm);
   const rate = Number(playbackRate);
   const audioContextTime = Number(contextTime);
+  const zeroTime = Number(audioZeroTime);
 
   if (
     !Number.isFinite(audioSeconds) ||
     audioSeconds < 0 ||
     !Number.isFinite(quarterPosition) ||
-    quarterPosition < 0 ||
     !Number.isFinite(numericBpm) ||
     numericBpm <= 0 ||
     !Number.isFinite(rate) ||
     rate <= 0 ||
     !Number.isFinite(audioContextTime) ||
-    audioContextTime < 0
+    audioContextTime < 0 ||
+    !Number.isFinite(zeroTime)
   ) {
     return null;
   }
 
-  const targetAudioSeconds = quarterPosition * 60 / numericBpm;
+  const targetAudioSeconds = zeroTime + quarterPosition * 60 / numericBpm;
   const delaySeconds = (targetAudioSeconds - audioSeconds) / rate;
   return audioContextTime + Math.max(
     METRONOME_INITIAL_CLICK_LEAD_SECONDS,
@@ -340,6 +342,14 @@ let metronomeAnimationFrame =
   null;
 
 let metronomeNextClickTime =
+  0;
+
+// AudioContext time of the first click in the current standalone metronome run.
+let metronomeGridOriginContextTime =
+  null;
+
+// Audio-file time corresponding to quarter-position zero for manual calibration.
+let metronomeSyncAudioZeroTime =
   0;
 
 let metronomeNextClickQuarterPosition =
@@ -384,6 +394,174 @@ const METRONOME_SCHEDULER_INTERVAL_MS =
 
 const METRONOME_POSITION_EPSILON =
   0.00001;
+
+const METRONOME_SYNC_CALIBRATION_STORAGE_PREFIX =
+  "bandabase.metronome-sync-calibration.v1";
+
+
+function getMetronomeSyncCalibrationStorageKey(player) {
+  const songId = String(currentSong?.id || "");
+  const attachmentId = String(
+    player?.closest?.("[data-material-audio-id]")?.dataset.materialAudioId || ""
+  );
+  if (!songId || !attachmentId) return null;
+
+  return METRONOME_SYNC_CALIBRATION_STORAGE_PREFIX + ":" +
+    encodeURIComponent(songId) + ":" + encodeURIComponent(attachmentId);
+}
+
+
+function readMetronomeSyncCalibration(player, config) {
+  const key = getMetronomeSyncCalibrationStorageKey(player);
+  if (!key) {
+    return {
+      audioZeroTime: 0,
+      calibrated: false,
+      status: "No se pudo identificar la canción y el audio para recuperar el ajuste."
+    };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return {
+        audioZeroTime: 0,
+        calibrated: false,
+        status: "No hay ajuste manual para este audio; se usará el inicio del archivo como referencia."
+      };
+    }
+
+    const calibration = JSON.parse(raw);
+    const audioZeroTime = Number(calibration?.audioZeroTime);
+    if (
+      calibration?.version !== 1 ||
+      !Number.isFinite(audioZeroTime) ||
+      !Number.isFinite(Number(calibration?.bpm)) ||
+      typeof calibration?.meter !== "string"
+    ) {
+      return {
+        audioZeroTime: 0,
+        calibrated: false,
+        status: "El ajuste guardado no es válido. Volvé a calibrar."
+      };
+    }
+
+    if (
+      Number(calibration.bpm) !== Number(config.bpm) ||
+      calibration.meter !== config.meter
+    ) {
+      return {
+        audioZeroTime: 0,
+        calibrated: false,
+        status: "Cambió el BPM o la métrica desde la calibración. Volvé a guardar el ajuste."
+      };
+    }
+
+    return {
+      audioZeroTime,
+      calibrated: true,
+      status: "Usando el ajuste manual guardado para este audio."
+    };
+  } catch {
+    return {
+      audioZeroTime: 0,
+      calibrated: false,
+      status: "El navegador no permitió leer el ajuste guardado."
+    };
+  }
+}
+
+
+function saveMetronomeSyncCalibration(player, config, audioZeroTime) {
+  const key = getMetronomeSyncCalibrationStorageKey(player);
+  if (!key || !Number.isFinite(audioZeroTime)) return false;
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify({
+      version: 1,
+      audioZeroTime,
+      bpm: Number(config.bpm),
+      meter: config.meter,
+      savedAt: Date.now()
+    }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+function updateMetronomeSyncCalibrationStatus(message) {
+  const status = document.getElementById("metronomeSyncCalibrationStatus");
+  if (status) status.textContent = message;
+}
+
+
+function captureManualMetronomeSyncCalibration() {
+  if (metronomeSyncEnabled) {
+    updateMetronomeSyncCalibrationStatus(
+      "Desactivá «Sincronizar con audio» y volvé al metrónomo normal para guardar un ajuste manual."
+    );
+    return;
+  }
+
+  if (
+    !metronomeRunning ||
+    metronomeStarting ||
+    !metronomeAudioContext ||
+    metronomeAudioContext.state !== "running" ||
+    !Number.isFinite(metronomeGridOriginContextTime)
+  ) {
+    updateMetronomeSyncCalibrationStatus(
+      "Primero iniciá el metrónomo normal; después alinealo de oído con un audio."
+    );
+    return;
+  }
+
+  const config = readMetronomeFormValues();
+  if (!isValidMetronomeConfig(config)) {
+    updateMetronomeSyncCalibrationStatus("Completá un BPM y una métrica válidos antes de calibrar.");
+    return;
+  }
+
+  const playingPlayers = getPlayingMaterialAudioPlayers();
+  if (playingPlayers.length !== 1) {
+    updateMetronomeSyncCalibrationStatus(
+      "Reproducí exactamente un audio de Materiales para guardar el ajuste."
+    );
+    return;
+  }
+
+  const player = playingPlayers[0];
+  const elapsedContextSeconds =
+    metronomeAudioContext.currentTime - metronomeGridOriginContextTime;
+  if (
+    elapsedContextSeconds < 0 ||
+    !Number.isFinite(player.currentTime) ||
+    !Number.isFinite(player.playbackRate) ||
+    player.playbackRate <= 0
+  ) {
+    updateMetronomeSyncCalibrationStatus("No se pudo leer la posición actual del audio y el metrónomo.");
+    return;
+  }
+
+  // When both are manually aligned, this records the audio-time origin that
+  // corresponds to the metronome's existing phase, regardless of when the
+  // calibration button is pressed between beats.
+  const audioZeroTime = player.currentTime - elapsedContextSeconds;
+  if (!saveMetronomeSyncCalibration(player, config, audioZeroTime)) {
+    updateMetronomeSyncCalibrationStatus(
+      "No se pudo guardar el ajuste en este navegador. Revisá la configuración de almacenamiento."
+    );
+    return;
+  }
+
+  metronomeSyncAudioZeroTime = audioZeroTime;
+  updateMetronomeSyncCalibrationStatus(
+    "Ajuste guardado para este audio con " + config.bpm + " BPM y métrica " + config.meter +
+    ". Activá «Sincronizar con audio» para reutilizarlo."
+  );
+}
 
 
 function updateMetronomeVolumeDisplay() {
@@ -984,14 +1162,16 @@ function scheduleMetronomeAhead() {
 
     if (
       !Number.isFinite(metronomeNextSyncQuarterPosition) ||
-      metronomeNextSyncQuarterPosition * 60 / config.bpm <
+      metronomeSyncAudioZeroTime +
+        metronomeNextSyncQuarterPosition * 60 / config.bpm <
         audioTime - METRONOME_SYNC_LATE_TOLERANCE_SECONDS
     ) {
       metronomeNextSyncQuarterPosition =
         getMetronomeNextSyncQuarterPosition(
           audioTime,
           config.bpm,
-          config.subdivision
+          config.subdivision,
+          metronomeSyncAudioZeroTime
         );
     }
 
@@ -1002,7 +1182,8 @@ function scheduleMetronomeAhead() {
 
     while (true) {
       const targetQuarterPosition = metronomeNextSyncQuarterPosition;
-      const targetAudioTime = targetQuarterPosition * 60 / config.bpm;
+      const targetAudioTime =
+        metronomeSyncAudioZeroTime + targetQuarterPosition * 60 / config.bpm;
       const audioDelay = (targetAudioTime - audioTime) / playbackRate;
 
       if (audioDelay > METRONOME_SCHEDULE_AHEAD_SECONDS) break;
@@ -1017,7 +1198,8 @@ function scheduleMetronomeAhead() {
         targetQuarterPosition,
         config.bpm,
         playbackRate,
-        metronomeAudioContext.currentTime
+        metronomeAudioContext.currentTime,
+        metronomeSyncAudioZeroTime
       );
       const barPosition = getMetronomeBarQuarterPosition(
         targetQuarterPosition,
@@ -1157,6 +1339,8 @@ function stopMetronome(options = {}) {
   clearMetronomeActiveCell();
   cancelScheduledMetronomeSounds();
   metronomeNextSyncQuarterPosition = null;
+  metronomeGridOriginContextTime = null;
+  metronomeSyncAudioZeroTime = 0;
 
   if (
     metronomeAudioContext &&
@@ -1258,6 +1442,18 @@ async function startMetronome(syncPlayer = null) {
       context.currentTime +
       METRONOME_INITIAL_CLICK_LEAD_SECONDS;
 
+    metronomeGridOriginContextTime = metronomeSyncEnabled
+      ? null
+      : metronomeNextClickTime;
+
+    const syncCalibration = metronomeSyncEnabled
+      ? readMetronomeSyncCalibration(syncPlayer, config)
+      : null;
+    metronomeSyncAudioZeroTime = syncCalibration?.audioZeroTime ?? 0;
+    if (syncCalibration) {
+      updateMetronomeSyncCalibrationStatus(syncCalibration.status);
+    }
+
     metronomeNextClickQuarterPosition =
       0;
 
@@ -1265,7 +1461,8 @@ async function startMetronome(syncPlayer = null) {
       ? getMetronomeNextSyncQuarterPosition(
           syncPlayer.currentTime,
           config.bpm,
-          config.subdivision
+          config.subdivision,
+          metronomeSyncAudioZeroTime
         )
       : null;
 
@@ -1354,6 +1551,7 @@ function restartMetronomeFromForm() {
       0
     ) + METRONOME_INITIAL_CLICK_LEAD_SECONDS;
 
+  metronomeGridOriginContextTime = metronomeNextClickTime;
   metronomeNextClickQuarterPosition =
     0;
 
@@ -1471,6 +1669,9 @@ function bindMetronomeControls() {
   }
 
   const syncInput = document.getElementById("metronomeSyncAudioInput");
+  const calibrationButton = document.getElementById("metronomeSyncCalibrateBtn");
+  calibrationButton?.addEventListener("click", captureManualMetronomeSyncCalibration);
+
   syncInput?.addEventListener("change", () => {
     metronomeSyncEnabled = syncInput.checked;
 
