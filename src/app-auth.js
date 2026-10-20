@@ -2,6 +2,18 @@
    AUTENTICACIÓN
 ============================================================ */
 
+async function runAuthRequest(request, fallbackMessage) {
+  try {
+    return await request();
+  } catch (error) {
+    showNotice(
+      error?.message || fallbackMessage,
+      "error"
+    );
+    return null;
+  }
+}
+
 loginForm.addEventListener(
   "submit",
   async function(event) {
@@ -22,14 +34,16 @@ loginForm.addEventListener(
       return;
     }
 
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.signInWithPassword({
+    const response = await runAuthRequest(
+      () => supabaseClient.auth.signInWithPassword({
         email,
         password
-      });
+      }),
+      "No se pudo iniciar sesión. Revisá tu conexión e intentá de nuevo."
+    );
+    if (!response) return;
+
+    const { data, error } = response;
 
     if (error) {
 
@@ -93,18 +107,21 @@ signupForm.addEventListener(
       return;
     }
 
-    const {
-      data,
-      error
-    } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName
+    const response = await runAuthRequest(
+      () => supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
         }
-      }
-    });
+      }),
+      "No se pudo crear la cuenta. Revisá tu conexión e intentá de nuevo."
+    );
+    if (!response) return;
+
+    const { data, error } = response;
 
     if (error) {
       showNotice(
@@ -133,9 +150,14 @@ signupForm.addEventListener(
 logoutBtn.addEventListener(
   "click",
   async function() {
+    const response = await runAuthRequest(
+      () => supabaseClient.auth.signOut(),
+      "No se pudo cerrar la sesión. Intentá de nuevo."
+    );
 
-    await supabaseClient.auth.signOut();
-
+    if (response?.error) {
+      showNotice(response.error.message, "error");
+    }
   }
 );
 
@@ -235,36 +257,44 @@ function clearBandabaseSessionData() {
 }
 
 
+let authInitializationPromise = null;
+
 async function handleAuthSession(session) {
-  let transitionVersion = null;
+  if (session?.user) {
+    const userId = session.user.id;
 
-  try {
-    if (session?.user) {
-      const userId = session.user.id;
-
-      if (initializedUserId === userId) {
-        currentUser = session.user;
-        loginScreen.classList.add("hidden");
-        app.classList.remove("hidden");
-        return;
-      }
-
-      if (initializingUserId === userId) {
-        currentUser = session.user;
-        return;
-      }
-
-      transitionVersion = ++authTransitionVersion;
-      clearBandabaseSessionData();
+    if (initializedUserId === userId) {
       currentUser = session.user;
-      initializingUserId = userId;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+      return;
+    }
 
-      // Keep the old app shell hidden while data for this account is loading.
-      app.classList.add("hidden");
-      loginScreen.classList.remove("hidden");
+    if (
+      initializingUserId === userId &&
+      currentUser?.id === userId
+    ) {
+      return;
+    }
 
-      try {
-        await initializeApp();
+    const transitionVersion = ++authTransitionVersion;
+
+    app.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
+    clearBandabaseSessionData();
+    currentUser = session.user;
+
+    try {
+      // Never run two initializeApp() calls concurrently. An older session's
+      // requests may still be finishing; wait for them, discard their state,
+      // and only then load the latest session.
+      while (authInitializationPromise) {
+        const pendingInitialization = authInitializationPromise;
+        try {
+          await pendingInitialization;
+        } catch {
+          // The active transition owns the error notification.
+        }
 
         if (
           transitionVersion !== authTransitionVersion ||
@@ -272,44 +302,86 @@ async function handleAuthSession(session) {
         ) {
           return;
         }
+      }
 
-        initializedUserId = userId;
-        loginScreen.classList.add("hidden");
-        app.classList.remove("hidden");
+      clearBandabaseSessionData();
+      currentUser = session.user;
+      initializingUserId = userId;
+
+      const initialization = Promise.resolve().then(
+        () => initializeApp()
+      );
+      authInitializationPromise = initialization;
+
+      try {
+        await initialization;
       } finally {
+        if (authInitializationPromise === initialization) {
+          authInitializationPromise = null;
+        }
         if (initializingUserId === userId) {
           initializingUserId = null;
         }
       }
-    } else {
-      ++authTransitionVersion;
-      if (typeof window.bandabaseStopMetronome === "function") {
-        window.bandabaseStopMetronome();
+
+      if (
+        transitionVersion !== authTransitionVersion ||
+        currentUser?.id !== userId
+      ) {
+        return;
       }
 
+      initializedUserId = userId;
+      loginScreen.classList.add("hidden");
+      app.classList.remove("hidden");
+    } catch (error) {
+      if (transitionVersion !== authTransitionVersion) {
+        return;
+      }
+
+      console.error(error);
       clearBandabaseSessionData();
       initializingUserId = null;
       app.classList.add("hidden");
       loginScreen.classList.remove("hidden");
-    }
-  } catch (error) {
-    console.error(error);
 
-    if (
-      transitionVersion !== null &&
-      transitionVersion === authTransitionVersion
-    ) {
-      clearBandabaseSessionData();
-      initializingUserId = null;
-      app.classList.add("hidden");
-      loginScreen.classList.remove("hidden");
+      showNotice(
+        error.message ||
+        "No se pudo cargar BandaBase.",
+        "error"
+      );
+    }
+  } else {
+    const logoutTransition = ++authTransitionVersion;
+
+    if (typeof window.bandabaseStopMetronome === "function") {
+      window.bandabaseStopMetronome();
     }
 
-    showNotice(
-      error.message ||
-      "No se pudo cargar BandaBase.",
-      "error"
-    );
+    clearBandabaseSessionData();
+    initializingUserId = null;
+    app.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
+
+    // An in-flight initializer may still finish mutating shared module state.
+    // Wait for it and clear once more, unless a newer login/logout superseded us.
+    const pendingInitialization = authInitializationPromise;
+    if (pendingInitialization) {
+      try {
+        await pendingInitialization;
+      } catch {
+        // Session has already been cleared; no stale error toast is useful.
+      }
+    }
+
+    if (logoutTransition !== authTransitionVersion) {
+      return;
+    }
+
+    clearBandabaseSessionData();
+    initializingUserId = null;
+    app.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
   }
 }
 
