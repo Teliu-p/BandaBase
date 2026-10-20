@@ -291,6 +291,8 @@ test("the previous account's app data stays hidden until the next account initia
     const pending = handleAuthSession({
       user: { id: "session-user", email: "session@example.invalid" }
     });
+    await Promise.resolve();
+    await Promise.resolve();
     const during = {
       appHidden: document.getElementById("app").classList.contains("hidden"),
       loginVisible: !document.getElementById("loginScreen").classList.contains("hidden")
@@ -315,6 +317,114 @@ test("the previous account's app data stays hidden until the next account initia
   expect(state.after.loginHidden).toBe(true);
 });
 
+
+
+test("a newer login waits for an older session initialization to finish", async ({ page }) => {
+  await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const originalInitializeApp = initializeApp;
+    const started = [];
+    let resolveA;
+    let resolveB;
+
+    initializeApp = () => new Promise(resolve => {
+      const id = currentUser.id;
+      started.push(id);
+      if (id === "session-a") resolveA = resolve;
+      if (id === "session-b") resolveB = resolve;
+    });
+
+    const first = handleAuthSession({
+      user: { id: "session-a", email: "a@example.invalid" }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const second = handleAuthSession({
+      user: { id: "session-b", email: "b@example.invalid" }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    const whileAIsRunning = started.slice();
+
+    resolveA();
+    await first;
+    await Promise.resolve();
+    await Promise.resolve();
+    const afterACompletes = started.slice();
+
+    resolveB();
+    await second;
+    initializeApp = originalInitializeApp;
+
+    return {
+      whileAIsRunning,
+      afterACompletes,
+      currentUserId: currentUser?.id,
+      appVisible: !document.getElementById("app").classList.contains("hidden")
+    };
+  });
+
+  expect(result.whileAIsRunning).toEqual(["session-a"]);
+  expect(result.afterACompletes).toEqual(["session-a", "session-b"]);
+  expect(result.currentUserId).toBe("session-b");
+  expect(result.appVisible).toBe(true);
+});
+
+test("logout clears state again after a previous initialization finishes", async ({ page }) => {
+  await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const originalInitializeApp = initializeApp;
+    let finishInitialization;
+    initializeApp = () => new Promise(resolve => { finishInitialization = resolve; });
+
+    const login = handleAuthSession({
+      user: { id: "session-being-logged-out", email: "logout@example.invalid" }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const logout = handleAuthSession(null);
+    const hiddenBeforeOldInitializationFinishes =
+      document.getElementById("app").classList.contains("hidden");
+
+    finishInitialization();
+    await Promise.all([login, logout]);
+    initializeApp = originalInitializeApp;
+
+    return {
+      currentUser: currentUser?.id || null,
+      appHidden: document.getElementById("app").classList.contains("hidden"),
+      loginVisible: !document.getElementById("loginScreen").classList.contains("hidden"),
+      hiddenBeforeOldInitializationFinishes
+    };
+  });
+
+  expect(result.hiddenBeforeOldInitializationFinishes).toBe(true);
+  expect(result.currentUser).toBeNull();
+  expect(result.appHidden).toBe(true);
+  expect(result.loginVisible).toBe(true);
+});
+
+test("network rejections from auth requests show a user-facing error", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+  const result = await page.evaluate(async () => {
+    const response = await runAuthRequest(
+      () => Promise.reject(new Error("Sin conexión")),
+      "No se pudo iniciar sesión."
+    );
+    return {
+      response,
+      notice: document.getElementById("notice").textContent
+    };
+  });
+
+  expect(result.response).toBeNull();
+  expect(result.notice).toContain("Sin conexión");
+  expect(runtimeErrors, "Network errors should not become unhandled runtime errors").toEqual([]);
+});
 
 test("password mismatch is rejected before an auth request is made", async ({ page }) => {
   await openApp(page);
