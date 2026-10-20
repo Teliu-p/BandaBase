@@ -520,6 +520,59 @@ function renderProposals() {
         });
 
       card
+        .querySelectorAll("[data-download-proposal-attachment]")
+        .forEach(button => {
+          button.addEventListener("click", async () => {
+            if (button.dataset.loading === "true") return;
+
+            const attachment = (
+              proposalAttachmentsMap[proposal.id] || []
+            ).find(item => item.id === button.dataset.downloadProposalAttachment);
+
+            if (!attachment?.storage_path) {
+              showNotice("No se encontró el archivo adjunto para descargar.", "error");
+              return;
+            }
+
+            const downloadWindow = window.open("about:blank", "_blank");
+            if (!downloadWindow) {
+              showNotice("El navegador bloqueó la descarga. Permití las ventanas emergentes y probá de nuevo.", "error");
+              return;
+            }
+            downloadWindow.opener = null;
+
+            const previousText = button.textContent;
+            button.dataset.loading = "true";
+            button.disabled = true;
+            button.textContent = "Preparando descarga…";
+
+            try {
+              const { data, error } = await supabaseClient
+                .storage
+                .from("materials")
+                .createSignedUrl(
+                  attachment.storage_path,
+                  3600,
+                  { download: attachment.file_name || attachment.title || true }
+                );
+
+              if (error || !data?.signedUrl) {
+                throw new Error(error?.message || "No se pudo preparar la descarga.");
+              }
+
+              downloadWindow.location.href = data.signedUrl;
+            } catch (error) {
+              try { downloadWindow.close(); } catch {}
+              showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
+            } finally {
+              button.dataset.loading = "false";
+              button.disabled = false;
+              button.textContent = previousText;
+            }
+          });
+        });
+
+      card
         .querySelectorAll(
           ".proposal-vote-option input"
         )
