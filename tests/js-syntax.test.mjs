@@ -1902,7 +1902,12 @@ for (const [notationKey] of materialNotationTestCases) {
     "La figura " + notationKey + " debe conservar el puntillo en su representación vectorial."
   );
 }
-assert.match(getMaterialNotationSvgMarkup("noteQuarter"), /stroke-width="2\.8"/,\n  "El trazo de la figura debe tener un grosor consistente con el grosor visual de las letras.");\nassert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
+assert.match(
+  getMaterialNotationSvgMarkup("noteQuarter"),
+  /stroke-width="2\.8"/,
+  "El trazo de la figura debe tener un grosor consistente con el grosor visual de las letras."
+);
+assert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
 assert.equal(getMaterialNotationHtml("unknownNotation"), "");
 
 const legacyNotation = getMaterialNotationInfoFromLegacySymbol(String.fromCodePoint(0x1D161));
