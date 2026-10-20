@@ -281,10 +281,11 @@ function getMetronomeNextSyncQuarterPosition(
   }
 
   const currentQuarterPosition = (seconds - zeroTime) * numericBpm / 60;
-  return Math.ceil(
+  const nextPosition = Math.ceil(
     (currentQuarterPosition - METRONOME_POSITION_EPSILON) /
     clickQuarterNotes
   ) * clickQuarterNotes;
+  return nextPosition === 0 ? 0 : nextPosition;
 }
 
 
