@@ -1138,6 +1138,7 @@ const {
   getMetronomeGroupStartPositions,
   getMetronomeSubdivisionQuarterNotes,
   getMetronomeClickIntervalSeconds,
+  getMetronomeManualSyncAudioZeroTime,
   getMetronomeNextSyncQuarterPosition,
   getMetronomeBarQuarterPosition,
   getMetronomeSyncClickContextTime
@@ -1149,6 +1150,7 @@ const {
     "getMetronomeGroupStartPositions",
     "getMetronomeSubdivisionQuarterNotes",
     "getMetronomeClickIntervalSeconds",
+    "getMetronomeManualSyncAudioZeroTime",
     "getMetronomeNextSyncQuarterPosition",
     "getMetronomeBarQuarterPosition",
     "getMetronomeSyncClickContextTime"
@@ -1227,10 +1229,16 @@ assert.equal(
   0.25
 );
 
+assert.equal(getMetronomeManualSyncAudioZeroTime(20, 5), 15);
+assert.equal(getMetronomeManualSyncAudioZeroTime(3.5, 0.25), 3.25);
+assert.equal(getMetronomeManualSyncAudioZeroTime(-1, 0.5), null);
+assert.equal(getMetronomeManualSyncAudioZeroTime(10, Number.NaN), null);
 assert.equal(getMetronomeNextSyncQuarterPosition(0, 120, "quarter"), 0);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "quarter"), 1);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.5, 120, "quarter"), 1);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "eighth"), 1);
+assert.equal(getMetronomeNextSyncQuarterPosition(10.1, 120, "quarter", 10), 1);
+assert.equal(getMetronomeNextSyncQuarterPosition(0.1, 120, "quarter", 1), -1);
 assert.equal(getMetronomeNextSyncQuarterPosition(-1, 120, "quarter"), null);
 assert.equal(getMetronomeBarQuarterPosition(4.5, 3), 1.5);
 assert.equal(getMetronomeBarQuarterPosition(6, 3), 0);
@@ -1238,6 +1246,8 @@ assert.equal(getMetronomeBarQuarterPosition(3, 0), null);
 assert.equal(getMetronomeSyncClickContextTime(2, 5, 120, 1, 10), 10.5);
 assert.equal(getMetronomeSyncClickContextTime(2, 5, 120, 2, 10), 10.25);
 assert.equal(getMetronomeSyncClickContextTime(2.499, 5, 120, 1, 10), 10.01);
+assert.equal(getMetronomeSyncClickContextTime(2, 5, 120, 1, 10, 2), 12.5);
+assert.equal(getMetronomeSyncClickContextTime(0.1, -1, 120, 1, 10, 1), 10.4);
 assert.equal(getMetronomeSyncClickContextTime(-1, 5, 120, 1, 10), null);
 
 const metronomeSource = readFileSync(
@@ -1263,6 +1273,26 @@ assert.match(
   metronomeSource,
   /function handleMetronomeSyncAudioEvent\([\s\S]*?event\.type === "play"[\s\S]*?event\.type === "seeking"[\s\S]*?event\.type === "seeked"[\s\S]*?event\.type === "pause" \|\| event\.type === "ended"/,
   "La sincronización debe seguir reproducción, búsqueda, pausa y fin del audio."
+);
+assert.match(
+  metronomeSource,
+  /function captureManualMetronomeSyncCalibration\([\s\S]*?getPlayingMaterialAudioPlayers\(\)[\s\S]*?metronomeGridOriginContextTime[\s\S]*?saveMetronomeSyncCalibration/,
+  "La calibración manual debe capturar una única referencia de audio y guardar la fase que se obtuvo con el metrónomo normal."
+);
+assert.match(
+  metronomeSource,
+  /function readMetronomeSyncCalibration\([\s\S]*?window\.localStorage\.getItem[\s\S]*?calibration\.bpm[\s\S]*?calibration\.meter/,
+  "La calibración debe persistir por audio y no reutilizarse si cambian BPM o métrica."
+);
+assert.match(
+  metronomeSource,
+  /metronomeSyncAudioZeroTime\s*\+\s*targetQuarterPosition\s*\*\s*60\s*\/\s*config\.bpm/,
+  "El planificador sincronizado debe calcular cada clic usando la referencia manual guardada."
+);
+assert.match(
+  readFileSync(indexPath, "utf8"),
+  /id="metronomeSyncCalibrateBtn"[\s\S]*?id="metronomeSyncCalibrationStatus"/,
+  "La interfaz debe exponer el botón y el estado de calibración manual."
 );
 assert.match(
   metronomeSource,
