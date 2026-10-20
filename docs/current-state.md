@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última inspección:** 2026-10-19, Argentina.  
-**Último cambio funcional fusionado y verificado:** 3c6588dc282c3337f7dba2a78e38a19511a59b9a (PR #113, 2026-10-19). Verificar el HEAD real antes de cada cambio; los cambios posteriores de documentación no alteran este baseline funcional.  
+**Última inspección:** 2026-10-20, Argentina.  
+**Último cambio funcional fusionado:** `ddaf9a073b5fbf5def723e4bbab02781ba439800` (PR #114, 2026-10-20). La CI de la rama pasó; confirmar los runs de main de este SHA antes de declarar finalizado el despliegue.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -40,7 +40,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 ## 3A. Recuperar velocidad de audio y descarga de adjuntos (PR #114, rama de trabajo)
 
-- Estado observado al documentar: PR #114 abierta en https://github.com/Teliu-p/BandaBase/pull/114; la rama `feat/material-audio-speed-download-20261020` incorpora cambios de UI y pruebas. Verificar estado y SHA actuales antes de actuar.
+- PR #114 fusionada como `ddaf9a073b5fbf5def723e4bbab02781ba439800`: https://github.com/Teliu-p/BandaBase/pull/114. Los controles y pruebas están en main; confirmar los workflows actuales para el SHA fusionado.
 - Materiales vuelve a disponer de velocidades 25%, 50%, 75%, 100%, 125%, 150%, 175% y 200%, más entrada porcentual personalizada de 25% a 200%. Se configura `HTMLMediaElement.playbackRate` y se solicita `preservesPitch`/alias del navegador. La velocidad recordada queda por ID de adjunto mientras la página siga abierta; no se almacena en Supabase.
 - Se agrega descarga forzada por URL firmada a archivos de Materiales, comentarios de canción/generales y Propuestas. Se usan los metadatos de adjunto y una URL de corta duración; no se modifican objetos, filas, políticas, RLS o migraciones.
 - La reproducción de audios usa el `<audio>` nativo bajo demanda. En el código inspeccionado no hay temporizador que vaya avanzando el audio ni reconstrucción de la señal en JavaScript; por eso no se identificó una fuente de deriva acumulativa dentro del reproductor. El metrónomo sincronizado sigue una cuadrícula de BPM conocido y `audio.currentTime`, no detecta golpes de la forma de onda. No hay prueba automatizada que mida deriva audible en un archivo real; queda pendiente comprobarlo con una grabación real.
