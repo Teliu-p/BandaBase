@@ -69,3 +69,23 @@ async function replaceSongSingers(
     }
   );
 }
+
+
+async function saveSongWithSingers(
+  supabaseClient,
+  songId,
+  songData,
+  singers
+) {
+  return await supabaseClient.rpc(
+    "save_song_with_singers",
+    {
+      p_song_id: songId,
+      p_song_data: songData,
+      p_singers: (singers || []).map(item => ({
+        singer: item.singer,
+        song_key: item.song_key ?? null
+      }))
+    }
+  );
+}
