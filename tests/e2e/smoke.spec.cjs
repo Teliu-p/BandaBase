@@ -141,6 +141,12 @@ test("Alt+1 through Alt+6 apply the six material text-format actions", async ({ 
     document.getElementById("app").classList.remove("hidden");
     document.getElementById("loginScreen").classList.add("hidden");
     showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
   });
 
   const cases = await page.evaluate(() => {
