@@ -823,6 +823,44 @@ assert.equal(
   "Cambiar de A+ a A++ debe reemplazar el tamaño existente."
 );
 
+const listsDataSource = readFileSync(
+  join(srcDir, "lists-data.js"),
+  "utf8"
+);
+assert.match(
+  listsDataSource,
+  /rpc\(\s*"save_band_list_with_managers"/,
+  "Guardar la lista y sus responsables debe usar una operación atómica del backend."
+);
+assert.match(
+  listsDataSource,
+  /rpc\(\s*"replace_song_list_assignments"/,
+  "Cambiar una canción entre varias listas debe usar una operación atómica del backend."
+);
+const listsViewSource = readFileSync(
+  join(srcDir, "lists-view.js"),
+  "utf8"
+);
+assert.match(
+  listsViewSource,
+  /saveBandListWithManagers\(/,
+  "El guardado de listas debe delegar lista y responsables a la misma operación."
+);
+assert.doesNotMatch(
+  listsViewSource,
+  /replaceBandListManagers\(/,
+  "El guardado de lista no debe borrar responsables con una escritura separada."
+);
+const songsControllerSource = readFileSync(
+  join(srcDir, "songs-controller.js"),
+  "utf8"
+);
+assert.match(
+  songsControllerSource,
+  /replaceSongListAssignments\(/,
+  "Las asignaciones de una canción a varias listas deben guardarse en una operación."
+);
+
 assert.match(
   materialFormattingSource,
   /<a\b/,
