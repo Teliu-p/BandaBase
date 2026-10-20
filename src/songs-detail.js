@@ -324,52 +324,21 @@ document.getElementById(
     };
 
     const {
-      error: updateError
+      error: saveError
     } =
-      await updateSong(
+      await saveSongWithSingers(
         supabaseClient,
         currentSong.id,
-        songData
-      );
-
-    if (updateError) {
-
-      console.error(
-        updateError
-      );
-
-      showNotice(
-        updateError.message,
-        "error"
-      );
-
-      return;
-    }
-
-
-    /*
-      Actualizamos la relación estructurada.
-
-      Primero borramos las relaciones actuales
-      y luego insertamos las que quedaron en pantalla.
-    */
-
-    const {
-      error: singersError
-    } =
-      await replaceSongSingers(
-        supabaseClient,
-        currentSong.id,
+        songData,
         singers
       );
 
-    if (singersError) {
-
+    if (saveError) {
+      console.error(saveError);
       showNotice(
-        singersError.message,
+        saveError.message,
         "error"
       );
-
       return;
     }
 
