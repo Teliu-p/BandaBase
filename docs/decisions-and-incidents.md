@@ -162,7 +162,7 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 
 ### 2026-10-20 — calibración de la altura visual del SVG musical (PR #122)
 
-- Al revisar las coordenadas del `viewBox` se comprobó que las notas con plica ocupan aproximadamente el 78% de la caja SVG. Para que la tinta visible se aproxime a la altura de una mayúscula, el seguimiento usa una caja de `0.96em` y `vertical-align: -0.15em` para las figuras individuales. Las parejas usan una caja de `0.96em` de ancho por `0.84em` de alto y `vertical-align: -0.12em`.
+- Al revisar las coordenadas del `viewBox` se comprobó que las notas con plica ocupan aproximadamente el 78% de la caja SVG. Para que la tinta visible se aproxime a la altura de una mayúscula, el seguimiento usa una caja de `0.96em` y `vertical-align: -0.135em` para las figuras individuales, con trazos principales ajustados a `2.8` unidades SVG. Las parejas usan `0.99em` de ancho, `0.88em` de alto y `vertical-align: -0.124em`, para que la tinta quede en la línea base y su tamaño/grosor se aproxime a una mayúscula.
 - Las regresiones comprueban caja, alineación y anchura de parejas. Los Tests y Pages de main para PR #121 pasaron. La CI de la revisión con las dimensiones finales de PR #122 pasó en `becfc32f847e2a7160d7e5286b7739aafb9899c4` ([Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39445031361)); la actualización documental posterior vuelve a ejecutar CI. La verificación visual real sigue pendiente. No se cambian botones, contenido almacenado, Supabase, datos, Storage, políticas, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
