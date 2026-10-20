@@ -258,36 +258,19 @@ async function saveSongListAssignments() {
     listId => !selected.has(listId)
   );
 
-  for (const listId of toRemove) {
-    const result = await removeSongFromBandList(
+  const { error: assignmentError } =
+    await replaceSongListAssignments(
       supabaseClient,
-      listId,
-      songId
+      songId,
+      toAdd,
+      toRemove
     );
 
-    if (result.error) {
-      await refreshBandListData();
-      renderSongs();
-      showNotice(result.error.message, "error");
-      return;
-    }
-  }
-
-  for (const listId of toAdd) {
-    const position = getNextSongPosition(listId, songId);
-    const result = await addSongToBandList(
-      supabaseClient,
-      listId,
-      song,
-      position
-    );
-
-    if (result.error) {
-      await refreshBandListData();
-      renderSongs();
-      showNotice(result.error.message, "error");
-      return;
-    }
+  if (assignmentError) {
+    await refreshBandListData();
+    renderSongs();
+    showNotice(assignmentError.message, "error");
+    return;
   }
 
   await refreshBandListData();

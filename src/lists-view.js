@@ -772,86 +772,24 @@ async function saveBandList() {
       selectedListInstrumentSlots()
   };
 
-  let listId =
-    editingBandListId;
-
-  if (listId) {
-    const existing =
-      (currentBandLists || [])
-        .find(
-          list =>
-            list.id ===
-            listId
-        );
-
-    if (
-      !existing ||
-      !isBandListEditor(
-        existing
-      )
-    ) {
-      showNotice(
-        "No tenés permiso para editar esta lista.",
-        "error"
-      );
-      return;
-    }
-
-    const result =
-      await updateBandList(
-        supabaseClient,
-        listId,
-        listData
-      );
-
-    if (result.error) {
-      showNotice(
-        result.error.message,
-        "error"
-      );
-      return;
-    }
-  } else {
-    const result =
-      await createBandList(
-        supabaseClient,
-        {
-          ...listData,
-          band_id:
-            currentBand.id,
-          created_by:
-            currentUser.id
-        }
-      );
-
-    if (result.error) {
-      showNotice(
-        result.error.message,
-        "error"
-      );
-      return;
-    }
-
-    listId =
-      result.data.id;
-  }
-
-  const managerResult =
-    await replaceBandListManagers(
+  const result =
+    await saveBandListWithManagers(
       supabaseClient,
-      listId,
-      selectedListManagers()
+      {
+        list_id: editingBandListId,
+        band_id: currentBand.id,
+        ...listData,
+        manager_user_ids: selectedListManagers()
+      }
     );
 
-  if (managerResult.error) {
+  if (result.error) {
     showNotice(
-      "La lista se guardó, pero no se pudieron actualizar sus responsables: " +
-      managerResult.error.message,
+      result.error.message,
       "error"
     );
     return;
   }
-
   const wasEditing =
     Boolean(editingBandListId);
 

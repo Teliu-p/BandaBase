@@ -210,47 +210,39 @@ async function getBandListManagersByListIds(
 }
 
 
-async function replaceBandListManagers(
+async function saveBandListWithManagers(
   supabaseClient,
-  listId,
-  userIds
+  listData
 ) {
-  const {
-    error: deleteError
-  } = await supabaseClient
-    .from("band_list_managers")
-    .delete()
-    .eq("list_id", listId);
-
-  if (deleteError) {
-    return { data: null, error: deleteError };
-  }
-
-  const ids = [
-    ...new Set(
-      (userIds || [])
+  return await supabaseClient.rpc(
+    "save_band_list_with_managers",
+    {
+      p_list_id: listData.list_id ?? null,
+      p_band_id: listData.band_id ?? currentBand?.id ?? null,
+      p_title: listData.title,
+      p_status: listData.status ?? "Planificada",
+      p_notes: listData.notes ?? null,
+      p_instrument_slots: listData.instrument_slots ?? {},
+      p_manager_user_ids: (listData.manager_user_ids || [])
         .filter(Boolean)
-        .filter(
-          userId =>
-            userId !== currentUser?.id
-        )
-    )
-  ];
+    }
+  );
+}
 
-  if (!ids.length) {
-    return { data: [], error: null };
-  }
-
-  const rows = ids.map(userId => ({
-    list_id: listId,
-    user_id: userId,
-    created_by: currentUser.id
-  }));
-
-  return await supabaseClient
-    .from("band_list_managers")
-    .insert(rows)
-    .select(BAND_LIST_MANAGER_COLUMNS);
+async function replaceSongListAssignments(
+  supabaseClient,
+  songId,
+  addListIds,
+  removeListIds
+) {
+  return await supabaseClient.rpc(
+    "replace_song_list_assignments",
+    {
+      p_song_id: songId,
+      p_add_list_ids: [...new Set((addListIds || []).filter(Boolean))],
+      p_remove_list_ids: [...new Set((removeListIds || []).filter(Boolean))]
+    }
+  );
 }
 
 
