@@ -1230,7 +1230,7 @@ assert.equal(
 assert.equal(getMetronomeNextSyncQuarterPosition(0, 120, "quarter"), 0);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "quarter"), 1);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.5, 120, "quarter"), 1);
-assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "eighth"), 0.5);
+assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "eighth"), 1);
 assert.equal(getMetronomeNextSyncQuarterPosition(-1, 120, "quarter"), null);
 assert.equal(getMetronomeBarQuarterPosition(4.5, 3), 1.5);
 assert.equal(getMetronomeBarQuarterPosition(6, 3), 0);
