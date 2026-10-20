@@ -3251,8 +3251,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1em;
+  height: 1em;
   vertical-align: middle;
 }
 
@@ -3318,6 +3318,7 @@
   min-height: 220px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  line-height: 1.6;
 }
 
 .material-composer-editor strong,
