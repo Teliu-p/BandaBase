@@ -419,10 +419,44 @@ function setMaterialNotationDotPending(isPending) {
 }
 
 
+function combineAdjacentMaterialNotationPairsAtCaret(editor) {
+  const selection = window.getSelection();
+  if (!editor || !selection?.rangeCount) return;
+
+  const range = selection.getRangeAt(0).cloneRange();
+  if (!editor.contains(range.startContainer)) return;
+
+  range.collapse(true);
+  const marker = document.createElement("span");
+  marker.setAttribute("aria-hidden", "true");
+  range.insertNode(marker);
+
+  const parent = marker.parentNode;
+  parent?.normalize();
+
+  const textBeforeCaret = marker.previousSibling;
+  if (textBeforeCaret?.nodeType === Node.TEXT_NODE) {
+    textBeforeCaret.nodeValue = combineMaterialNotationPairs(
+      textBeforeCaret.nodeValue || ""
+    );
+
+    const caretRange = document.createRange();
+    caretRange.setStart(textBeforeCaret, textBeforeCaret.nodeValue.length);
+    caretRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caretRange);
+    materialSelectionRange = caretRange.cloneRange();
+  }
+
+  marker.remove();
+}
+
+
 function insertMaterialNotation(notationKey, button = null) {
+  const dotWasPending = materialNotationDotPending;
   const symbol = getMaterialNotationSymbol(
     notationKey,
-    materialNotationDotPending
+    dotWasPending
   );
 
   if (!symbol || !focusMaterialEditorForFormatting()) {
@@ -433,7 +467,10 @@ function insertMaterialNotation(notationKey, button = null) {
     document.createTextNode(symbol)
   );
 
-  if (materialNotationDotPending) {
+  const editor = document.getElementById("materialComposerEditor");
+  combineAdjacentMaterialNotationPairsAtCaret(editor);
+
+  if (dotWasPending) {
     setMaterialNotationDotPending(false);
   }
 
@@ -441,7 +478,6 @@ function insertMaterialNotation(notationKey, button = null) {
     showMaterialFormatActionFeedback(button);
   }
 
-  const editor = document.getElementById("materialComposerEditor");
   editor?.focus();
   rememberMaterialSelection();
   return true;
@@ -812,27 +848,86 @@ function toggleMaterialIndent(forceIndent = true) {
 }
 
 
-function executeMaterialNumericShortcut(action) {
+function clearMaterialFormatting() {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor || !focusMaterialEditorForFormatting()) return false;
+
+  setMaterialNotationDotPending(false);
+
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return false;
+
+  try {
+    if (document.queryCommandState("bold")) {
+      document.execCommand("bold", false, null);
+    }
+    if (document.queryCommandState("italic")) {
+      document.execCommand("italic", false, null);
+    }
+    document.execCommand("removeFormat", false, null);
+    document.execCommand("fontSize", false, "3");
+  } catch (error) {
+    console.error("No se pudo restablecer el formato de Materiales:", error);
+  }
+
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) {
+    const sizeElement = getMaterialTextSizeElementForRange(range, editor);
+    if (sizeElement) {
+      sizeElement.classList.remove(
+        "material-text-size-1",
+        "material-text-size-2"
+      );
+    }
+  } else {
+    const exactSizeElement = getMaterialTextSizeElementForRange(
+      range,
+      editor,
+      true
+    );
+    if (exactSizeElement) {
+      exactSizeElement.className = "material-text-size-normal";
+    }
+  }
+
+  updateMaterialFormattingButtonStates();
+  rememberMaterialSelection();
+  return true;
+}
+
+
+function executeMaterialKeyboardShortcut(action) {
   const editor = document.getElementById("materialComposerEditor");
   if (!editor) return false;
 
+  if (action === "clearFormatting") {
+    return clearMaterialFormatting();
+  }
   if (action === "indentMore") {
     return toggleMaterialIndent(true);
   }
+  if (action === "indentLess") {
+    return toggleMaterialIndent(false);
+  }
 
   const buttonByAction = {
-    bold: "materialBoldBtn",
-    italic: "materialItalicBtn",
-    parentheses: "materialParenthesesBtn",
-    brackets: "materialBracketsBtn",
-    size1: "materialSize1Btn",
-    size2: "materialSize2Btn",
-    noteQuarter: "materialNoteQuarterBtn",
+    noteSixteenth: "materialNoteSixteenthBtn",
     noteEighth: "materialNoteEighthBtn",
-    noteSixteenth: "materialNoteSixteenthBtn"
+    noteQuarter: "materialNoteQuarterBtn",
+    noteHalf: "materialNoteHalfBtn",
+    noteWhole: "materialNoteWholeBtn",
+    restSixteenth: "materialRestSixteenthBtn",
+    restEighth: "materialRestEighthBtn",
+    restQuarter: "materialRestQuarterBtn",
+    restHalf: "materialRestHalfBtn",
+    restWhole: "materialRestWholeBtn",
+    notationDot: "materialNotationDotBtn",
+    audioMarker: "materialAudioMarkerBtn"
   };
 
-  const button = document.getElementById(buttonByAction[action]);
+  const buttonId = buttonByAction[action];
+  if (!buttonId) return false;
+  const button = document.getElementById(buttonId);
   if (!button) return false;
   button.click();
   return true;
@@ -1310,12 +1405,12 @@ document
     function(event) {
 
       const shortcutAction =
-        getMaterialNumericShortcutAction(event);
+        getMaterialShortcutAction(event);
 
       if (shortcutAction) {
         event.preventDefault();
         rememberMaterialSelection();
-        executeMaterialNumericShortcut(shortcutAction);
+        executeMaterialKeyboardShortcut(shortcutAction);
         return;
       }
 
