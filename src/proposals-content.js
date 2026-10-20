@@ -469,6 +469,7 @@ function renderProposalContent(proposal) {
         attachment.id
       ) {
         html +=
+          '<span class="proposal-inline-file-actions">' +
           '<button type="button" class="proposal-inline-resource proposal-file-open" data-open-proposal-attachment="' +
           escapeHtml(attachment.id) +
           '">' +
@@ -491,7 +492,13 @@ function renderProposalContent(proposal) {
                 )
               : ""
           ) +
-          " ↗</button>";
+          " ↗</button>" +
+          '<button type="button" class="proposal-inline-resource proposal-file-download" data-download-proposal-attachment="' +
+          escapeHtml(attachment.id) +
+          '" aria-label="Descargar ' +
+          escapeHtml(attachment.file_name || attachment.title || "Archivo") +
+          '" title="Descargar archivo">↓ Descargar</button>' +
+          '</span>';
       } else {
         html +=
           icon +
