@@ -1937,7 +1937,7 @@ assert.match(materialEditorSource,
   /function insertMaterialNotation\([\s\S]*?materialNotationDotPending[\s\S]*?createMaterialNotationElement/,
   "La inserción de figuras debe consultar el estado del puntillo y crear un icono vectorial.");
 assert.match(materialEditorSource,
-  /function insertMaterialNotation\([\s\S]*?combineAdjacentMaterialNotationPairsAtCaret\(editor\)/,
+  /function insertMaterialNotation\([\s\S]*?combineAdjacentMaterialNotationPairsAtCaret\(editor,\s*insertedNotation\)/,
   "Al insertar una figura, el editor debe recomponer las parejas consecutivas de corcheas y semicorcheas.");
 assert.match(materialEditorSource, /setMaterialNotationDotPending\(false\)/,
   "El puntillo debe desactivarse tras insertar la siguiente figura o silencio.");
