@@ -280,6 +280,13 @@ document
         return;
       }
 
+      const sizeError = getStorageUploadSizeError(file);
+      if (sizeError) {
+        this.value = "";
+        showNotice(sizeError, "error");
+        return;
+      }
+
       const pendingKey =
         crypto.randomUUID();
 
