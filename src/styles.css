@@ -3259,17 +3259,17 @@
 .material-notation-symbol {
   display: inline-block;
   box-sizing: border-box;
-  width: 1.35em;
-  height: 1.35em;
+  width: .72em;
+  height: .72em;
   margin: 0 .04em;
   color: inherit;
   line-height: 1;
-  vertical-align: -.28em;
+  vertical-align: baseline;
   white-space: nowrap;
 }
 
 .material-notation-symbol[data-material-notation$="Pair"] {
-  width: 1.55em;
+  width: .86em;
 }
 
 .material-notation-svg {

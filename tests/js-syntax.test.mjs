@@ -1962,8 +1962,13 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\s*\{[\s\S]*?height:\s*1\.35em/,
-  "Los iconos de figuras dentro del renglón deben ocupar aproximadamente el 85% de la altura de línea."
+  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.72em[\s\S]*?height:\s*\.72em[\s\S]*?vertical-align:\s*baseline/,
+  "Las figuras dentro del renglón deben limitarse a la altura visual de una mayúscula y alinearse a la línea base."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.86em/,
+  "Las parejas pueden ocupar más ancho, pero deben conservar el mismo límite de altura que una figura individual."
 );
 assert.match(
   materialNotationCss,
