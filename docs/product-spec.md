@@ -62,7 +62,7 @@ BandaBase organiza el trabajo musical de una banda de iglesia: catálogo, prepar
 - Mejorar el volumen percibido del metrónomo mediante una ganancia ajustable. La ganancia de pistas de audio debe investigarse aparte y solo activarse si el procesamiento funciona con CORS en los objetos de Storage y conserva un fallback de reproducción nativa.
 - Cargar audio/metadatos de forma perezosa para cuidar datos y almacenamiento; no precargar medios pesados innecesariamente.
 - Formato deseado: negrita, cursiva, resaltado, paréntesis, corchetes y dos niveles de ampliación de tamaño que se puedan alternar/desactivar.
-- Insertar figuras musicales (negra, corchea, semicorchea y futuras variantes) en el punto actual del cursor para escribir ritmos y tiempos dentro de Materiales.
+- Insertar en el punto actual del cursor semicorchea, corchea, negra, blanca y redonda, sus cinco silencios equivalentes, y un puntillo activable para la siguiente figura o silencio. Guardar los símbolos dentro del rich text existente, sin tablas ni migraciones nuevas.
 - La sangría debe mover texto añadiendo o quitando espacios reales de a uno por acción. Si hay texto seleccionado en varias líneas, cada línea debe avanzar un espacio; mantener presionado el botón repite la acción y acelera progresivamente. No usar bloques grandes de margen/blockquote para simular espacios.
 - Permitir atajos numéricos para herramientas del editor sin interferir con números escritos normalmente.
 - Los adjuntos insertados en línea deben tener altura acotada a un renglón; el nombre puede truncarse, pero el chip de archivo no debe estirar la distancia vertical del texto que comparte línea.
