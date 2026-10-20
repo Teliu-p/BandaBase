@@ -117,7 +117,7 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - La revisión confirmó que el retraso inicial proviene de programar el primer clic a `AudioContext.currentTime + 0.05`; el horizonte de 120 ms se usa para preparar clics posteriores y evitar jitter. El seguimiento reduce solo el adelanto inicial a 10 ms.
 - La sincronización no usa análisis de forma de onda ni detección automática de tempo. Reutiliza el BPM/métrica de la canción y el `currentTime` del audio de referencia; sigue reproducción, pausa, búsqueda, saltos de marcador y velocidad de reproducción. La opción es desactivable y el modo independiente se conserva.
 - Solo se sincroniza con un audio de referencia a la vez para evitar una fase ambigua. Los clics futuros se cancelan al pausar o buscar para no producir golpes desfasados.
-- Rama: `feat/metronome-audio-sync-20261019`. Pendiente de CI y prueba manual de reproducción real antes de integrar. No se cambian Supabase, Storage, datos, RLS ni migraciones.
+- PR #112: https://github.com/Teliu-p/BandaBase/pull/112, rama `feat/metronome-audio-sync-20261019`. La CI pasó en https://github.com/Teliu-p/BandaBase/actions/runs/39350085636; falta la prueba manual de reproducción real antes de integrar. No se cambian Supabase, Storage, datos, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
 
