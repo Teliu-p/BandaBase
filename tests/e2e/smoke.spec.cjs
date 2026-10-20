@@ -97,6 +97,90 @@ test("musical notation toolbar renders portable SVG icons", async ({ page }) => 
   expect(runtimeErrors, "JavaScript errors while drawing musical notation").toEqual([]);
 });
 
+
+test("outdent removes indentation from every selected material line after DOM text splits", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(() => {
+    const editor = document.getElementById("materialComposerEditor");
+    editor.replaceChildren();
+    const initialText = document.createTextNode("Primera\\nSegunda\\nTercera");
+    editor.appendChild(initialText);
+    editor.focus();
+
+    const range = document.createRange();
+    range.setStart(initialText, 0);
+    range.setEnd(initialText, initialText.length);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    rememberMaterialSelection();
+
+    const indented = changeMaterialIndentSpaces(1);
+    const afterIndent = editor.textContent;
+
+    const outdented = changeMaterialIndentSpaces(-1);
+    return {
+      indented,
+      outdented,
+      afterIndent,
+      afterOutdent: editor.textContent
+    };
+  });
+
+  expect(result.indented).toBe(true);
+  expect(result.afterIndent).toBe("\\u00a0Primera\\n\\u00a0Segunda\\n\\u00a0Tercera");
+  expect(result.outdented).toBe(true);
+  expect(result.afterOutdent).toBe("Primera\\nSegunda\\nTercera");
+  expect(runtimeErrors, "JavaScript errors in multiline outdent").toEqual([]);
+});
+
+test("Alt+1 through Alt+6 apply the six material text-format actions", async ({ page }) => {
+  await openApp(page);
+
+  const cases = await page.evaluate(() => {
+    const editor = document.getElementById("materialComposerEditor");
+    const results = [];
+
+    for (const [digit, code] of [
+      ["1", "Digit1"],
+      ["2", "Digit2"],
+      ["3", "Digit3"],
+      ["4", "Digit4"],
+      ["5", "Digit5"],
+      ["6", "Digit6"]
+    ]) {
+      editor.replaceChildren(document.createTextNode("Objetivo"));
+      editor.focus();
+      const textNode = editor.firstChild;
+      const range = document.createRange();
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, textNode.length);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      rememberMaterialSelection();
+
+      editor.dispatchEvent(new KeyboardEvent("keydown", {
+        key: digit,
+        code,
+        altKey: true,
+        bubbles: true,
+        cancelable: true
+      }));
+      results.push({ digit, html: editor.innerHTML });
+    }
+    return results;
+  });
+
+  expect(cases[0].html).toMatch(/<(?:b|strong)\\b/i);
+  expect(cases[1].html).toMatch(/<(?:i|em)\\b/i);
+  expect(cases[2].html).toContain("(Objetivo)");
+  expect(cases[3].html).toContain("[Objetivo]");
+  expect(cases[4].html).toContain("material-text-size-1");
+  expect(cases[5].html).toContain("material-text-size-2");
+});
+
 test("password mismatch is rejected before an auth request is made", async ({ page }) => {
   await openApp(page);
 
