@@ -1013,6 +1013,13 @@ function bindCommentComposer(type) {
 
       if (!file) return;
 
+      const sizeError = getStorageUploadSizeError(file);
+      if (sizeError) {
+        fileInput.value = "";
+        showNotice(sizeError, "error");
+        return;
+      }
+
       const pendingKey =
         crypto.randomUUID();
 
