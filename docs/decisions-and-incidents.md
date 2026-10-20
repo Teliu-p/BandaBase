@@ -133,13 +133,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - PR #114 fue fusionada como `ddaf9a073b5fbf5def723e4bbab02781ba439800`: https://github.com/Teliu-p/BandaBase/pull/114. Restaura velocidades de audio 25–200% con valores personalizados y conservación de afinación solicitada mediante `preservesPitch`, añade descargas de archivos adjuntos en Materiales, comentarios y Propuestas, y corrige la calibración cuando el audio corre a una velocidad distinta de 1×.
 - CI de PR pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium en https://github.com/Teliu-p/BandaBase/actions/runs/39364274394. Sigue pendiente una prueba manual autenticada de descarga y una prueba audible de sincronización durante varios minutos. No se modificó esquema, datos, políticas, RLS, migraciones ni los objetos de Storage de Supabase. Confirmar los workflows de main tras el merge.
 
-### 2026-10-20 — figuras musicales, silencios y puntillo (PR #115 abierta)
+### 2026-10-20 — figuras musicales, silencios y puntillo (PR #115 fusionada)
 
 PR: https://github.com/Teliu-p/BandaBase/pull/115.
 
 - La barra de Materiales pasa a incluir cinco figuras (semicorchea, corchea, negra, blanca y redonda), los cinco silencios equivalentes y un botón de puntillo.
 - El puntillo queda activado de forma visual y accesible hasta insertar la próxima figura o silencio; tras la inserción se desactiva. Los símbolos se guardan como caracteres musicales Unicode en el bloque de rich text ya existente.
-- Se conservan los IDs y atajos Alt+7/8/9 de negra, corchea y semicorchea. No se modifica Supabase, esquema, datos, políticas, RLS, Storage ni migraciones. Confirmar CI y estado de la PR antes de afirmar que está publicado.
+- Se conservan los IDs y atajos Alt+7/8/9 de negra, corchea y semicorchea. PR #115 fue fusionada como `b96bd579234c86f99d89c693bba9727fa21761c2`; Tests y Pages de main pasaron ([Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39386371929), [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39386371276)). No se modificó Supabase, esquema, datos, políticas, RLS, Storage ni migraciones. Queda por comprobar visualmente el renderizado real de los símbolos musicales.
 
 ## Formato recomendado para agregar incidentes
 
