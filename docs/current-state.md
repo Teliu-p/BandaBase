@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-20, Argentina.  
-**Último cambio funcional fusionado:** `5ab8c9960967a8ada41575ad5a2298a3db2a71da` (PR #117, 2026-10-20). Tests de main y Pages pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39394884228) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39394883455).  
+**Último cambio funcional fusionado:** `b4df67ce393a6d199fa1fa436c67b95dcf59ab78` (PR #119, 2026-10-20). CI de la PR pasó; los workflows de main están verificándose: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39439995769) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39439993920).  
 **Commit base previo a la corrección de esta PR:** `87c90709d2b689860f20029ca7c03033137f1955`.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -60,12 +60,12 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Atajos: Alt+1–6 conserva funciones; Alt+Q/W/E/R/T inserta figuras; Alt+A/S/D/F/G inserta silencios; Alt+Z puntillo; Alt+X marcador; Alt+C/Alt+V agrega/quita sangría; Alt+0 restablece el formato normal y desactiva el puntillo.
 - PR #117 fue fusionada como `5ab8c9960967a8ada41575ad5a2298a3db2a71da`. Pasaron Tests y Pages de main para ese SHA. Falta comprobar manualmente el renderizado real de los glifos; no se cambia Supabase ni sus migraciones.
 
-## 3D. Notación musical vectorial y compatibilidad de fuentes (PR en curso)
+## 3D. Notación musical vectorial y compatibilidad de fuentes (PR #119 fusionada)
 
-- La rama `fix/materials-portable-notation-20261020` reemplaza la visualización de figuras y silencios por SVG inline generado desde una lista permitida. El objetivo es evitar los rectángulos vacíos cuando el sistema no dispone de glifos para el bloque Unicode Musical Symbols.
+- La PR #119 (https://github.com/Teliu-p/BandaBase/pull/119), rama `fix/materials-portable-notation-20261020`, fue fusionada como `b4df67ce393a6d199fa1fa436c67b95dcf59ab78`. Reemplaza la visualización de figuras y silencios por SVG inline generado desde una lista permitida para no depender de fuentes musicales instaladas.
 - Los símbolos nuevos se guardan como `span` canónicos con una clave validada; el SVG no se acepta desde contenido arbitrario. El renderizador también convierte los caracteres Unicode viejos, incluidos puntillos y parejas de corcheas/semicorcheas, para que los materiales existentes sigan viéndose.
 - El icono dentro del renglón mide 1,35 em frente a una línea de 1,6 em (aprox. 85%). Los botones conservan su tamaño actual. No se toca Supabase, Storage, políticas ni migraciones.
-- La PR y su CI todavía deben validarse; no considerar el arreglo publicado hasta comprobar el HEAD de main y el deploy de Pages. La prueba de Chromium automática puede confirmar la carga, pero no sustituye la inspección visual en una computadora sin la fuente musical.
+- La CI de la PR pasó las regresiones, ESLint y smoke tests de Chromium; Tests y Pages del merge de main están verificándose. La prueba de Chromium automatizada confirma que se generan los diez SVG, pero no sustituye la inspección visual en la computadora afectada.
 
 ## 4. Incidente de guardado de Materiales con audios
 
