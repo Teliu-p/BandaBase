@@ -141,6 +141,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 - El puntillo queda activado de forma visual y accesible hasta insertar la próxima figura o silencio; tras la inserción se desactiva. Los símbolos se guardan como caracteres musicales Unicode en el bloque de rich text ya existente.
 - Se conservan los IDs y atajos Alt+7/8/9 de negra, corchea y semicorchea. PR #115 fue fusionada como `b96bd579234c86f99d89c693bba9727fa21761c2`; Tests y Pages de main pasaron ([Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39386371929), [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39386371276)). No se modificó Supabase, esquema, datos, políticas, RLS, Storage ni migraciones. Queda por comprobar visualmente el renderizado real de los símbolos musicales.
 
+### 2026-10-20 — agrupación visual de corcheas/semicorcheas y atajos (PR #117 abierta)
+
+- El cambio previo sustituyó los caracteres familiares por glifos Unicode de figura individual; además, el compositor inserta espacios de separación alrededor de cada figura, por lo que dos corcheas o semicorcheas dejaron de verse agrupadas. Se corrige al componer en el texto una pareja visual con `♫` (dos corcheas) o `♬` (dos semicorcheas), solo cuando son consecutivas y sin puntillo. No se agrupan negras, blancas, redondas ni silencios.
+- Los botones de figuras de la barra aumentan de tamaño; el tamaño de las figuras en el propio renglón permanece igual.
+- PR #117: https://github.com/Teliu-p/BandaBase/pull/117. Renueva los atajos de teclado según el mapeo en la especificación del producto y asigna Alt+0 al reinicio de formato y puntillo. La CI y la inspección visual del diff siguen pendientes. No se cambia Supabase, datos, políticas, RLS, Storage ni migraciones.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
