@@ -1137,7 +1137,10 @@ const {
   getMetronomeBarQuarterNotes,
   getMetronomeGroupStartPositions,
   getMetronomeSubdivisionQuarterNotes,
-  getMetronomeClickIntervalSeconds
+  getMetronomeClickIntervalSeconds,
+  getMetronomeNextSyncQuarterPosition,
+  getMetronomeBarQuarterPosition,
+  getMetronomeSyncClickContextTime
 } = loadPureFunctions(
   "src/metronome.js",
   [
@@ -1145,7 +1148,10 @@ const {
     "getMetronomeBarQuarterNotes",
     "getMetronomeGroupStartPositions",
     "getMetronomeSubdivisionQuarterNotes",
-    "getMetronomeClickIntervalSeconds"
+    "getMetronomeClickIntervalSeconds",
+    "getMetronomeNextSyncQuarterPosition",
+    "getMetronomeBarQuarterPosition",
+    "getMetronomeSyncClickContextTime"
   ]
 );
 
@@ -1219,6 +1225,54 @@ assert.equal(
 assert.equal(
   getMetronomeClickIntervalSeconds(120, "eighth"),
   0.25
+);
+
+assert.equal(getMetronomeNextSyncQuarterPosition(0, 120, "quarter"), 0);
+assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "quarter"), 1);
+assert.equal(getMetronomeNextSyncQuarterPosition(0.5, 120, "quarter"), 1);
+assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "eighth"), 0.5);
+assert.equal(getMetronomeNextSyncQuarterPosition(-1, 120, "quarter"), null);
+assert.equal(getMetronomeBarQuarterPosition(4.5, 3), 1.5);
+assert.equal(getMetronomeBarQuarterPosition(6, 3), 0);
+assert.equal(getMetronomeBarQuarterPosition(3, 0), null);
+assert.equal(getMetronomeSyncClickContextTime(2, 5, 120, 1, 10), 10.5);
+assert.equal(getMetronomeSyncClickContextTime(2, 5, 120, 2, 10), 10.25);
+assert.equal(getMetronomeSyncClickContextTime(2.499, 5, 120, 1, 10), 10.01);
+assert.equal(getMetronomeSyncClickContextTime(-1, 5, 120, 1, 10), null);
+
+const metronomeSource = readFileSync(
+  join(srcDir, "metronome.js"),
+  "utf8"
+);
+assert.match(
+  metronomeSource,
+  /METRONOME_INITIAL_CLICK_LEAD_SECONDS\s*=\s*0\.01/,
+  "El primer clic debe programarse con una anticipación inicial mínima, no 50 ms."
+);
+assert.match(
+  metronomeSource,
+  /METRONOME_SCHEDULE_AHEAD_SECONDS\s*=\s*0\.12/,
+  "El planificador debe conservar su anticipación para mantener la regularidad."
+);
+assert.match(
+  metronomeSource,
+  /function scheduleMetronomeAhead\([\s\S]*?if \(metronomeSyncEnabled\)[\s\S]*?player\.currentTime[\s\S]*?getMetronomeSyncClickContextTime[\s\S]*?playbackRate/,
+  "El metrónomo sincronizado debe calcular cada clic usando la posición y velocidad del audio."
+);
+assert.match(
+  metronomeSource,
+  /function handleMetronomeSyncAudioEvent\([\s\S]*?event\.type === "play"[\s\S]*?event\.type === "seeking"[\s\S]*?event\.type === "seeked"[\s\S]*?event\.type === "pause" \|\| event\.type === "ended"/,
+  "La sincronización debe seguir reproducción, búsqueda, pausa y fin del audio."
+);
+assert.match(
+  metronomeSource,
+  /function cancelScheduledMetronomeSounds\([\s\S]*?oscillator\.stop\(now\)/,
+  "Al pausar o buscar el audio, hay que cancelar clics ya programados para evitar latigazos fuera de fase."
+);
+assert.match(
+  readFileSync(indexPath, "utf8"),
+  /id="metronomeSyncAudioInput" type="checkbox"/,
+  "La interfaz debe permitir activar o desactivar la sincronización con audio."
 );
 
 const {
