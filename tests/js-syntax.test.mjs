@@ -1771,11 +1771,52 @@ assert.match(
   "La barra del editor debe exponer la herramienta de insertar marcadores."
 );
 
+const materialToolbarHtml = readFileSync(join(root, "index.html"), "utf8");
 assert.match(
-  readFileSync(join(root, "index.html"), "utf8"),
-  /id="materialNoteQuarterBtn"[\s\S]*?id="materialNoteEighthBtn"[\s\S]*?id="materialNoteSixteenthBtn"/,
-  "La barra de Materiales debe ofrecer negra, corchea y semicorchea."
+  materialToolbarHtml,
+  /id="materialNoteSixteenthBtn"[\s\S]*?id="materialNoteEighthBtn"[\s\S]*?id="materialNoteQuarterBtn"[\s\S]*?id="materialNoteHalfBtn"[\s\S]*?id="materialNoteWholeBtn"/,
+  "La barra de Materiales debe ofrecer semicorchea, corchea, negra, blanca y redonda en ese orden."
 );
+assert.match(
+  materialToolbarHtml,
+  /id="materialRestSixteenthBtn"[\s\S]*?id="materialRestEighthBtn"[\s\S]*?id="materialRestQuarterBtn"[\s\S]*?id="materialRestHalfBtn"[\s\S]*?id="materialRestWholeBtn"/,
+  "La barra de Materiales debe ofrecer los cinco silencios en el mismo orden."
+);
+assert.match(
+  materialToolbarHtml,
+  /id="materialNotationDotBtn"[^>]*aria-pressed="false"[\s\S]*?id="materialAudioMarkerBtn"/,
+  "La barra debe incluir un control accesible de puntillo y conservar el marcador de audio."
+);
+
+const { getMaterialNotationSymbol } = loadPureFunctions(
+  "src/materials-formatting.js",
+  ["getMaterialNotationSymbol"]
+);
+const materialNotationTestCases = [
+  ["noteSixteenth", "\u{1D161}"],
+  ["noteEighth", "\u{1D160}"],
+  ["noteQuarter", "\u{1D15F}"],
+  ["noteHalf", "\u{1D15E}"],
+  ["noteWhole", "\u{1D15D}"],
+  ["restSixteenth", "\u{1D13F}"],
+  ["restEighth", "\u{1D13E}"],
+  ["restQuarter", "\u{1D13D}"],
+  ["restHalf", "\u{1D13C}"],
+  ["restWhole", "\u{1D13B}"]
+];
+for (const [notationKey, expectedSymbol] of materialNotationTestCases) {
+  assert.equal(getMaterialNotationSymbol(notationKey), expectedSymbol,
+    "Debe devolver el símbolo musical correcto para " + notationKey + ".");
+  assert.equal(getMaterialNotationSymbol(notationKey, true), expectedSymbol + "\u{1D16D}",
+    "Debe añadir el puntillo a " + notationKey + ".");
+}
+assert.equal(getMaterialNotationSymbol("unknownNotation"), "",
+  "Una clave de figura desconocida no debe insertar texto.");
+assert.match(materialEditorSource,
+  /getMaterialNotationSymbol\([\s\S]*?materialNotationDotPending/,
+  "La inserción de figuras debe consultar el estado del puntillo.");
+assert.match(materialEditorSource, /setMaterialNotationDotPending\(false\)/,
+  "El puntillo debe desactivarse tras insertar la siguiente figura o silencio.");
 assert.match(
   readFileSync(join(root, "index.html"), "utf8"),
   /id="metronomeVolumeInput"[\s\S]*?min="50"[\s\S]*?max="200"/,
