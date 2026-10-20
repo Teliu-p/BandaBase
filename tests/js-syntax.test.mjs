@@ -1893,7 +1893,7 @@ const {
 for (const [notationKey] of materialNotationTestCases) {
   assert.match(
     getMaterialNotationSvgMarkup(notationKey),
-    /^<svg[\\s\\S]*<\\/svg>$/,
+    /^<svg[\s\S]*<\/svg>$/,
     "La figura " + notationKey + " debe dibujarse con SVG y no depender de una fuente musical instalada."
   );
   assert.match(
