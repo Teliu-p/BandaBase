@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** main `ddaf9a073b5fbf5def723e4bbab02781ba439800`, inspeccionada el 2026-10-20 tras integrar la PR #114. Verificar el HEAD real y el orden de scripts antes de futuros cambios.
+**Base funcional de observación:** main `d7225cd978d27119a27de6aea91af6031e87b674`, inspeccionada el 2026-10-20 tras las PR #123–#131. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 
@@ -134,3 +134,12 @@ Todas las tablas públicas devueltas por la inspección de Supabase tenían RLS 
 - .github/workflows/tests.yml: ejecuta npm test, ESLint y Playwright/Chromium en pull request y push a main.
 
 La CI verde es evidencia valiosa, pero no equivale a cubrir todos los flujos ni a probar permisos con varias cuentas reales.
+
+## 10. Operaciones SQL transaccionales introducidas el 2026-10-20
+
+- `save_band_list_with_managers(p_list_id, p_band_id, p_title, p_status, p_notes, p_instrument_slots, p_manager_user_ids)`: crea/actualiza una lista y reemplaza sus responsables dentro de una única transacción.
+- `replace_song_list_assignments(p_song_id, p_add_list_ids, p_remove_list_ids)`: valida banda, permisos y listas activas antes de aplicar altas/bajas.
+- `save_song_with_singers(p_song_id, p_song_data, p_singers)`: guarda campos escalares y relación de cantantes/tonalidades en una única transacción.
+- `trash_comments_bulk(p_comment_ids)`: valida todos los comentarios seleccionados y mueve todo el conjunto a papelera, o falla sin actualizaciones parciales.
+
+Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a anon. Sus migraciones remotas, por orden: `20261020232312`, `20261020232328`, `20261020232333`.

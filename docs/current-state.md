@@ -1,8 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última inspección:** 2026-10-20, Argentina.  
-**Último cambio funcional fusionado:** `b4df67ce393a6d199fa1fa436c67b95dcf59ab78` (PR #119, 2026-10-20). CI de la PR pasó; los workflows de main están verificándose: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39439995769) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39439993920).  
-**Commit base previo a la corrección de esta PR:** `87c90709d2b689860f20029ca7c03033137f1955`.  
+**Última actualización:** 2026-10-20, Argentina.  
+**Último cambio funcional fusionado antes de esta actualización documental:** `d7225cd978d27119a27de6aea91af6031e87b674` (PR #131); su CI pasó. Los flujos de GitHub Actions se ejecutaron para las PR #123, #124, #126–#131 y pasaron. No se infiere por eso que se probaron todas las funciones con cuentas reales.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
@@ -139,3 +138,34 @@ Errores que aparecieron en iteraciones previas: canManageComment is not defined;
 ## 11. Actualización de este archivo
 
 Cada cambio que modifique el estado abierto debe ajustar esta página en la misma PR. Una incidencia queda cerrada solo si existe evidencia concreta de su resolución. Los recuentos, SHA, estado de PR y lints son fotografías y se tienen que consultar de nuevo antes de actuar.
+
+## 12. Estado tras auditoría exhaustiva y correcciones (2026-10-20)
+
+### Cambios fusionados y comprobados por CI
+
+- **PR #123:** corrige la sangría inversa en varias líneas cuando el navegador divide nodos de texto; restaura Alt+1–6 para negrita, cursiva, paréntesis, corchetes, A+ y A++. Pruebas de regresión Playwright cubren tres líneas y los seis atajos.
+- **PR #124:** reemplaza la política SELECT de Storage con comprobación del registro padre y su estado activo; consolida las políticas permisivas UPDATE de `band_list_items`; crea índices para las 26 claves foráneas que el asesor señalaba.
+- **PR #126:** fija el CDN del cliente `@supabase/supabase-js@2.118.0`.
+- **PR #127:** evita respuestas atrasadas de Materiales, Comentarios y Comparación que sobrescriban la canción activa; serializa sesión nueva y descarta el estado anterior.
+- **PR #128:** añade RPC transaccionales para guardar los datos de la lista con sus responsables y cambiar una canción entre varias listas.
+- **PR #129:** valida en el cliente el límite de 50 MiB antes de aceptar adjuntos en Materiales, Comentarios y Propuestas.
+- **PR #130:** actualiza campos de canción y relación `song_singers` en una transacción; elimina comentarios múltiples en una sola operación que falla completa si un ID no es visible, ya fue borrado o no se puede modificar.
+- **PR #131:** serializa `initializeApp()` entre cambios de usuario/logout y captura excepciones de red de login, signup y logout.
+
+### Migraciones aplicadas a Supabase
+
+La transacción de validación conjunta pasó con rol `authenticated` y acabó en `ROLLBACK`, sin mantener los datos de prueba. Después se aplicaron, en orden, estas tres migraciones:
+
+- `20261020232312_harden_storage_and_list_item_policies.sql`
+- `20261020232328_atomic_list_editor_and_song_assignments.sql`
+- `20261020232333_atomic_song_and_comment_bulk_writes.sql`
+
+Verificación post-aplicación: la política SELECT de Storage y la política UPDATE de `band_list_items` quedan cada una en una sola política con esos nombres; las cuatro RPC nuevas existen como SECURITY INVOKER y EXECUTE no se concede a `anon`/PUBLIC; las 26 claves foráneas señaladas ahora tienen un índice de cobertura. El asesor de rendimiento aún informa índices nunca usados (esperable en una base de muy poco volumen recién indexada) y políticas múltiples en otras entidades; no eliminar índices por el aviso de uso sin revisar volumen real y planes de consulta.
+
+### Pendientes con evidencia actual
+
+- **Límite real de Storage:** bucket privado `materials` sigue mostrando `file_size_limit = null` y `allowed_mime_types = null`. El límite de 50 MiB añadido a la UI no reemplaza el límite del servidor. La configuración de bucket debe ajustarse desde la configuración/API de Storage cuando se disponga de esa operación; no actualizar tablas internas administradas por SQL.
+- **Auth:** sigue activo el aviso `auth_leaked_password_protection`. Los avisos de `is_band_member` y `get_proposal_vote_stats` como SECURITY DEFINER disponibles a usuarios autenticados permanecen sin cambios; inspeccionamos sus definiciones y no encontramos una vulnerabilidad confirmada, pero su superficie debe seguir revisándose.
+- **Migraciones históricas:** los 44 registros remotos previos coincidían con el estado documentado; las tres nuevas versiones se registraron correctamente y su nombre local se alinea en esta rama con la versión remota. La discrepancia histórica anterior de 12 archivos locales sin una fila remota equivalente sigue abierta como asunto independiente; no ejecutar `db push`, no insertar versiones manualmente y no borrar SQL histórico para esconderla.
+- **Prueba funcional real:** la CI usa un stub de Auth. Las pruebas simulan respuestas y transacciones autenticadas en SQL, pero aún conviene hacer una pasada manual con una cuenta de prueba para guardar una canción con cantantes, crear/editar una lista y responsables, asignar/quitar canciones, guardar/borrar comentarios con adjuntos y descargar archivos en registros activos/eliminados.
+- **Asesores:** queda habilitar la protección contra contraseñas filtradas mediante Auth settings y revisar, por separado, las políticas múltiples restantes. No reducir permisos ni quitar índices automáticamente.
