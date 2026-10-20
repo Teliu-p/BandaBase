@@ -71,6 +71,32 @@ test("the app boots in Chromium with no runtime errors or missing local JS/CSS",
   expect(brokenAssets, "Local JavaScript or CSS responses with HTTP errors").toEqual([]);
 });
 
+test("musical notation toolbar renders portable SVG icons", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const notationButtonIds = [
+    "materialNoteSixteenthBtn",
+    "materialNoteEighthBtn",
+    "materialNoteQuarterBtn",
+    "materialNoteHalfBtn",
+    "materialNoteWholeBtn",
+    "materialRestSixteenthBtn",
+    "materialRestEighthBtn",
+    "materialRestQuarterBtn",
+    "materialRestHalfBtn",
+    "materialRestWholeBtn"
+  ];
+
+  for (const id of notationButtonIds) {
+    await expect(
+      page.locator("#" + id + " svg.material-notation-svg"),
+      id + " should render a vector icon without depending on a music font"
+    ).toHaveCount(1);
+  }
+
+  expect(runtimeErrors, "JavaScript errors while drawing musical notation").toEqual([]);
+});
+
 test("password mismatch is rejected before an auth request is made", async ({ page }) => {
   await openApp(page);
 
