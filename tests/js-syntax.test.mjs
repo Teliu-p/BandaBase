@@ -1875,8 +1875,14 @@ assert.equal(getMaterialNotationSymbol("unknownNotation"), "",
 assert.match(materialEditorSource,
   /getMaterialNotationSymbol\([\s\S]*?materialNotationDotPending/,
   "La inserción de figuras debe consultar el estado del puntillo.");
+assert.match(materialEditorSource,
+  /function insertMaterialNotation\([\s\S]*?combineAdjacentMaterialNotationPairsAtCaret\(editor\)/,
+  "Al insertar una figura, el editor debe recomponer las parejas consecutivas de corcheas y semicorcheas.");
 assert.match(materialEditorSource, /setMaterialNotationDotPending\(false\)/,
   "El puntillo debe desactivarse tras insertar la siguiente figura o silencio.");
+assert.match(materialEditorSource,
+  /function clearMaterialFormatting\([\s\S]*?setMaterialNotationDotPending\(false\)/,
+  "Alt+0 debe desactivar el puntillo además de restablecer el formato.");
 assert.match(
   readFileSync(join(root, "index.html"), "utf8"),
   /id="metronomeVolumeInput"[\s\S]*?min="50"[\s\S]*?max="200"/,
