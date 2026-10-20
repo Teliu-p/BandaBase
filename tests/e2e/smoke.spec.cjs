@@ -30,7 +30,7 @@ window.supabase = {
 
 async function openApp(page) {
   await page.route(
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0",
     route => route.fulfill({
       status: 200,
       contentType: "application/javascript; charset=utf-8",
