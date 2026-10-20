@@ -2,12 +2,20 @@
 
 **Última inspección:** 2026-10-20 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último cambio funcional fusionado en main:** `d1c53a10c9d6ef459058c5e1e8ad4b2e9e923386` (PR #121, 2026-10-20). Tests y Pages pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39444107185) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39444106008). La calibración visual de las figuras continúa en la PR #122; verificar el HEAD real antes de cada cambio.
+**Último cambio funcional fusionado antes de esta actualización documental:** `d7225cd978d27119a27de6aea91af6031e87b674` (PR #131). La CI de esa PR pasó, incluyendo pruebas Chromium para sangría/atajos, carreras de sesión, limpieza al salir y errores de red. Verificar siempre el HEAD actual y Pages antes de afirmar el estado del despliegue.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
 
 Este archivo es la puerta de entrada para cualquier conversación nueva sobre BandaBase. No reemplaza la inspección del código y del estado remoto: las notas pueden quedar desactualizadas cuando main, Supabase o las PR cambien.
+
+## Actualización de auditoría (2026-10-20)
+
+Se fusionaron PR #123, #124, #126, #127, #128, #129, #130 y #131. Los cambios abarcan la sangría inversa de varias líneas y Alt+1–6; endurecimiento de lectura de archivos asociados a registros activos en Storage; consolidación de las dos políticas UPDATE de `band_list_items`; índices faltantes en claves foráneas; guardados atómicos de listas/responsables, asignaciones canción-lista, campos/cantantes de canciones y papelera múltiple de comentarios; serialización de inicializaciones de sesión y captura de errores de red de Auth; límite preventivo de 50 MiB en los selectores de archivo; y versión fijada de Supabase JS en el CDN (`2.118.0`).
+
+Las tres migraciones nuevas ya se aplicaron a Supabase. Sus versiones remotas son `20261020232312`, `20261020232328` y `20261020232333`; los archivos SQL deben conservar exactamente esos prefijos. La prueba conjunta de las migraciones y las RPC se ejecutó con rol `authenticated` dentro de una transacción revertida. El chequeo posterior encontró 0 claves foráneas sin índice y una sola política SELECT de Storage para el bucket `materials`.
+
+Pendiente, no asumir corregido: la configuración de Storage todavía reportaba `file_size_limit = null` y `allowed_mime_types = null`, por lo que 50 MiB es por ahora una barrera de interfaz, no un límite del servidor. Los asesores aún marcan protección contra contraseñas filtradas deshabilitada y dos funciones SECURITY DEFINER accesibles a `authenticated` (`is_band_member` y `get_proposal_vote_stats`); revisarlas por separado, sin alterar su comportamiento de autorización sin pruebas. El registro de migraciones previo a estas tres entradas mantiene la discrepancia histórica documentada de migraciones locales sin versión remota; no ejecutar `supabase db push`, ni insertar/borrar historial manualmente como solución rápida.
 
 ## Instrucciones de arranque para cada chat nuevo
 
