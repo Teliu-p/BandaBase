@@ -40,6 +40,8 @@ async function loadOriginalComparisonMaterial() {
     return;
   }
 
+  const songId = currentSong.id;
+
   try {
 
     const {
@@ -48,8 +50,10 @@ async function loadOriginalComparisonMaterial() {
     } =
       await getMaterialsBySongId(
         supabaseClient,
-        currentSong.id
+        songId
       );
+
+    if (currentSong?.id !== songId) return;
 
     if (error) {
       throw error;
@@ -89,6 +93,8 @@ async function loadOriginalComparisonMaterial() {
         [material.id]
       )
     ]);
+
+    if (currentSong?.id !== songId) return;
 
     if (
       attachmentsResult.error ||
@@ -167,6 +173,7 @@ async function loadOriginalComparisonMaterial() {
     );
 
   } catch (error) {
+    if (currentSong?.id !== songId) return;
 
     console.error(
       "No se pudo cargar la comparación con la original.",

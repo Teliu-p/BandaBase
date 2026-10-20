@@ -273,8 +273,10 @@ async function loadMaterials() {
   } =
     await getMaterialsBySongId(
       supabaseClient,
-      currentSong.id
+      songId
     );
+
+  if (String(currentSong?.id || "") !== songId) return;
 
   if (error) {
 
@@ -308,6 +310,8 @@ async function loadMaterials() {
       materialIds
     );
 
+  if (String(currentSong?.id || "") !== songId) return;
+
   if (attachmentError) {
 
     showNotice(
@@ -337,6 +341,8 @@ async function loadMaterials() {
       supabaseClient,
       materialIds
     );
+
+  if (String(currentSong?.id || "") !== songId) return;
 
   if (blockError) {
 

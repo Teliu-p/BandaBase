@@ -140,90 +140,178 @@ logoutBtn.addEventListener(
 );
 
 
+let authTransitionVersion = 0;
+
+function clearBandabaseSessionData() {
+  currentUser = null;
+  currentBand = null;
+  currentProfile = null;
+  currentBandRole = "member";
+  initializedUserId = null;
+
+  allSongs = [];
+  songSingersMap = {};
+  allBandMembers = [];
+  bandMemberProfilesMap = {};
+  currentSong = null;
+  currentMaterials = [];
+  currentOriginalComparisonMaterial = null;
+  currentBandLists = [];
+  bandListItemsMap = {};
+  bandListManagersMap = {};
+  currentBandList = null;
+  selectedNewSongColor = null;
+  selectedDetailSongColor = null;
+  editingSongListsSongId = null;
+  navigationInitialized = false;
+
+  if (typeof currentComments !== "undefined") currentComments = [];
+  if (typeof commentProfilesMap !== "undefined") commentProfilesMap = {};
+  if (typeof generalComments !== "undefined") generalComments = [];
+  if (typeof generalCommentProfilesMap !== "undefined") generalCommentProfilesMap = {};
+  if (typeof generalEditingCommentId !== "undefined") generalEditingCommentId = null;
+  if (typeof editingCommentId !== "undefined") editingCommentId = null;
+  if (typeof currentProposals !== "undefined") currentProposals = [];
+  if (typeof proposalOptionsMap !== "undefined") proposalOptionsMap = {};
+  if (typeof proposalVotesMap !== "undefined") proposalVotesMap = {};
+  if (typeof proposalVoteStatsMap !== "undefined") proposalVoteStatsMap = {};
+  if (typeof proposalProfilesMap !== "undefined") proposalProfilesMap = {};
+  if (typeof proposalAttachmentsMap !== "undefined") proposalAttachmentsMap = {};
+  if (typeof proposalBlocksMap !== "undefined") proposalBlocksMap = {};
+  if (typeof proposalPendingAttachments !== "undefined") proposalPendingAttachments = {};
+  if (typeof openMaterialIds !== "undefined") openMaterialIds = new Set();
+  if (typeof materialPendingAttachments !== "undefined") materialPendingAttachments = {};
+  if (typeof materialSelectionRange !== "undefined") materialSelectionRange = null;
+  if (typeof materialDraftInitialAttachmentIds !== "undefined") {
+    materialDraftInitialAttachmentIds = new Set();
+  }
+  if (typeof editingMaterialId !== "undefined") editingMaterialId = null;
+  if (typeof editingBandListId !== "undefined") editingBandListId = null;
+
+  document.querySelectorAll("#app audio, #app video").forEach(media => {
+    try {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    } catch (error) {
+      console.warn("No se pudo detener un medio al cambiar de sesión.", error);
+    }
+  });
+
+  for (const id of [
+    "materialsList",
+    "commentsList",
+    "generalCommentsList",
+    "recentCommentsList",
+    "proposalsList",
+    "recentListsPreview",
+    "recentProposalsPreview",
+    "membersList"
+  ]) {
+    document.getElementById(id)?.replaceChildren();
+  }
+
+  document.getElementById("songDetail")?.classList.add("hidden");
+  document.getElementById("songsBrowser")?.classList.remove("hidden");
+  document.getElementById("createSongCard")?.classList.remove("hidden");
+  document.getElementById("listDetail")?.classList.add("hidden");
+  document.getElementById("listsBrowser")?.classList.remove("hidden");
+
+  for (const reset of [
+    typeof hideMaterialForm === "function" ? hideMaterialForm : null,
+    typeof resetCommentForm === "function" ? resetCommentForm : null,
+    typeof resetGeneralCommentForm === "function" ? resetGeneralCommentForm : null,
+    typeof resetProposalForm === "function" ? resetProposalForm : null,
+    typeof hideBandListForm === "function" ? hideBandListForm : null
+  ]) {
+    if (reset) {
+      try {
+        reset();
+      } catch (error) {
+        console.warn("No se pudo restablecer un formulario al cambiar de sesión.", error);
+      }
+    }
+  }
+}
+
+
 async function handleAuthSession(session) {
+  let transitionVersion = null;
 
   try {
-
     if (session?.user) {
+      const userId = session.user.id;
 
-      const userId =
-        session.user.id;
-
-      currentUser =
-        session.user;
-
-      loginScreen.classList.add(
-        "hidden"
-      );
-
-      app.classList.remove(
-        "hidden"
-      );
-
-      if (
-        initializedUserId === userId ||
-        initializingUserId === userId
-      ) {
+      if (initializedUserId === userId) {
+        currentUser = session.user;
+        loginScreen.classList.add("hidden");
+        app.classList.remove("hidden");
         return;
       }
 
-      initializingUserId =
-        userId;
-
-      try {
-
-        await initializeApp();
-
-        initializedUserId =
-          userId;
-
-      } finally {
-
-        if (
-          initializingUserId === userId
-        ) {
-          initializingUserId =
-            null;
-        }
-
+      if (initializingUserId === userId) {
+        currentUser = session.user;
+        return;
       }
 
-    } else {
+      transitionVersion = ++authTransitionVersion;
+      clearBandabaseSessionData();
+      currentUser = session.user;
+      initializingUserId = userId;
 
+      // Keep the old app shell hidden while data for this account is loading.
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+
+      try {
+        await initializeApp();
+
+        if (
+          transitionVersion !== authTransitionVersion ||
+          currentUser?.id !== userId
+        ) {
+          return;
+        }
+
+        initializedUserId = userId;
+        loginScreen.classList.add("hidden");
+        app.classList.remove("hidden");
+      } finally {
+        if (initializingUserId === userId) {
+          initializingUserId = null;
+        }
+      }
+    } else {
+      ++authTransitionVersion;
       if (typeof window.bandabaseStopMetronome === "function") {
         window.bandabaseStopMetronome();
       }
 
-      currentUser = null;
-      currentBand = null;
-      currentProfile = null;
-      initializedUserId = null;
+      clearBandabaseSessionData();
       initializingUserId = null;
-
-      app.classList.add(
-        "hidden"
-      );
-
-      loginScreen.classList.remove(
-        "hidden"
-      );
-
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
     }
-
   } catch (error) {
-
     console.error(error);
+
+    if (
+      transitionVersion !== null &&
+      transitionVersion === authTransitionVersion
+    ) {
+      clearBandabaseSessionData();
+      initializingUserId = null;
+      app.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+    }
 
     showNotice(
       error.message ||
       "No se pudo cargar BandaBase.",
       "error"
     );
-
   }
-
 }
-
 
 supabaseClient.auth.onAuthStateChange(
   function(event, session) {
