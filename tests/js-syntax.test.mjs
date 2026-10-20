@@ -619,33 +619,93 @@ assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(86400.1), null);
 assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(Number.NaN), null);
 
 const {
-  getMaterialNumericShortcutAction
+  getMaterialShortcutAction,
+  combineMaterialNotationPairs
 } = loadPureFunctions(
   "src/materials-formatting.js",
-  ["getMaterialNumericShortcutAction"]
+  ["getMaterialShortcutAction", "combineMaterialNotationPairs"]
 );
 
+const shortcutEvent = code => ({
+  altKey: true,
+  shiftKey: false,
+  ctrlKey: false,
+  metaKey: false,
+  code
+});
+const expectedMaterialShortcuts = [
+  ["Digit1", "bold"],
+  ["Digit2", "italic"],
+  ["Digit3", "parentheses"],
+  ["Digit4", "brackets"],
+  ["Digit5", "size1"],
+  ["Digit6", "size2"],
+  ["Digit0", "clearFormatting"],
+  ["KeyQ", "noteSixteenth"],
+  ["KeyW", "noteEighth"],
+  ["KeyE", "noteQuarter"],
+  ["KeyR", "noteHalf"],
+  ["KeyT", "noteWhole"],
+  ["KeyA", "restSixteenth"],
+  ["KeyS", "restEighth"],
+  ["KeyD", "restQuarter"],
+  ["KeyF", "restHalf"],
+  ["KeyG", "restWhole"],
+  ["KeyZ", "notationDot"],
+  ["KeyX", "audioMarker"],
+  ["KeyC", "indentMore"],
+  ["KeyV", "indentLess"]
+];
+for (const [code, action] of expectedMaterialShortcuts) {
+  assert.equal(
+    getMaterialShortcutAction(shortcutEvent(code)),
+    action,
+    "Alt+" + code + " debe activar la función " + action + "."
+  );
+}
+assert.equal(getMaterialShortcutAction(shortcutEvent("Digit7")), null);
+assert.equal(getMaterialShortcutAction(shortcutEvent("Digit8")), null);
+assert.equal(getMaterialShortcutAction(shortcutEvent("Digit9")), null);
 assert.equal(
-  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit1" }),
-  "bold"
-);
-assert.equal(
-  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Numpad9" }),
-  "noteSixteenth"
-);
-assert.equal(
-  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit0" }),
-  "indentMore"
-);
-assert.equal(
-  getMaterialNumericShortcutAction({ altKey: false, shiftKey: false, ctrlKey: false, metaKey: false, code: "Digit1" }),
+  getMaterialShortcutAction({ ...shortcutEvent("Digit1"), altKey: false }),
   null,
   "Los números normales no deben activar atajos de formato."
 );
 assert.equal(
-  getMaterialNumericShortcutAction({ altKey: true, shiftKey: false, ctrlKey: true, metaKey: false, code: "Digit1" }),
+  getMaterialShortcutAction({ ...shortcutEvent("Digit1"), ctrlKey: true }),
   null,
   "No debe secuestrarse una combinación con Ctrl."
+);
+assert.equal(
+  getMaterialShortcutAction({ ...shortcutEvent("KeyQ"), shiftKey: true }),
+  null,
+  "No debe secuestrarse una combinación con Shift."
+);
+
+assert.equal(
+  combineMaterialNotationPairs("𝅘𝅥𝅮  𝅘𝅥𝅮"),
+  "♫",
+  "Dos corcheas consecutivas deben unirse visualmente como pareja con beam."
+);
+assert.equal(
+  combineMaterialNotationPairs("𝅘𝅥𝅯 𝅘𝅥𝅯"),
+  "♬",
+  "Dos semicorcheas consecutivas deben unirse visualmente como pareja con doble beam."
+);
+assert.equal(
+  combineMaterialNotationPairs("𝅘𝅥𝅮  𝅘𝅥𝅮  𝅘𝅥𝅮  𝅘𝅥𝅮"),
+  "♫♫",
+  "Cuatro corcheas consecutivas deben quedar agrupadas en dos parejas contiguas."
+);
+assert.equal(
+  combineMaterialNotationPairs("𝅘𝅥  𝅘𝅥"),
+  "𝅘𝅥  𝅘𝅥",
+  "Las negras consecutivas no deben unirse con un beam."
+);
+assert.equal(
+  combineMaterialNotationPairs("𝅘𝅥𝅮𝅭  𝅘𝅥𝅮𝅭"),
+  "𝅘𝅥𝅮𝅭  𝅘𝅥𝅮𝅭",
+  "Las corcheas con puntillo no deben perder sus puntillos al agruparse."
 );
 
 const {
@@ -1600,8 +1660,8 @@ assert.ok(getMaterialIndentRepeatDelay(10) < getMaterialIndentRepeatDelay(0));
 assert.ok(getMaterialIndentRepeatDelay(40) <= 25);
 assert.match(
   materialEditorSource,
-  /function\s+executeMaterialNumericShortcut\s*\(/,
-  "Los atajos numéricos deben tener un despachador explícito."
+  /function\s+executeMaterialKeyboardShortcut\s*\(/,
+  "Los atajos de teclado deben tener un despachador explícito."
 );
 assert.match(
   materialEditorSource,
