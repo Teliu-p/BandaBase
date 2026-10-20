@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última inspección:** 2026-10-19, Argentina.  
-**Último cambio funcional fusionado y verificado:** 611043389f58a962152f16cabdedd5c18b165865 (PR #112, 2026-10-19). Verificar el HEAD real antes de cada cambio; los cambios posteriores de documentación no alteran este baseline funcional.  
+**Último cambio funcional fusionado y verificado:** 3c6588dc282c3337f7dba2a78e38a19511a59b9a (PR #113, 2026-10-19). Verificar el HEAD real antes de cada cambio; los cambios posteriores de documentación no alteran este baseline funcional.  
 **Commit base previo a la corrección:** 966e24f2a357cc37e2e4f7980678321fa359bb4d.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -13,8 +13,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Repo: Teliu-p/BandaBase; rama principal main.
 - Aplicación publicada: https://teliu-p.github.io/BandaBase/.
 - Stack: HTML/CSS, JavaScript en scripts clásicos, Supabase JS v2, PostgreSQL/RLS/Storage.
-- Base funcional previa a PR #112: `2497e01ab23169936b49d7141672db7dab4e9904` (PR #111 fusionada).
-- PR #112 fusionada en `611043389f58a962152f16cabdedd5c18b165865`; para este commit pasaron Tests y Pages: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39350807878) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39350808799). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
+- Base funcional previa a PR #113: `611043389f58a962152f16cabdedd5c18b165865` (PR #112 fusionada).
+- PR #113 fusionada en `3c6588dc282c3337f7dba2a78e38a19511a59b9a`; para este commit pasaron Tests y Pages: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39358153888) · [Pages build/deployment](https://github.com/Teliu-p/BandaBase/actions/runs/39358153266). Tests incluye npm test, ESLint no-undef y smoke tests Playwright/Chromium.
 - Los smoke tests usan un stub de Auth; no son una prueba autenticada integral con cuentas reales.
 
 ## 2. Corrección de sangría y audio en Materiales (2026-10-19)
@@ -34,8 +34,8 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - PR #111 quedó fusionada: https://github.com/Teliu-p/BandaBase/pull/111. La herramienta ⏱ captura el tiempo del control de audio enfocado o del único reproductor que se está reproduciendo; cuando no puede identificar un punto sin ambigüedad, conserva el ingreso manual. No cambia Supabase, Storage, datos, RLS ni migraciones.
 - Pendiente manual: con sesión autenticada, guardar/reabrir un Material que contenga audio y probar inserción/salto por marcador. La CI usa stubs y no cubre esa sesión real.
 - PR #112 quedó fusionada en `611043389f58a962152f16cabdedd5c18b165865`: https://github.com/Teliu-p/BandaBase/pull/112. Añade modo opcional sincronizado con el audio de referencia usando BPM/métrica conocidos; sigue play/pause/seek, cambios de marcador y cancela clics futuros al cambiar la reproducción. Reduce la anticipación inicial de 50 ms a 10 ms y conserva el planificador a 120 ms para los siguientes clics.
-- PR de seguimiento propuesta en la rama `feat/metronome-manual-phase-calibration-20261019`: agrega «Guardar ajuste manual» para capturar la fase después de alinear de oído un único audio con el metrónomo independiente. La referencia se guarda en localStorage por canción y adjunto, se reutiliza al sincronizar y exige el mismo BPM/métrica. No altera la base de datos. Pendiente de CI y revisión antes de integrar.
-- La verificación manual de reproducción real sigue siendo necesaria; la versión sincronizada debe comprobarse con una grabación que tenga silencio al inicio o anacrusa.
+- PR #113 quedó fusionada: https://github.com/Teliu-p/BandaBase/pull/113. «Guardar ajuste manual» captura la fase después de alinear de oído un único audio con el metrónomo independiente. La referencia se guarda en localStorage por canción y adjunto, se reutiliza al sincronizar y exige el mismo BPM/métrica. No altera la base de datos.
+- Pendiente de verificación manual: probar la calibración y reanudación con una grabación real, idealmente con silencio al inicio o anacrusa. La CI usa stubs y no puede verificar alineación audible.
 - No aumentar volumen de audio usando Web Audio sin comprobar CORS en las URLs firmadas de Storage: según el navegador, una fuente remota no autorizada para CORS puede producir silencio si se conecta a Web Audio. Conservar un fallback de `<audio>` nativo.
 
 ## 4. Incidente de guardado de Materiales con audios

@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-10-19 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último cambio funcional fusionado y verificado en main:** 611043389f58a962152f16cabdedd5c18b165865 (PR #112, 2026-10-19). Tests y Pages pasaron; verificar el HEAD real antes de cada cambio.
+**Último cambio funcional fusionado y verificado en main:** 3c6588dc282c3337f7dba2a78e38a19511a59b9a (PR #113, 2026-10-19). Tests y Pages pasaron; verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -63,7 +63,7 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 - PR #110 quedó fusionada en `cd9cff753c2da3eb559f11b9d4a5071f979e81b6`: https://github.com/Teliu-p/BandaBase/pull/110. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39327396377 y https://github.com/Teliu-p/BandaBase/actions/runs/39327398433. El chip muestra solo el tiempo y salta a todos los audios de la canción, incluso Materiales plegados. La verificación manual autenticada sigue pendiente; no se modificó Supabase.
 - PR #111 quedó fusionada como `2497e01ab23169936b49d7141672db7dab4e9904`: https://github.com/Teliu-p/BandaBase/pull/111. La herramienta ⏱ captura el tiempo del audio enfocado o del único reproductor activo y conserva la entrada manual como alternativa. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39332251159 y https://github.com/Teliu-p/BandaBase/actions/runs/39332250632. Sigue pendiente una prueba manual autenticada con audio real.
 - PR #112 quedó fusionada como `611043389f58a962152f16cabdedd5c18b165865`: https://github.com/Teliu-p/BandaBase/pull/112. Añade sincronización opcional con un audio de Materiales usando BPM/métrica conocidos, sigue play/pause/seek/marcadores y reduce la anticipación inicial del clic. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39350807878 y https://github.com/Teliu-p/BandaBase/actions/runs/39350808799.
-- Seguimiento de calibración manual: rama `feat/metronome-manual-phase-calibration-20261019` y PR por abrir. Añade un ajuste de fase por canción/audio en localStorage para que el usuario alinee el metrónomo independiente una vez y pueda reutilizar ese origen al activar sincronización. Pendiente de CI y prueba manual autenticada con audio real; no toca Supabase.
+- PR #113 fusionada como `3c6588dc282c3337f7dba2a78e38a19511a59b9a`: https://github.com/Teliu-p/BandaBase/pull/113. Agrega «Guardar ajuste manual» al metrónomo: captura la fase cuando un único audio y el metrónomo independiente están alineados, persiste el ajuste en localStorage por canción/adjunto y lo reutiliza en la sincronización si BPM/métrica coinciden. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39358153888 y https://github.com/Teliu-p/BandaBase/actions/runs/39358153266. Falta validación manual audible con audio real; no toca Supabase.
 - El historial remoto registra 44 migraciones y main contiene 56 archivos SQL; doce archivos locales no tienen fila remota de igual versión. No se encontró ninguna versión remota que faltara como archivo local.
 - La PR #98 sigue abierta como borrador y el esquema remoto aún muestra dos políticas UPDATE permisivas sobre band_list_items. Ver current-state antes de actuar: esto puede cambiar.
 - La PR #103 quedó fusionada en main: https://github.com/Teliu-p/BandaBase/pull/103.
