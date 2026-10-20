@@ -345,6 +345,32 @@ function getMaterialShortcutAction(event) {
   return shortcuts[event.code] || null;
 }
 
+
+const MATERIAL_KEYBOARD_SHORTCUT_BUTTONS = Object.freeze({
+  bold: "materialBoldBtn",
+  italic: "materialItalicBtn",
+  parentheses: "materialParenthesesBtn",
+  brackets: "materialBracketsBtn",
+  size1: "materialSize1Btn",
+  size2: "materialSize2Btn",
+  noteSixteenth: "materialNoteSixteenthBtn",
+  noteEighth: "materialNoteEighthBtn",
+  noteQuarter: "materialNoteQuarterBtn",
+  noteHalf: "materialNoteHalfBtn",
+  noteWhole: "materialNoteWholeBtn",
+  restSixteenth: "materialRestSixteenthBtn",
+  restEighth: "materialRestEighthBtn",
+  restQuarter: "materialRestQuarterBtn",
+  restHalf: "materialRestHalfBtn",
+  restWhole: "materialRestWholeBtn",
+  notationDot: "materialNotationDotBtn",
+  audioMarker: "materialAudioMarkerBtn"
+});
+
+function getMaterialKeyboardShortcutButtonId(action) {
+  return MATERIAL_KEYBOARD_SHORTCUT_BUTTONS[action] || null;
+}
+
 /*
  * Divide a rich-text subtree around inline attachments without losing the
  * formatting wrappers surrounding each text segment. Attachments must become

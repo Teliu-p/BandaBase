@@ -620,10 +620,15 @@ assert.equal(getMaterialAudioMarkerSecondsFromPlaybackTime(Number.NaN), null);
 
 const {
   getMaterialShortcutAction,
+  getMaterialKeyboardShortcutButtonId,
   combineMaterialNotationPairs
 } = loadPureFunctions(
   "src/materials-formatting.js",
-  ["getMaterialShortcutAction", "combineMaterialNotationPairs"]
+  [
+    "getMaterialShortcutAction",
+    "getMaterialKeyboardShortcutButtonId",
+    "combineMaterialNotationPairs"
+  ]
 );
 
 const shortcutEvent = code => ({
@@ -666,6 +671,23 @@ for (const [code, action] of expectedMaterialShortcuts) {
 assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad1")), "bold");
 assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad6")), "size2");
 assert.equal(getMaterialShortcutAction(shortcutEvent("Numpad0")), "clearFormatting");
+for (const [action, buttonId] of [
+  ["bold", "materialBoldBtn"],
+  ["italic", "materialItalicBtn"],
+  ["parentheses", "materialParenthesesBtn"],
+  ["brackets", "materialBracketsBtn"],
+  ["size1", "materialSize1Btn"],
+  ["size2", "materialSize2Btn"],
+  ["noteSixteenth", "materialNoteSixteenthBtn"],
+  ["restWhole", "materialRestWholeBtn"]
+]) {
+  assert.equal(
+    getMaterialKeyboardShortcutButtonId(action),
+    buttonId,
+    action + " debe estar conectado a su botón real."
+  );
+}
+assert.equal(getMaterialKeyboardShortcutButtonId("not-an-action"), null);
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit7")), null);
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit8")), null);
 assert.equal(getMaterialShortcutAction(shortcutEvent("Digit9")), null);
