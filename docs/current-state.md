@@ -49,7 +49,7 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 ## 3B. Figuras, silencios y puntillo en Materiales (rama de trabajo)
 
-- La rama `feat/material-note-rest-dotted` amplía la barra del compositor con semicorchea, corchea, negra, blanca y redonda, sus cinco silencios equivalentes, y un puntillo con estado visual que se consume en la siguiente figura o silencio.
+- La PR #115 (https://github.com/Teliu-p/BandaBase/pull/115), rama `feat/material-note-rest-dotted`, amplía la barra del compositor con semicorchea, corchea, negra, blanca y redonda, sus cinco silencios equivalentes, y un puntillo con estado visual que se consume en la siguiente figura o silencio. Está abierta; aún no debe considerarse integrada ni desplegada.
 - Los símbolos se insertan como texto musical Unicode en el rich text existente. La modificación no altera el esquema, los datos, las políticas, RLS, Storage ni las migraciones de Supabase.
 - Se añaden pruebas para los diez símbolos, sus formas con puntillo, el orden de controles y el restablecimiento del puntillo. La rama y su CI deben comprobarse antes de considerar el cambio integrado o desplegado.
 
