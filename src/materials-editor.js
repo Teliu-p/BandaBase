@@ -749,6 +749,17 @@ function changeMaterialIndentSpaces(direction) {
       const value = lineBreak.node.nodeValue || "";
       if (value[lineBreak.offset] === " " || value[lineBreak.offset] === "\u00a0") {
         character = { node: lineBreak.node, offset: lineBreak.offset };
+      } else if (lineBreak.offset >= value.length) {
+        // Inserting indentation splits the original text node at this newline.
+        // The leading space is then in the next sibling text node, not at offset
+        // lineBreak.offset in the original node.
+        const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
+        if (found) {
+          const nextValue = found.node.nodeValue || "";
+          if (nextValue[found.offset] === " " || nextValue[found.offset] === "\u00a0") {
+            character = found;
+          }
+        }
       }
     } else {
       const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
@@ -942,22 +953,7 @@ function executeMaterialKeyboardShortcut(action) {
     return toggleMaterialIndent(false);
   }
 
-  const buttonByAction = {
-    noteSixteenth: "materialNoteSixteenthBtn",
-    noteEighth: "materialNoteEighthBtn",
-    noteQuarter: "materialNoteQuarterBtn",
-    noteHalf: "materialNoteHalfBtn",
-    noteWhole: "materialNoteWholeBtn",
-    restSixteenth: "materialRestSixteenthBtn",
-    restEighth: "materialRestEighthBtn",
-    restQuarter: "materialRestQuarterBtn",
-    restHalf: "materialRestHalfBtn",
-    restWhole: "materialRestWholeBtn",
-    notationDot: "materialNotationDotBtn",
-    audioMarker: "materialAudioMarkerBtn"
-  };
-
-  const buttonId = buttonByAction[action];
+  const buttonId = getMaterialKeyboardShortcutButtonId(action);
   if (!buttonId) return false;
   const button = document.getElementById(buttonId);
   if (!button) return false;
