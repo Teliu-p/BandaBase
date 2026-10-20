@@ -158,7 +158,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 
 - El usuario precisó que las figuras no deben superar el alto de una mayúscula y deben tener un tamaño visual equivalente. Seguimiento en PR #121: https://github.com/Teliu-p/BandaBase/pull/121.
 - El CSS cambia la caja inline de `1.35em` a `0.72em`, quita el desplazamiento vertical anterior y alinea con la línea base; las parejas usan `0.86em` de ancho y el mismo alto. No se modifican los botones de la barra.
-- Se actualiza la regresión para fijar esas dimensiones. En el momento de registrar esta entrada, falta verificar CI del último commit de la PR y confirmar visualmente el resultado en navegador. No se modifican Supabase, datos, Storage, políticas, RLS ni migraciones.
+- La primera calibración (`0.72em`, en PR #121) midió la caja, no la tinta dibujada; el `viewBox` deja margen interno. La revisión posterior encontró que el trazo quedaba más chico que una mayúscula, por lo que PR #122 corrige la caja/posición. La CI y la inspección visual de esa revisión quedan pendientes. No se modifican Supabase, datos, Storage, políticas, RLS ni migraciones.
+
+### 2026-10-20 — calibración de la altura visual del SVG musical (PR #122)
+
+- Al revisar las coordenadas del `viewBox` se comprobó que las notas con plica ocupan aproximadamente el 78% de la caja SVG. Para que la tinta visible se aproxime a la altura de una mayúscula, el seguimiento usa una caja de `0.9em` y `vertical-align: -0.14em`; las parejas usan `1.02em` de ancho.
+- Las regresiones comprueban caja, alineación y anchura de parejas. Los Tests y Pages de main para PR #121 pasaron; CI del último commit de PR #122 y verificación visual real quedan pendientes. No se cambian botones, contenido almacenado, Supabase, datos, Storage, políticas, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
 
