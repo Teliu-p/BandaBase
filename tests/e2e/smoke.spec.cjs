@@ -104,7 +104,7 @@ test("outdent removes indentation from every selected material line after DOM te
   const result = await page.evaluate(() => {
     const editor = document.getElementById("materialComposerEditor");
     editor.replaceChildren();
-    const initialText = document.createTextNode("Primera\\nSegunda\\nTercera");
+    const initialText = document.createTextNode("Primera\nSegunda\nTercera");
     editor.appendChild(initialText);
     editor.focus();
 
@@ -129,9 +129,9 @@ test("outdent removes indentation from every selected material line after DOM te
   });
 
   expect(result.indented).toBe(true);
-  expect(result.afterIndent).toBe("\\u00a0Primera\\n\\u00a0Segunda\\n\\u00a0Tercera");
+  expect(result.afterIndent).toBe("\u00a0Primera\n\u00a0Segunda\n\u00a0Tercera");
   expect(result.outdented).toBe(true);
-  expect(result.afterOutdent).toBe("Primera\\nSegunda\\nTercera");
+  expect(result.afterOutdent).toBe("Primera\nSegunda\nTercera");
   expect(runtimeErrors, "JavaScript errors in multiline outdent").toEqual([]);
 });
 
@@ -173,8 +173,8 @@ test("Alt+1 through Alt+6 apply the six material text-format actions", async ({ 
     return results;
   });
 
-  expect(cases[0].html).toMatch(/<(?:b|strong)\\b/i);
-  expect(cases[1].html).toMatch(/<(?:i|em)\\b/i);
+  expect(cases[0].html).toMatch(/<(?:b|strong)\b/i);
+  expect(cases[1].html).toMatch(/<(?:i|em)\b/i);
   expect(cases[2].html).toContain("(Objetivo)");
   expect(cases[3].html).toContain("[Objetivo]");
   expect(cases[4].html).toContain("material-text-size-1");
