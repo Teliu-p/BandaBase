@@ -133,7 +133,9 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - PR #114 fue fusionada como `ddaf9a073b5fbf5def723e4bbab02781ba439800`: https://github.com/Teliu-p/BandaBase/pull/114. Restaura velocidades de audio 25–200% con valores personalizados y conservación de afinación solicitada mediante `preservesPitch`, añade descargas de archivos adjuntos en Materiales, comentarios y Propuestas, y corrige la calibración cuando el audio corre a una velocidad distinta de 1×.
 - CI de PR pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium en https://github.com/Teliu-p/BandaBase/actions/runs/39364274394. Sigue pendiente una prueba manual autenticada de descarga y una prueba audible de sincronización durante varios minutos. No se modificó esquema, datos, políticas, RLS, migraciones ni los objetos de Storage de Supabase. Confirmar los workflows de main tras el merge.
 
-### 2026-10-20 — figuras musicales, silencios y puntillo (rama de trabajo)
+### 2026-10-20 — figuras musicales, silencios y puntillo (PR #115 abierta)
+
+PR: https://github.com/Teliu-p/BandaBase/pull/115.
 
 - La barra de Materiales pasa a incluir cinco figuras (semicorchea, corchea, negra, blanca y redonda), los cinco silencios equivalentes y un botón de puntillo.
 - El puntillo queda activado de forma visual y accesible hasta insertar la próxima figura o silencio; tras la inserción se desactiva. Los símbolos se guardan como caracteres musicales Unicode en el bloque de rich text ya existente.
