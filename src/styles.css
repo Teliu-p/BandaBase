@@ -3264,14 +3264,14 @@
   margin: 0 .04em;
   color: inherit;
   line-height: 1;
-  vertical-align: -.15em;
+  vertical-align: -.135em;
   white-space: nowrap;
 }
 
 .material-notation-symbol[data-material-notation$="Pair"] {
-  width: .96em;
-  height: .84em;
-  vertical-align: -.12em;
+  width: .99em;
+  height: .88em;
+  vertical-align: -.124em;
 }
 
 .material-notation-svg {
