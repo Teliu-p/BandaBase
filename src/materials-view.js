@@ -12,6 +12,8 @@ let materialAudioMarkerTimeSeconds = null;
 let materialAudioMarkerSelectionVersion = 0;
 // Audio engines created on demand for attachments in currently folded Materials.
 let materialAudioSeekEnginePool = new Map();
+let materialAudioPlaybackRates = new Map();
+const MATERIAL_AUDIO_SPEED_PRESETS = Object.freeze([25, 50, 75, 100, 125, 150, 175, 200]);
 const COMPARISON_MATERIAL_TYPE = "ComparacionOriginal";
 
 
@@ -465,6 +467,36 @@ function formatMaterialAudioTime(value) {
 }
 
 
+function getMaterialAudioPlaybackRate(percentage) {
+  const numeric = Number(percentage);
+  if (!Number.isFinite(numeric) || numeric < 25 || numeric > 200) return null;
+  return numeric / 100;
+}
+
+
+function setMaterialAudioPlaybackRate(player, percentage) {
+  const rate = getMaterialAudioPlaybackRate(percentage);
+  if (!player || rate === null) return false;
+
+  // Preserve pitch where the browser exposes standard or legacy-prefixed controls.
+  ["preservesPitch", "mozPreservesPitch", "webkitPreservesPitch"].forEach(property => {
+    try {
+      player[property] = true;
+    } catch {
+      // The browser may expose a read-only compatibility alias.
+    }
+  });
+
+  try {
+    player.playbackRate = rate;
+    return Number.isFinite(Number(player.playbackRate)) &&
+      Math.abs(Number(player.playbackRate) - rate) < 0.001;
+  } catch {
+    return false;
+  }
+}
+
+
 function seekMaterialAudioPlayerToTime(player, seconds) {
   const target = Number(seconds);
   if (!player || !Number.isSafeInteger(target) || target < 0 || target > 86400) return false;
@@ -766,12 +798,30 @@ function renderMaterialViewBlock(block) {
     return (
       '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '">' +
         '<button type="button" class="material-inline-audio-play" data-material-audio-play aria-label="Reproducir ' + safeName + '" title="Reproducir audio">▶</button>' +
-        '<button type="button" class="material-inline-audio-name" data-material-audio-details aria-expanded="false" title="Mostrar tiempo y posición">' +
+        '<button type="button" class="material-inline-audio-name" data-material-audio-details aria-expanded="false" title="Mostrar tiempo, posición y velocidad">' +
           label +
         '</button>' +
+        '<button type="button" class="material-inline-audio-download" data-download-attachment="' + attachmentId + '" aria-label="Descargar ' + safeName + '" title="Descargar archivo">↓</button>' +
         '<span class="material-inline-audio-panel" data-material-audio-panel hidden>' +
           '<span class="material-inline-audio-time" data-material-audio-time>00:00 / --:--</span>' +
           '<input type="range" class="material-inline-audio-seek" data-material-audio-seek min="0" max="1000" step="1" value="0" disabled aria-label="Posición del audio">' +
+          '<label class="material-inline-audio-speed-label">Velocidad' +
+            '<span class="material-inline-audio-speed-controls">' +
+              '<select class="material-inline-audio-speed" data-material-audio-speed aria-label="Velocidad de reproducción">' +
+                '<option value="25">25%</option>' +
+                '<option value="50">50%</option>' +
+                '<option value="75">75%</option>' +
+                '<option value="100">100%</option>' +
+                '<option value="125">125%</option>' +
+                '<option value="150">150%</option>' +
+                '<option value="175">175%</option>' +
+                '<option value="200">200%</option>' +
+                '<option value="custom">Personalizada</option>' +
+              '</select>' +
+              '<input type="number" class="material-inline-audio-speed-custom" data-material-audio-speed-custom min="25" max="200" step="any" value="100" aria-label="Velocidad personalizada en porcentaje">' +
+            '</span>' +
+          '</label>' +
+          '<span class="material-inline-audio-pitch-note">La afinación se mantiene.</span>' +
         '</span>' +
         '<audio class="material-audio-engine" preload="none" data-material-audio="' +
           escapeHtml(attachment.storage_path || "") +
@@ -787,6 +837,9 @@ function renderMaterialViewBlock(block) {
         escapeHtml(icon + " " + name) +
       '</span>' +
       '<button type="button" class="material-inline-view-open" data-open-attachment="' + attachmentId + '" aria-label="' + escapeHtml(openLabel + ": " + name) + '" title="' + escapeHtml(openLabel) + '">↗</button>' +
+      (attachment.kind === "file"
+        ? '<button type="button" class="material-inline-view-download" data-download-attachment="' + attachmentId + '" aria-label="Descargar ' + safeName + '" title="Descargar archivo">↓</button>'
+        : '') +
     '</span>'
   );
 }
@@ -940,10 +993,16 @@ function bindMaterialViewEvents() {
     const panel = wrapper.querySelector("[data-material-audio-panel]");
     const timeLabel = wrapper.querySelector("[data-material-audio-time]");
     const seekInput = wrapper.querySelector("[data-material-audio-seek]");
+    const speedSelect = wrapper.querySelector("[data-material-audio-speed]");
+    const speedInput = wrapper.querySelector("[data-material-audio-speed-custom]");
 
-    if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput) return;
+    if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput || !speedSelect || !speedInput) return;
 
     const attachmentId = String(wrapper.dataset.materialAudioId || "");
+    setMaterialAudioPlaybackRate(
+      player,
+      materialAudioPlaybackRates.get(attachmentId) ?? 100
+    );
     const pooledPlayer = attachmentId
       ? materialAudioSeekEnginePool.get(attachmentId)
       : null;
@@ -980,6 +1039,34 @@ function bindMaterialViewEvents() {
       if (duration && document.activeElement !== seekInput) {
         seekInput.value = String(Math.max(0, Math.min(1000, Math.round(currentTime / duration * 1000))));
       }
+
+      const speedPercentage = Math.round((Number(player.playbackRate) || 1) * 10000) / 100;
+      if (document.activeElement !== speedInput) {
+        speedInput.value = String(speedPercentage);
+      }
+      if (document.activeElement !== speedSelect) {
+        const matchingPreset = MATERIAL_AUDIO_SPEED_PRESETS.find(
+          preset => Math.abs(preset - speedPercentage) < 0.01
+        );
+        speedSelect.value = matchingPreset === undefined ? "custom" : String(matchingPreset);
+      }
+    }
+
+    function applySpeedPercentage(value) {
+      const percentage = Number(value);
+      if (
+        getMaterialAudioPlaybackRate(percentage) === null ||
+        !setMaterialAudioPlaybackRate(player, percentage)
+      ) {
+        showNotice("Ingresá una velocidad entre 25% y 200%. La afinación se mantiene cuando el navegador admite el ajuste.", "error");
+        speedInput.value = String(Math.round((Number(player.playbackRate) || 1) * 10000) / 100);
+        updateAudioUi();
+        return false;
+      }
+
+      materialAudioPlaybackRates.set(attachmentId, percentage);
+      updateAudioUi();
+      return true;
     }
 
     async function ensureAudioUrl() {
@@ -1050,6 +1137,10 @@ function bindMaterialViewEvents() {
     player.addEventListener("ended", updateAudioUi);
     player.addEventListener("timeupdate", updateAudioUi);
     player.addEventListener("loadedmetadata", () => {
+      setMaterialAudioPlaybackRate(
+        player,
+        materialAudioPlaybackRates.get(attachmentId) ?? 100
+      );
       const pendingSeekValue = player.dataset.materialAudioPendingSeek;
       if (pendingSeekValue !== undefined) {
         seekMaterialAudioPlayerToTime(player, Number(pendingSeekValue));
@@ -1058,6 +1149,7 @@ function bindMaterialViewEvents() {
     });
     player.addEventListener("durationchange", updateAudioUi);
     player.addEventListener("seeked", updateAudioUi);
+    player.addEventListener("ratechange", updateAudioUi);
     player.addEventListener("error", () => {
       delete player.dataset.materialAudioUrlExpiresAt;
       updateAudioUi();
@@ -1068,6 +1160,26 @@ function bindMaterialViewEvents() {
       if (duration > 0) {
         player.currentTime = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
         updateAudioUi();
+      }
+    });
+
+    speedSelect.addEventListener("change", () => {
+      if (speedSelect.value === "custom") {
+        speedInput.focus();
+        speedInput.select();
+        return;
+      }
+      applySpeedPercentage(speedSelect.value);
+    });
+
+    speedInput.addEventListener("change", () => {
+      applySpeedPercentage(speedInput.value);
+    });
+
+    speedInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        speedInput.blur();
       }
     });
 
@@ -1103,7 +1215,7 @@ function bindMaterialViewEvents() {
       closeMaterialAudioPopovers(panel);
       const bounds = detailsButton.getBoundingClientRect();
       const panelWidth = Math.min(280, Math.max(190, window.innerWidth - 24));
-      const estimatedHeight = 76;
+      const estimatedHeight = 150;
       const left = Math.max(12, Math.min(bounds.left, window.innerWidth - panelWidth - 12));
       let top = bounds.bottom + 6;
       if (top + estimatedHeight > window.innerHeight - 12) {
@@ -1420,6 +1532,57 @@ function bindMaterialViewEvents() {
 
       }
     );
+
+  document.querySelectorAll("[data-download-attachment]").forEach(button => {
+    button.addEventListener("click", async () => {
+      if (button.dataset.loading === "true") return;
+
+      const attachment = currentMaterials
+        .flatMap(material => material.attachments || [])
+        .find(item => item.id === button.dataset.downloadAttachment);
+
+      if (!attachment || attachment.kind !== "file" || !attachment.storage_path) {
+        showNotice("No se encontró el archivo adjunto para descargar.", "error");
+        return;
+      }
+
+      const downloadWindow = window.open("about:blank", "_blank");
+      if (!downloadWindow) {
+        showNotice("El navegador bloqueó la descarga. Permití las ventanas emergentes y probá de nuevo.", "error");
+        return;
+      }
+      downloadWindow.opener = null;
+
+      const previousText = button.textContent;
+      button.dataset.loading = "true";
+      button.disabled = true;
+      button.textContent = "…";
+
+      try {
+        const { data, error } = await supabaseClient
+          .storage
+          .from("materials")
+          .createSignedUrl(
+            attachment.storage_path,
+            3600,
+            { download: attachment.name || attachment.file_name || true }
+          );
+
+        if (error || !data?.signedUrl) {
+          throw new Error(error?.message || "No se pudo preparar la descarga.");
+        }
+
+        downloadWindow.location.href = data.signedUrl;
+      } catch (error) {
+        try { downloadWindow.close(); } catch {}
+        showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
+      } finally {
+        button.dataset.loading = "false";
+        button.disabled = false;
+        button.textContent = previousText;
+      }
+    });
+  });
 
 }
 

@@ -203,6 +203,7 @@ function renderCommentBlocks(
           "</div>" +
           '<div class="comment-audio-lazy-controls">' +
           '<button type="button" class="btn btn-subtle comment-audio-load" data-comment-audio-load>▶ Reproducir audio</button>' +
+          '<button type="button" class="btn btn-subtle" data-download-comment-attachment="' + escapeHtml(attachment.id) + '">Descargar</button>' +
           '<audio class="comment-audio" controls preload="none" data-comment-audio="' +
           escapeHtml(
             attachment.storage_path ||
@@ -243,11 +244,16 @@ function renderCommentBlocks(
         ) +
         "</div>" +
         "</div>" +
+        '<div class="comment-attachment-actions">' +
         '<button type="button" class="btn btn-subtle" data-open-comment-attachment="' +
         escapeHtml(
           attachment.id
         ) +
         '">Abrir</button>' +
+        (attachment.kind === "file"
+          ? '<button type="button" class="btn btn-subtle" data-download-comment-attachment="' + escapeHtml(attachment.id) + '">Descargar</button>'
+          : "") +
+        "</div>" +
         "</div>" +
         "</div>"
       );
@@ -700,6 +706,60 @@ function bindCommentAttachmentEvents() {
         );
       }
     );
+
+  document
+    .querySelectorAll("[data-download-comment-attachment]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        if (button.dataset.loading === "true") return;
+
+        const attachment = [
+          ...generalComments,
+          ...currentComments
+        ]
+          .flatMap(comment => comment.attachments || [])
+          .find(item => item.id === button.dataset.downloadCommentAttachment);
+
+        if (!attachment || attachment.kind !== "file" || !attachment.storage_path) {
+          showNotice("No se encontró el archivo adjunto para descargar.", "error");
+          return;
+        }
+
+        const downloadWindow = window.open("about:blank", "_blank");
+        if (!downloadWindow) {
+          showNotice("El navegador bloqueó la descarga. Permití las ventanas emergentes y probá de nuevo.", "error");
+          return;
+        }
+        downloadWindow.opener = null;
+
+        const previousText = button.textContent;
+        button.dataset.loading = "true";
+        button.disabled = true;
+        button.textContent = "Preparando descarga…";
+
+        try {
+          const { data, error } = await supabaseClient
+            .storage
+            .from("materials")
+            .createSignedUrl(
+              attachment.storage_path,
+              3600,
+              { download: attachment.name || attachment.file_name || attachment.title || true }
+            );
+          if (error || !data?.signedUrl) {
+            throw new Error(error?.message || "No se pudo preparar la descarga.");
+          }
+          downloadWindow.location.href = data.signedUrl;
+        } catch (error) {
+          try { downloadWindow.close(); } catch {}
+          showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
+        } finally {
+          button.dataset.loading = "false";
+          button.disabled = false;
+          button.textContent = previousText;
+        }
+      });
+    });
 
 }
 

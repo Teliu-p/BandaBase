@@ -243,18 +243,22 @@ function getMetronomeClickIntervalSeconds(
 }
 
 
-function getMetronomeManualSyncAudioZeroTime(audioSeconds, elapsedContextSeconds) {
+function getMetronomeManualSyncAudioZeroTime(audioSeconds, elapsedContextSeconds, playbackRate = 1) {
   const audioTime = Number(audioSeconds);
   const elapsed = Number(elapsedContextSeconds);
+  const rate = Number(playbackRate);
   if (
     !Number.isFinite(audioTime) ||
     audioTime < 0 ||
     !Number.isFinite(elapsed) ||
-    elapsed < 0
+    elapsed < 0 ||
+    !Number.isFinite(rate) ||
+    rate <= 0
   ) {
     return null;
   }
-  return audioTime - elapsed;
+  // Audio currentTime is media time; convert elapsed AudioContext time by the media playback rate.
+  return audioTime - elapsed * rate;
 }
 
 
@@ -566,7 +570,8 @@ function captureManualMetronomeSyncCalibration() {
   // calibration button is pressed between beats.
   const audioZeroTime = getMetronomeManualSyncAudioZeroTime(
     player.currentTime,
-    elapsedContextSeconds
+    elapsedContextSeconds,
+    player.playbackRate
   );
   if (
     audioZeroTime === null ||

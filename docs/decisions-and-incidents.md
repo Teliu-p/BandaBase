@@ -126,6 +126,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - El ajuste se usa al activar «Sincronizar con audio» y no se usa si el BPM o la métrica no coinciden con los guardados. El modo independiente y la referencia por segundo cero siguen disponibles si no hay ajuste compatible.
 - Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39358153888 y https://github.com/Teliu-p/BandaBase/actions/runs/39358153266. Falta prueba manual audible. No se modifica Supabase, Storage, datos, RLS ni migraciones.
 
+### 2026-10-20 — velocidad de reproducción y descarga de adjuntos (PR #114)
+
+- Se inspeccionó la reproducción de Materiales y se confirmó que usa un elemento `<audio>` nativo con URLs firmadas perezosas; la app actualiza la interfaz con eventos de medios, pero no ejecuta un reloj propio para mover la señal de audio. No se encontró un mecanismo que, por sí mismo, acumule retraso en la reproducción. Esto no determina si una grabación tiene tempo variable ni sustituye una prueba audible real.
+- La sincronización del metrónomo toma `audio.currentTime` como posición de referencia y distribuye clics con el BPM conocido; no analiza la forma de onda para encontrar cada golpe. Una diferencia creciente puede corresponder al tempo/grid de la grabación, aunque queda pendiente validar con audio real.
+- PR #114: https://github.com/Teliu-p/BandaBase/pull/114 restaura controles de velocidad para audio de Materiales (25–200% en pasos predefinidos más valor personalizado) con conservación de afinación solicitada mediante `preservesPitch`; añade descargas a los adjuntos de archivo en Materiales, comentarios y Propuestas. También corrige la captura de fase cuando el audio se reproduce a una velocidad distinta de 1×.
+- CI comprobada para el estado de código de PR antes del cambio documental: https://github.com/Teliu-p/BandaBase/actions/runs/39364004244 pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium. Quedan pendientes una comprobación real de guardar/descargar con sesión autenticada y una prueba audible de sincronización de varios minutos. No se modificó el esquema, datos, políticas, RLS, migraciones ni los objetos de Storage de Supabase.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.

@@ -1231,8 +1231,11 @@ assert.equal(
 
 assert.equal(getMetronomeManualSyncAudioZeroTime(20, 5), 15);
 assert.equal(getMetronomeManualSyncAudioZeroTime(3.5, 0.25), 3.25);
+assert.equal(getMetronomeManualSyncAudioZeroTime(20, 5, 1.25), 13.75);
+assert.equal(getMetronomeManualSyncAudioZeroTime(20, 5, 0.5), 17.5);
 assert.equal(getMetronomeManualSyncAudioZeroTime(-1, 0.5), null);
 assert.equal(getMetronomeManualSyncAudioZeroTime(10, Number.NaN), null);
+assert.equal(getMetronomeManualSyncAudioZeroTime(10, 1, 0), null);
 assert.equal(getMetronomeNextSyncQuarterPosition(0, 120, "quarter"), 0);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.26, 120, "quarter"), 1);
 assert.equal(getMetronomeNextSyncQuarterPosition(0.5, 120, "quarter"), 1);
@@ -1624,6 +1627,37 @@ assert.equal(formatMaterialAudioTime(0), "00:00");
 assert.equal(formatMaterialAudioTime(61), "01:01");
 assert.equal(formatMaterialAudioTime(3605), "1:00:05");
 assert.equal(formatMaterialAudioTime(Number.NaN), "00:00");
+
+const {
+  MATERIAL_AUDIO_SPEED_PRESETS,
+  getMaterialAudioPlaybackRate,
+  setMaterialAudioPlaybackRate
+} = loadPureFunctions(
+  "src/materials-view.js",
+  [
+    "MATERIAL_AUDIO_SPEED_PRESETS",
+    "getMaterialAudioPlaybackRate",
+    "setMaterialAudioPlaybackRate"
+  ]
+);
+assert.deepEqual(
+  Array.from(MATERIAL_AUDIO_SPEED_PRESETS),
+  [25, 50, 75, 100, 125, 150, 175, 200]
+);
+assert.equal(getMaterialAudioPlaybackRate(25), 0.25);
+assert.equal(getMaterialAudioPlaybackRate(75), 0.75);
+assert.equal(getMaterialAudioPlaybackRate(133.5), 1.335);
+assert.equal(getMaterialAudioPlaybackRate(200), 2);
+assert.equal(getMaterialAudioPlaybackRate(24), null);
+assert.equal(getMaterialAudioPlaybackRate(201), null);
+assert.equal(getMaterialAudioPlaybackRate(Number.NaN), null);
+const audioRateStub = { playbackRate: 1 };
+assert.equal(setMaterialAudioPlaybackRate(audioRateStub, 75), true);
+assert.equal(audioRateStub.playbackRate, 0.75);
+assert.equal(audioRateStub.preservesPitch, true);
+assert.equal(audioRateStub.mozPreservesPitch, true);
+assert.equal(audioRateStub.webkitPreservesPitch, true);
+
 assert.match(
   materialViewSource,
   /data-material-audio-play[\s\S]*?createSignedUrl[\s\S]*?player\.src\s*=\s*signedUrl/,
@@ -1643,6 +1677,38 @@ assert.doesNotMatch(
   materialViewSource,
   /material-attachment-card material-attachment-audio/,
   "Los audios guardados no deben volver a convertirse en tarjetas grandes debajo del texto."
+);
+assert.match(
+  materialViewSource,
+  /data-material-audio-speed[\s\S]*?<option value="25">25%<\/option>[\s\S]*?<option value="200">200%<\/option>[\s\S]*?data-material-audio-speed-custom/,
+  "El panel de audio debe exponer las velocidades predefinidas y aceptar un porcentaje personalizado."
+);
+assert.match(
+  materialViewSource,
+  /preservesPitch[\s\S]*?mozPreservesPitch[\s\S]*?webkitPreservesPitch[\s\S]*?player\.playbackRate\s*=\s*rate/,
+  "El ajuste de velocidad debe conservar la afinación en navegadores que implementan esos controles."
+);
+assert.match(
+  materialViewSource,
+  /data-download-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  "Todos los archivos adjuntos a Materiales, también audios, deben poder descargarse con su nombre."
+);
+const proposalContentSource = readFileSync(join(srcDir, "proposals-content.js"), "utf8");
+const proposalViewSource = readFileSync(join(srcDir, "proposals-view.js"), "utf8");
+assert.match(
+  proposalContentSource,
+  /data-download-proposal-attachment/,
+  "Los archivos de Propuestas deben ofrecer una acción de descarga."
+);
+assert.match(
+  proposalViewSource,
+  /data-download-proposal-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.file_name/,
+  "La descarga de archivos de Propuestas debe usar una URL firmada que fuerce la descarga."
+);
+assert.match(
+  commentsViewSource,
+  /data-download-comment-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  "Todos los archivos adjuntos a comentarios, incluidos los audios, deben poder descargarse."
 );
 assert.match(
   materialViewSource,
