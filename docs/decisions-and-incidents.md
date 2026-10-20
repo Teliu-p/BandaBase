@@ -112,6 +112,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - Si no hay un reproductor identificable de forma inequívoca, se mantiene el ingreso manual del tiempo; los marcadores siguen mostrando solo el valor temporal. Se añaden pruebas de conversión de tiempos fraccionarios y límites (0–24 h), además de comprobaciones de integración del editor.
 - Rama: `feat/material-audio-marker-playhead-20261019`, PR #111: https://github.com/Teliu-p/BandaBase/pull/111, fusionada como `2497e01ab23169936b49d7141672db7dab4e9904`. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39332251159 y https://github.com/Teliu-p/BandaBase/actions/runs/39332250632. Pendiente prueba manual autenticada de audio real. Sin cambios a Supabase, Storage, datos, RLS o migraciones.
 
+### 2026-10-19 — sincronización opcional del metrónomo con Materiales (seguimiento en rama)
+
+- La revisión confirmó que el retraso inicial proviene de programar el primer clic a `AudioContext.currentTime + 0.05`; el horizonte de 120 ms se usa para preparar clics posteriores y evitar jitter. El seguimiento reduce solo el adelanto inicial a 10 ms.
+- La sincronización no usa análisis de forma de onda ni detección automática de tempo. Reutiliza el BPM/métrica de la canción y el `currentTime` del audio de referencia; sigue reproducción, pausa, búsqueda, saltos de marcador y velocidad de reproducción. La opción es desactivable y el modo independiente se conserva.
+- Solo se sincroniza con un audio de referencia a la vez para evitar una fase ambigua. Los clics futuros se cancelan al pausar o buscar para no producir golpes desfasados.
+- Rama: `feat/metronome-audio-sync-20261019`. Pendiente de CI y prueba manual de reproducción real antes de integrar. No se cambian Supabase, Storage, datos, RLS ni migraciones.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
