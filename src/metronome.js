@@ -243,6 +243,21 @@ function getMetronomeClickIntervalSeconds(
 }
 
 
+function getMetronomeManualSyncAudioZeroTime(audioSeconds, elapsedContextSeconds) {
+  const audioTime = Number(audioSeconds);
+  const elapsed = Number(elapsedContextSeconds);
+  if (
+    !Number.isFinite(audioTime) ||
+    audioTime < 0 ||
+    !Number.isFinite(elapsed) ||
+    elapsed < 0
+  ) {
+    return null;
+  }
+  return audioTime - elapsed;
+}
+
+
 function getMetronomeNextSyncQuarterPosition(
   audioSeconds,
   bpm,
@@ -548,8 +563,14 @@ function captureManualMetronomeSyncCalibration() {
   // When both are manually aligned, this records the audio-time origin that
   // corresponds to the metronome's existing phase, regardless of when the
   // calibration button is pressed between beats.
-  const audioZeroTime = player.currentTime - elapsedContextSeconds;
-  if (!saveMetronomeSyncCalibration(player, config, audioZeroTime)) {
+  const audioZeroTime = getMetronomeManualSyncAudioZeroTime(
+    player.currentTime,
+    elapsedContextSeconds
+  );
+  if (
+    audioZeroTime === null ||
+    !saveMetronomeSyncCalibration(player, config, audioZeroTime)
+  ) {
     updateMetronomeSyncCalibrationStatus(
       "No se pudo guardar el ajuste en este navegador. Revisá la configuración de almacenamiento."
     );
