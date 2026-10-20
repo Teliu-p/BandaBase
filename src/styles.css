@@ -3103,6 +3103,16 @@
   line-height: 1.4;
 }
 
+.metronome-sync-option #metronomeSyncCalibrateBtn {
+  margin-top: 10px;
+}
+
+.metronome-sync-option .metronome-sync-calibration-status {
+  font-size: 12px;
+  color: var(--bb-text-muted);
+  max-width: 460px;
+}
+
 .metronome-beats {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
