@@ -137,6 +137,7 @@ test("outdent removes indentation from every selected material line after DOM te
 
 test("Alt+1 through Alt+6 apply the six material text-format actions", async ({ page }) => {
   await openApp(page);
+  await page.evaluate(() => showMaterialForm());
 
   const cases = await page.evaluate(() => {
     const editor = document.getElementById("materialComposerEditor");
