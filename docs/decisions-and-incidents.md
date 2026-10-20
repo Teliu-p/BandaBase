@@ -112,12 +112,12 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - Si no hay un reproductor identificable de forma inequívoca, se mantiene el ingreso manual del tiempo; los marcadores siguen mostrando solo el valor temporal. Se añaden pruebas de conversión de tiempos fraccionarios y límites (0–24 h), además de comprobaciones de integración del editor.
 - Rama: `feat/material-audio-marker-playhead-20261019`, PR #111: https://github.com/Teliu-p/BandaBase/pull/111, fusionada como `2497e01ab23169936b49d7141672db7dab4e9904`. Tests y Pages pasaron: https://github.com/Teliu-p/BandaBase/actions/runs/39332251159 y https://github.com/Teliu-p/BandaBase/actions/runs/39332250632. Pendiente prueba manual autenticada de audio real. Sin cambios a Supabase, Storage, datos, RLS o migraciones.
 
-### 2026-10-19 — sincronización opcional del metrónomo con Materiales (seguimiento en rama)
+### 2026-10-19 — sincronización opcional del metrónomo con Materiales (PR #112 fusionada)
 
 - La revisión confirmó que el retraso inicial proviene de programar el primer clic a `AudioContext.currentTime + 0.05`; el horizonte de 120 ms se usa para preparar clics posteriores y evitar jitter. El seguimiento reduce solo el adelanto inicial a 10 ms.
 - La sincronización no usa análisis de forma de onda ni detección automática de tempo. Reutiliza el BPM/métrica de la canción y el `currentTime` del audio de referencia; sigue reproducción, pausa, búsqueda, saltos de marcador y velocidad de reproducción. La opción es desactivable y el modo independiente se conserva.
 - Solo se sincroniza con un audio de referencia a la vez para evitar una fase ambigua. Los clics futuros se cancelan al pausar o buscar para no producir golpes desfasados.
-- PR #112: https://github.com/Teliu-p/BandaBase/pull/112, rama `feat/metronome-audio-sync-20261019`. La CI pasó en https://github.com/Teliu-p/BandaBase/actions/runs/39350085636; falta la prueba manual de reproducción real antes de integrar. No se cambian Supabase, Storage, datos, RLS ni migraciones.
+- PR #112: https://github.com/Teliu-p/BandaBase/pull/112, fusionada como `611043389f58a962152f16cabdedd5c18b165865`. Tests y Pages pasaron en https://github.com/Teliu-p/BandaBase/actions/runs/39350807878 y https://github.com/Teliu-p/BandaBase/actions/runs/39350808799. Falta prueba manual de reproducción real, especialmente con grabaciones que incluyen silencio inicial. No se cambian Supabase, Storage, datos, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
 

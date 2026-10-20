@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** main 2497e01ab23169936b49d7141672db7dab4e9904, inspeccionada el 2026-10-19 tras integrar la PR #111. Verificar el HEAD real y el orden de scripts antes de futuros cambios.
+**Base funcional de observación:** main 611043389f58a962152f16cabdedd5c18b165865, inspeccionada el 2026-10-19 tras integrar la PR #112. Verificar el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 
