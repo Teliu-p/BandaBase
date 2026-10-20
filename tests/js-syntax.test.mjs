@@ -1967,7 +1967,7 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.86em/,
+  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*1\.02em/,
   "Las parejas pueden ocupar más ancho, pero deben conservar el mismo límite de altura que una figura individual."
 );
 assert.match(
