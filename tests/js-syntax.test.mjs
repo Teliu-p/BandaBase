@@ -851,6 +851,43 @@ assert.doesNotMatch(
   /replaceBandListManagers\(/,
   "El guardado de lista no debe borrar responsables con una escritura separada."
 );
+const songsSingersSource = readFileSync(
+  join(srcDir, "songs-singers.js"),
+  "utf8"
+);
+assert.match(
+  songsSingersSource,
+  /rpc\(\s*"save_song_with_singers"/,
+  "Los datos de canción y cantantes deben guardar en una misma transacción."
+);
+const songsDetailSource = readFileSync(
+  join(srcDir, "songs-detail.js"),
+  "utf8"
+);
+assert.match(
+  songsDetailSource,
+  /saveSongWithSingers\(/,
+  "El formulario de canción debe usar el guardado atómico de campos y cantantes."
+);
+assert.doesNotMatch(
+  songsDetailSource,
+  /await updateSong\([\s\S]*?await replaceSongSingers\(/,
+  "No se deben guardar campos y cantantes en dos solicitudes separadas."
+);
+const commentsDataSource = readFileSync(
+  join(srcDir, "comments-data.js"),
+  "utf8"
+);
+assert.match(
+  commentsDataSource,
+  /rpc\(\s*"trash_comments_bulk"/,
+  "La papelera de comentarios múltiples debe ser una operación atómica."
+);
+assert.doesNotMatch(
+  commentsDataSource.slice(commentsDataSource.indexOf("async function deleteComments")),
+  /for\s*\(const commentId of ids\)/,
+  "Eliminar múltiples comentarios no debe seguir enviando una solicitud por fila."
+);
 const songsControllerSource = readFileSync(
   join(srcDir, "songs-controller.js"),
   "utf8"
