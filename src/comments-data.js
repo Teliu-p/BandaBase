@@ -272,17 +272,14 @@ async function deleteComments(
     )
   ];
 
-  for (const commentId of ids) {
-    const { error } =
-      await deleteComment(
-        supabaseClient,
-        commentId
-      );
-
-    if (error) {
-      return { error };
-    }
+  if (!ids.length) {
+    return { data: 0, error: null };
   }
 
-  return { error: null };
+  return await supabaseClient.rpc(
+    "trash_comments_bulk",
+    {
+      p_comment_ids: ids
+    }
+  );
 }
