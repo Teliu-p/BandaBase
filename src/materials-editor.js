@@ -419,56 +419,88 @@ function setMaterialNotationDotPending(isPending) {
 }
 
 
-function combineAdjacentMaterialNotationPairsAtCaret(editor) {
-  const selection = window.getSelection();
-  if (!editor || !selection?.rangeCount) return;
+function getAdjacentMaterialNotationSibling(node, direction) {
+  let sibling = node?.[direction === "previous" ? "previousSibling" : "nextSibling"];
+  while (
+    sibling?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]*$/.test(sibling.nodeValue || "")
+  ) {
+    sibling = sibling[direction === "previous" ? "previousSibling" : "nextSibling"];
+  }
+  return sibling?.classList?.contains("material-notation-symbol") ? sibling : null;
+}
 
-  const range = selection.getRangeAt(0).cloneRange();
-  if (!editor.contains(range.startContainer)) return;
 
-  range.collapse(true);
-  const marker = document.createElement("span");
-  marker.setAttribute("aria-hidden", "true");
-  range.insertNode(marker);
-
-  const parent = marker.parentNode;
-  parent?.normalize();
-
-  const textBeforeCaret = marker.previousSibling;
-  if (textBeforeCaret?.nodeType === Node.TEXT_NODE) {
-    textBeforeCaret.nodeValue = combineMaterialNotationPairs(
-      textBeforeCaret.nodeValue || ""
-    );
-
-    const caretRange = document.createRange();
-    caretRange.setStart(textBeforeCaret, textBeforeCaret.nodeValue.length);
-    caretRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(caretRange);
-    materialSelectionRange = caretRange.cloneRange();
+function combineAdjacentMaterialNotationPairsAtCaret(editor, insertedNotation) {
+  if (
+    !editor ||
+    !insertedNotation?.classList?.contains("material-notation-symbol") ||
+    !insertedNotation.isConnected
+  ) {
+    return false;
   }
 
-  marker.remove();
+  const notationKey = insertedNotation.getAttribute("data-material-notation");
+  const dotted = insertedNotation.getAttribute("data-material-dotted") === "true";
+  if (dotted || (notationKey !== "noteEighth" && notationKey !== "noteSixteenth")) {
+    return false;
+  }
+
+  let first = null;
+  let second = null;
+  const previous = getAdjacentMaterialNotationSibling(insertedNotation, "previous");
+  const next = getAdjacentMaterialNotationSibling(insertedNotation, "next");
+
+  if (
+    previous?.getAttribute("data-material-notation") === notationKey &&
+    previous.getAttribute("data-material-dotted") !== "true"
+  ) {
+    first = previous;
+    second = insertedNotation;
+  } else if (
+    next?.getAttribute("data-material-notation") === notationKey &&
+    next.getAttribute("data-material-dotted") !== "true"
+  ) {
+    first = insertedNotation;
+    second = next;
+  }
+
+  if (!first || !second || first.parentNode !== second.parentNode) {
+    return false;
+  }
+
+  const parent = first.parentNode;
+  const pairKey = notationKey === "noteEighth" ? "noteEighthPair" : "noteSixteenthPair";
+  const pair = createMaterialNotationElement(pairKey, false);
+  if (!pair) return false;
+
+  parent.insertBefore(pair, first);
+  let current = first;
+  while (current && current !== second) {
+    const following = current.nextSibling;
+    current.remove();
+    current = following;
+  }
+  second.remove();
+
+  return true;
 }
 
 
 function insertMaterialNotation(notationKey, button = null) {
   const dotWasPending = materialNotationDotPending;
-  const symbol = getMaterialNotationSymbol(
+  const notation = createMaterialNotationElement(
     notationKey,
     dotWasPending
   );
 
-  if (!symbol || !focusMaterialEditorForFormatting()) {
+  if (!notation || !focusMaterialEditorForFormatting()) {
     return false;
   }
 
-  insertMaterialNodeAtSelection(
-    document.createTextNode(symbol)
-  );
-
+  const insertedNotation = insertMaterialNodeAtSelection(notation);
   const editor = document.getElementById("materialComposerEditor");
-  combineAdjacentMaterialNotationPairsAtCaret(editor);
+  combineAdjacentMaterialNotationPairsAtCaret(editor, insertedNotation);
 
   if (dotWasPending) {
     setMaterialNotationDotPending(false);
@@ -1020,6 +1052,7 @@ function insertMaterialNodeAtSelection(
   materialSelectionRange =
     range.cloneRange();
 
+  return node;
 }
 
 
@@ -2438,6 +2471,12 @@ function bindMaterialFormattingControls() {
 
   notationButtonBindings.forEach(([buttonId, notationKey]) => {
     const button = document.getElementById(buttonId);
+    if (button) {
+      button.innerHTML =
+        '<span class="material-notation-button-icon">' +
+        getMaterialNotationSvgMarkup(notationKey, false) +
+        "</span>";
+    }
     button?.addEventListener("mousedown", event => {
       event.preventDefault();
       rememberMaterialSelection();
