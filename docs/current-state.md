@@ -47,6 +47,12 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Corrige el cálculo del origen de calibración del metrónomo a partir de `elapsedContextSeconds * playbackRate`, necesario si se calibra con el audio a una velocidad distinta de 1×.
 - CI comprobada para el estado de código previo a las actualizaciones documentales: https://github.com/Teliu-p/BandaBase/actions/runs/39364004244 (npm tests, ESLint/no-undef y smoke tests de Chromium, éxito). No equivale a prueba audible autenticada ni a una prueba de descarga contra una cuenta real. La comprobación más reciente se repetirá tras documentar.
 
+## 3B. Figuras, silencios y puntillo en Materiales (rama de trabajo)
+
+- La rama `feat/material-note-rest-dotted` amplía la barra del compositor con semicorchea, corchea, negra, blanca y redonda, sus cinco silencios equivalentes, y un puntillo con estado visual que se consume en la siguiente figura o silencio.
+- Los símbolos se insertan como texto musical Unicode en el rich text existente. La modificación no altera el esquema, los datos, las políticas, RLS, Storage ni las migraciones de Supabase.
+- Se añaden pruebas para los diez símbolos, sus formas con puntillo, el orden de controles y el restablecimiento del puntillo. La rama y su CI deben comprobarse antes de considerar el cambio integrado o desplegado.
+
 ## 4. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
