@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-10-20 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último cambio funcional fusionado en main:** `b4df67ce393a6d199fa1fa436c67b95dcf59ab78` (PR #119, 2026-10-20). La CI de PR pasó; los workflows de main se están confirmando: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39439995769) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39439993920). La representación visual de glifos todavía requiere inspección en la computadora afectada. Verificar el HEAD real antes de cada cambio.
+**Último cambio funcional fusionado en main:** `d1c53a10c9d6ef459058c5e1e8ad4b2e9e923386` (PR #121, 2026-10-20). Tests y Pages pasaron: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39444107185) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39444106008). La calibración visual de las figuras continúa en la PR #122; verificar el HEAD real antes de cada cambio.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
