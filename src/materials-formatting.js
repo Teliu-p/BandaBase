@@ -62,25 +62,25 @@ const MATERIAL_NOTATION_SVG_BODIES = Object.freeze({
   noteSixteenth:
     '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="currentColor"/>' +
     '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
-    '<path d="M16 5C24 6 23 11 18 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
-    '<path d="M16 9C23 10 22 15 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    '<path d="M16 5C24 6 23 11 18 14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
+    '<path d="M16 9C23 10 22 15 18 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>',
   noteEighth:
     '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="currentColor"/>' +
-    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
-    '<path d="M16 5C24 6 23 11 18 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
+    '<path d="M16 5C24 6 23 11 18 14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>',
   noteQuarter:
     '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="currentColor"/>' +
-    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>',
   noteHalf:
-    '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    '<ellipse cx="11" cy="23" rx="6" ry="3.8" transform="rotate(-22 11 23)" fill="none" stroke="currentColor" stroke-width="2.8"/>' +
+    '<path d="M16 21.5V5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>',
   noteWhole:
     '<ellipse cx="13" cy="22" rx="7" ry="4.2" transform="rotate(-22 13 22)" fill="none" stroke="currentColor" stroke-width="2.8"/>',
   restSixteenth:
-    '<path d="M15 5L11 14L17 17L12 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M15 5L11 14L17 17L12 26" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<circle cx="20" cy="5" r="2.5" fill="currentColor"/><circle cx="16.5" cy="11" r="2.5" fill="currentColor"/>',
   restEighth:
-    '<path d="M16 8L12 15L18 18L12.5 26" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M16 8L12 15L18 18L12.5 26" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<circle cx="21" cy="5" r="3" fill="currentColor"/>',
   restQuarter:
     '<path d="M18 4L11 11L19 15L11.5 22L17 27" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -93,12 +93,12 @@ const MATERIAL_NOTATION_SVG_BODIES = Object.freeze({
   noteEighthPair:
     '<ellipse cx="9" cy="24" rx="5.5" ry="3.5" transform="rotate(-22 9 24)" fill="currentColor"/>' +
     '<ellipse cx="24" cy="19" rx="5.5" ry="3.5" transform="rotate(-22 24 19)" fill="currentColor"/>' +
-    '<path d="M14 22.5V7M29 17.5V2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M14 22.5V7M29 17.5V2" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
     '<path d="M14 7L29 2V6L14 11Z" fill="currentColor"/>',
   noteSixteenthPair:
     '<ellipse cx="9" cy="24" rx="5.5" ry="3.5" transform="rotate(-22 9 24)" fill="currentColor"/>' +
     '<ellipse cx="24" cy="19" rx="5.5" ry="3.5" transform="rotate(-22 24 19)" fill="currentColor"/>' +
-    '<path d="M14 22.5V7M29 17.5V2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M14 22.5V7M29 17.5V2" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>' +
     '<path d="M14 7L29 2V6L14 11ZM14 12L29 7V11L14 16Z" fill="currentColor"/>'
 });
 
