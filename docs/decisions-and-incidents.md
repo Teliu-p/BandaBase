@@ -147,12 +147,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 - Los botones de figuras de la barra aumentan de tamaño; el tamaño de las figuras en el propio renglón permanece igual.
 - PR #117: https://github.com/Teliu-p/BandaBase/pull/117, fusionada como `5ab8c9960967a8ada41575ad5a2298a3db2a71da`. Tests y Pages de main pasaron ([Tests](https://github.com/Teliu-p/BandaBase/actions/runs/39394884228), [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/39394883455)). Renueva los atajos según la especificación y asigna Alt+0 al reinicio de formato/puntillo. La comprobación visual real de glifos queda pendiente. No se cambia Supabase, datos, políticas, RLS, Storage ni migraciones.
 
-### 2026-10-20 — iconos musicales vectoriales para equipos sin fuente compatible (PR en curso)
+### 2026-10-20 — iconos musicales vectoriales para equipos sin fuente compatible (PR #119 fusionada)
 
 - El reporte de figuras como rectángulos vacíos en una segunda computadora apunta a falta de cobertura de fuente para los caracteres musicales extendidos, no necesariamente a un problema del navegador. Referencia: Unicode explica que los rectángulos de sustitución aparecen cuando ninguna fuente disponible incluye el glifo: https://www.unicode.org/help/display_problems.html.
-- La corrección reemplaza la visualización nueva por SVG generado a partir de claves de figuras/silencios permitidas. La serialización conserva la clave semántica y vuelve a generar el icono; la sanitización no admite SVG arbitrario. El texto viejo con caracteres Unicode se convierte al dibujar/editar.
+- La PR #119 (https://github.com/Teliu-p/BandaBase/pull/119) fue fusionada como `b4df67ce393a6d199fa1fa436c67b95dcf59ab78`. La visualización usa SVG generado a partir de claves permitidas. La serialización conserva la clave semántica y vuelve a generar el icono; la sanitización no admite SVG arbitrario. El texto viejo con caracteres Unicode se convierte al dibujar/editar.
 - Los iconos de la línea miden 1,35 em para un interlineado de 1,6 em (≈85%); no se revierte el tamaño de los botones. No se modifican Supabase, Storage, datos, RLS ni migraciones.
-- Falta que pase la CI y se integre la PR, además de comprobar visualmente la computadora afectada.
+- La CI de la PR pasó regresiones, ESLint y smoke tests. Los workflows de Tests y Pages de main están verificándose para el merge. Falta comprobar visualmente la computadora afectada; no se modifican Supabase, Storage, datos, RLS ni migraciones.
 
 ## Formato recomendado para agregar incidentes
 
