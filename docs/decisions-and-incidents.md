@@ -119,6 +119,13 @@ Regla: no revivir automáticamente estos problemas; comprobar el código y repro
 - Solo se sincroniza con un audio de referencia a la vez para evitar una fase ambigua. Los clics futuros se cancelan al pausar o buscar para no producir golpes desfasados.
 - PR #112: https://github.com/Teliu-p/BandaBase/pull/112, fusionada como `611043389f58a962152f16cabdedd5c18b165865`. Tests y Pages pasaron en https://github.com/Teliu-p/BandaBase/actions/runs/39350807878 y https://github.com/Teliu-p/BandaBase/actions/runs/39350808799. Falta prueba manual de reproducción real, especialmente con grabaciones que incluyen silencio inicial. No se cambian Supabase, Storage, datos, RLS ni migraciones.
 
+### 2026-10-19 — calibración manual de fase del metrónomo (en revisión)
+
+- La sincronización inicial asumía que el pulso cero de la canción coincidía con el segundo cero del archivo. El usuario propuso alinearlo manualmente una vez y reutilizar la fase.
+- La rama `feat/metronome-manual-phase-calibration-20261019` añade un control para guardar el ajuste mientras un único audio y el metrónomo independiente están en marcha y alineados de oído. Calcula el origen temporal relativo sin análisis de audio y persiste el resultado en localStorage por ID de canción y adjunto.
+- El ajuste se usa al activar «Sincronizar con audio» y se descarta para la sesión si el BPM o la métrica ya no coinciden con los guardados. El modo independiente y la referencia por segundo cero siguen disponibles si no hay ajuste.
+- No se modifica Supabase, Storage, datos, RLS ni migraciones. Pendiente de CI, revisión del diff y prueba manual real antes de fusionar.
+
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
