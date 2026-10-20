@@ -6,6 +6,7 @@ let materialIndentRepeatDirection = 0;
 let materialIndentRepeatCount = 0;
 let materialIndentPointerHandled = false;
 let materialIndentPointerResetTimer = null;
+let materialNotationDotPending = false;
 
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
@@ -410,14 +411,31 @@ function createMaterialInlineAttachment(
 
 
 
-function insertMaterialNotation(symbol, button = null) {
-  if (!focusMaterialEditorForFormatting()) {
+function setMaterialNotationDotPending(isPending) {
+  materialNotationDotPending = Boolean(isPending);
+  const button = document.getElementById("materialNotationDotBtn");
+  button?.classList.toggle("is-active", materialNotationDotPending);
+  button?.setAttribute("aria-pressed", String(materialNotationDotPending));
+}
+
+
+function insertMaterialNotation(notationKey, button = null) {
+  const symbol = getMaterialNotationSymbol(
+    notationKey,
+    materialNotationDotPending
+  );
+
+  if (!symbol || !focusMaterialEditorForFormatting()) {
     return false;
   }
 
   insertMaterialNodeAtSelection(
     document.createTextNode(symbol)
   );
+
+  if (materialNotationDotPending) {
+    setMaterialNotationDotPending(false);
+  }
 
   if (button) {
     showMaterialFormatActionFeedback(button);
@@ -2166,9 +2184,19 @@ function bindMaterialFormattingControls() {
       "materialSize2Btn"
     );
 
-  const noteQuarterButton = document.getElementById("materialNoteQuarterBtn");
-  const noteEighthButton = document.getElementById("materialNoteEighthBtn");
-  const noteSixteenthButton = document.getElementById("materialNoteSixteenthBtn");
+  const notationButtonBindings = [
+    ["materialNoteSixteenthBtn", "noteSixteenth"],
+    ["materialNoteEighthBtn", "noteEighth"],
+    ["materialNoteQuarterBtn", "noteQuarter"],
+    ["materialNoteHalfBtn", "noteHalf"],
+    ["materialNoteWholeBtn", "noteWhole"],
+    ["materialRestSixteenthBtn", "restSixteenth"],
+    ["materialRestEighthBtn", "restEighth"],
+    ["materialRestQuarterBtn", "restQuarter"],
+    ["materialRestHalfBtn", "restHalf"],
+    ["materialRestWholeBtn", "restWhole"]
+  ];
+  const notationDotButton = document.getElementById("materialNotationDotBtn");
   const audioMarkerButton = document.getElementById("materialAudioMarkerBtn");
   const indentButton = document.getElementById("materialIndentBtn");
   const outdentButton = document.getElementById("materialOutdentBtn");
@@ -2313,23 +2341,22 @@ function bindMaterialFormattingControls() {
     }
   );
 
-  noteQuarterButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
+  notationButtonBindings.forEach(([buttonId, notationKey]) => {
+    const button = document.getElementById(buttonId);
+    button?.addEventListener("mousedown", event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    });
+    button?.addEventListener("click", () => insertMaterialNotation(notationKey, button));
   });
-  noteQuarterButton?.addEventListener("click", () => insertMaterialNotation("♩", noteQuarterButton));
 
-  noteEighthButton?.addEventListener("mousedown", event => {
+  notationDotButton?.addEventListener("mousedown", event => {
     event.preventDefault();
     rememberMaterialSelection();
   });
-  noteEighthButton?.addEventListener("click", () => insertMaterialNotation("♪", noteEighthButton));
-
-  noteSixteenthButton?.addEventListener("mousedown", event => {
-    event.preventDefault();
-    rememberMaterialSelection();
+  notationDotButton?.addEventListener("click", () => {
+    setMaterialNotationDotPending(!materialNotationDotPending);
   });
-  noteSixteenthButton?.addEventListener("click", () => insertMaterialNotation("♬", noteSixteenthButton));
 
   audioMarkerButton?.addEventListener("mousedown", event => {
     event.preventDefault();
