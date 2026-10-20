@@ -10,6 +10,24 @@ const MATERIAL_RICH_TEXT_ALLOWED_SIZE_CLASSES =
     "material-text-size-2"
   ]);
 
+const MATERIAL_NOTATION_SYMBOLS = Object.freeze({
+  noteSixteenth: "\u{1D161}",
+  noteEighth: "\u{1D160}",
+  noteQuarter: "\u{1D15F}",
+  noteHalf: "\u{1D15E}",
+  noteWhole: "\u{1D15D}",
+  restSixteenth: "\u{1D13F}",
+  restEighth: "\u{1D13E}",
+  restQuarter: "\u{1D13D}",
+  restHalf: "\u{1D13C}",
+  restWhole: "\u{1D13B}"
+});
+
+function getMaterialNotationSymbol(notationKey, dotted = false) {
+  const symbol = MATERIAL_NOTATION_SYMBOLS[notationKey] || "";
+  return symbol ? symbol + (dotted ? "\u{1D16D}" : "") : "";
+}
+
 
 function getMaterialIndentRepeatDelay(repeatCount) {
   const count = Math.max(0, Number(repeatCount) || 0);
