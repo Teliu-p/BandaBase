@@ -362,6 +362,7 @@ async function loadComments() {
     return;
   }
 
+  const songId = currentSong.id;
   list.innerHTML =
     "Cargando...";
 
@@ -369,18 +370,21 @@ async function loadComments() {
     const result =
       await getCommentsBySongId(
         supabaseClient,
-        currentSong.id
+        songId
       );
+
+    if (currentSong?.id !== songId) return;
 
     if (result.error) {
       throw result.error;
     }
 
-    currentComments =
-      await fetchCommentData(
-        result.data || []
-      );
+    const loadedComments = await fetchCommentData(
+      result.data || []
+    );
+    if (currentSong?.id !== songId) return;
 
+    currentComments = loadedComments;
     commentProfilesMap =
       {};
 
@@ -410,6 +414,7 @@ async function loadComments() {
           userIds
         );
 
+      if (currentSong?.id !== songId) return;
       if (error) throw error;
 
       (profiles || []).forEach(
@@ -421,8 +426,10 @@ async function loadComments() {
       );
     }
 
+    if (currentSong?.id !== songId) return;
     renderComments();
   } catch (error) {
+    if (currentSong?.id !== songId) return;
     showNotice(
       error.message,
       "error"
