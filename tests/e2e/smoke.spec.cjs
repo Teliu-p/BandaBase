@@ -291,6 +291,8 @@ test("the previous account's app data stays hidden until the next account initia
     const pending = handleAuthSession({
       user: { id: "session-user", email: "session@example.invalid" }
     });
+    await Promise.resolve();
+    await Promise.resolve();
     const during = {
       appHidden: document.getElementById("app").classList.contains("hidden"),
       loginVisible: !document.getElementById("loginScreen").classList.contains("hidden")
