@@ -1967,13 +1967,23 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.96em[\s\S]*?vertical-align:\s*-\.135em/,
-  "Las figuras dentro del renglón deben limitarse a la altura visual de una mayúscula y alinearse a la línea base."
+  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.96em[\s\S]*?vertical-align:\s*-\.145em/,
+  "Las figuras dentro del renglón deben tener altura visual similar a una mayúscula y apoyar la nota en la línea base."
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.99em[\s\S]*?height:\s*\.88em[\s\S]*?vertical-align:\s*-\.124em/,
-  "Las parejas pueden ocupar más ancho, pero deben conservar el mismo límite de altura que una figura individual."
+  /\.material-notation-symbol\[data-material-notation="noteHalf"\]\s*\{[\s\S]*?height:\s*\.9em[\s\S]*?vertical-align:\s*-\.096em/,
+  "La blanca debe compensar el contorno más grueso para apoyar su nota en la línea base."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\[data-material-notation="noteWhole"\]\s*\{[\s\S]*?vertical-align:\s*-\.133em/,
+  "La redonda debe apoyar su cabeza en la misma línea base."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.925em[\s\S]*?height:\s*\.82em[\s\S]*?vertical-align:\s*-\.106em/,
+  "Las parejas deben mantener una altura similar a la mayúscula y apoyar sus cabezas en la línea base."
 );
 assert.match(
   materialNotationCss,
