@@ -1902,7 +1902,7 @@ for (const [notationKey] of materialNotationTestCases) {
     "La figura " + notationKey + " debe conservar el puntillo en su representación vectorial."
   );
 }
-assert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
+assert.match(getMaterialNotationSvgMarkup("noteQuarter"), /stroke-width="2\.8"/,\n  "El trazo de la figura debe tener un grosor consistente con el grosor visual de las letras.");\nassert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
 assert.equal(getMaterialNotationHtml("unknownNotation"), "");
 
 const legacyNotation = getMaterialNotationInfoFromLegacySymbol(String.fromCodePoint(0x1D161));
@@ -1962,12 +1962,12 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.96em[\s\S]*?vertical-align:\s*-\.15em/,
+  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.96em[\s\S]*?vertical-align:\s*-\.135em/,
   "Las figuras dentro del renglón deben limitarse a la altura visual de una mayúscula y alinearse a la línea base."
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.96em[\s\S]*?height:\s*\.84em[\s\S]*?vertical-align:\s*-\.12em/,
+  /\.material-notation-symbol\[data-material-notation\$="Pair"\]\s*\{[\s\S]*?width:\s*\.99em[\s\S]*?height:\s*\.88em[\s\S]*?vertical-align:\s*-\.124em/,
   "Las parejas pueden ocupar más ancho, pero deben conservar el mismo límite de altura que una figura individual."
 );
 assert.match(
