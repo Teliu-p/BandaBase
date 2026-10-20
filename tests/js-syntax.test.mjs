@@ -1875,6 +1875,64 @@ for (const [notationKey, expectedSymbol] of materialNotationTestCases) {
 }
 assert.equal(getMaterialNotationSymbol("unknownNotation"), "",
   "Una clave de figura desconocida no debe insertar texto.");
+const {
+  getMaterialNotationSvgMarkup,
+  getMaterialNotationHtml,
+  getMaterialNotationInfoFromLegacySymbol,
+  renderMaterialNotationTextHtml
+} = loadPureFunctions(
+  "src/materials-formatting.js",
+  [
+    "getMaterialNotationSvgMarkup",
+    "getMaterialNotationHtml",
+    "getMaterialNotationInfoFromLegacySymbol",
+    "renderMaterialNotationTextHtml"
+  ]
+);
+
+for (const [notationKey] of materialNotationTestCases) {
+  assert.match(
+    getMaterialNotationSvgMarkup(notationKey),
+    /^<svg[\\s\\S]*<\\/svg>$/,
+    "La figura " + notationKey + " debe dibujarse con SVG y no depender de una fuente musical instalada."
+  );
+  assert.match(
+    getMaterialNotationHtml(notationKey, true),
+    /class="material-notation-symbol"[^>]*data-material-dotted="true"/,
+    "La figura " + notationKey + " debe conservar el puntillo en su representación vectorial."
+  );
+}
+assert.equal(getMaterialNotationSvgMarkup("unknownNotation"), "");
+assert.equal(getMaterialNotationHtml("unknownNotation"), "");
+
+const legacyNotation = getMaterialNotationInfoFromLegacySymbol(String.fromCodePoint(0x1D161));
+assert.equal(legacyNotation.notationKey, "noteSixteenth");
+assert.equal(legacyNotation.dotted, false);
+
+const legacyDottedRest = getMaterialNotationInfoFromLegacySymbol(
+  String.fromCodePoint(0x1D13C) + String.fromCodePoint(0x1D16D)
+);
+assert.equal(legacyDottedRest.notationKey, "restHalf");
+assert.equal(legacyDottedRest.dotted, true);
+
+const legacyPair = getMaterialNotationInfoFromLegacySymbol("♫");
+assert.equal(legacyPair.notationKey, "noteEighthPair");
+assert.equal(getMaterialNotationInfoFromLegacySymbol("x"), null);
+
+const legacyEighth = String.fromCodePoint(0x1D160);
+const renderedOldMaterial = renderMaterialNotationTextHtml(
+  "Antes: " + legacyEighth + "  " + legacyEighth + " y después"
+);
+assert.match(renderedOldMaterial, /data-material-notation="noteEighthPair"/,
+  "Un material antiguo debe convertir dos corcheas en un icono vectorial unido.");
+assert.doesNotMatch(renderedOldMaterial, /𝅘𝅥𝅮/,
+  "La visualización antigua no debe depender del glifo musical que puede faltar en el sistema.");
+assert.match(
+  renderMaterialNotationTextHtml(String.fromCodePoint(0x1D15F) + String.fromCodePoint(0x1D16D)),
+  /data-material-dotted="true"/,
+  "Las figuras antiguas con puntillo deben conservar el puntillo al renderizarse como SVG."
+);
+
 assert.match(materialEditorSource,
   /getMaterialNotationSymbol\([\s\S]*?materialNotationDotPending/,
   "La inserción de figuras debe consultar el estado del puntillo.");
@@ -1896,10 +1954,21 @@ assert.match(
   /\.material-inline-attachment\s*\{[\s\S]*?height:\s*1\.2em/,
   "Un adjunto inline no debe alterar la altura vertical de un renglón."
 );
+const materialNotationCss = readFileSync(join(srcDir, "styles.css"), "utf8");
 assert.match(
-  readFileSync(join(srcDir, "styles.css"), "utf8"),
+  materialNotationCss,
   /\.material-note-btn\s*\{[\s\S]*?font-size:\s*24px/,
-  "Los botones de figuras y silencios deben mostrarse más grandes, sin escalar el texto musical en el renglón."
+  "Los botones de figuras y silencios deben mostrarse más grandes."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-symbol\s*\{[\s\S]*?height:\s*1\.35em/,
+  "Los iconos de figuras dentro del renglón deben ocupar aproximadamente el 85% de la altura de línea."
+);
+assert.match(
+  materialNotationCss,
+  /\.material-notation-svg\s*\{[\s\S]*?height:\s*100%/,
+  "Los símbolos de los materiales deben usar un dibujo vectorial independiente de las fuentes del sistema."
 );
 
 const {
