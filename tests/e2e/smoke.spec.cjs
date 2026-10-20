@@ -97,6 +97,130 @@ test("musical notation toolbar renders portable SVG icons", async ({ page }) => 
   expect(runtimeErrors, "JavaScript errors while drawing musical notation").toEqual([]);
 });
 
+
+test("late materials and comments responses cannot overwrite the newly selected song", async ({ page }) => {
+  await openApp(page);
+
+  const materialResult = await page.evaluate(async () => {
+    const originalGetMaterials = getMaterialsBySongId;
+    const originalGetAttachments = getMaterialAttachments;
+    const originalGetBlocks = getMaterialBlocksByMaterialIds;
+    const originalRenderMaterials = renderMaterials;
+    let resolveOldMaterialQuery;
+
+    getMaterialsBySongId = (_client, songId) => {
+      if (songId === "song-old") {
+        return new Promise(resolve => { resolveOldMaterialQuery = resolve; });
+      }
+      return Promise.resolve({
+        data: [{ id: "material-new", type: "Texto", name: "Nuevo", content: "Nuevo" }],
+        error: null
+      });
+    };
+    getMaterialAttachments = async () => ({ data: [], error: null });
+    getMaterialBlocksByMaterialIds = async () => ({ data: [], error: null });
+    renderMaterials = () => {};
+
+    currentSong = { id: "song-old" };
+    openMaterialIds = new Set();
+    const oldLoad = loadMaterials();
+    currentSong = { id: "song-new" };
+    await loadMaterials();
+    const afterNew = currentMaterials.map(material => material.id);
+
+    resolveOldMaterialQuery({
+      data: [{ id: "material-old", type: "Texto", name: "Anterior", content: "Anterior" }],
+      error: null
+    });
+    await oldLoad;
+    const finalIds = currentMaterials.map(material => material.id);
+
+    getMaterialsBySongId = originalGetMaterials;
+    getMaterialAttachments = originalGetAttachments;
+    getMaterialBlocksByMaterialIds = originalGetBlocks;
+    renderMaterials = originalRenderMaterials;
+    return { afterNew, finalIds };
+  });
+
+  expect(materialResult.afterNew).toEqual(["material-new"]);
+  expect(materialResult.finalIds).toEqual(["material-new"]);
+
+  const commentResult = await page.evaluate(async () => {
+    const originalGetComments = getCommentsBySongId;
+    const originalFetchCommentData = fetchCommentData;
+    const originalRenderComments = renderComments;
+    let resolveOldCommentQuery;
+
+    getCommentsBySongId = (_client, songId) => {
+      if (songId === "song-old") {
+        return new Promise(resolve => { resolveOldCommentQuery = resolve; });
+      }
+      return Promise.resolve({
+        data: [{ id: "comment-new", user_id: null }],
+        error: null
+      });
+    };
+    fetchCommentData = async rows => rows;
+    renderComments = () => {};
+
+    currentSong = { id: "song-old" };
+    const oldLoad = loadComments();
+    currentSong = { id: "song-new" };
+    await loadComments();
+    const afterNew = currentComments.map(comment => comment.id);
+
+    resolveOldCommentQuery({
+      data: [{ id: "comment-old", user_id: null }],
+      error: null
+    });
+    await oldLoad;
+    const finalIds = currentComments.map(comment => comment.id);
+
+    getCommentsBySongId = originalGetComments;
+    fetchCommentData = originalFetchCommentData;
+    renderComments = originalRenderComments;
+    return { afterNew, finalIds };
+  });
+
+  expect(commentResult.afterNew).toEqual(["comment-new"]);
+  expect(commentResult.finalIds).toEqual(["comment-new"]);
+});
+
+test("the previous account's app data stays hidden until the next account initializes", async ({ page }) => {
+  await openApp(page);
+
+  const state = await page.evaluate(async () => {
+    const originalInitializeApp = initializeApp;
+    let completeInitialization;
+    initializeApp = () => new Promise(resolve => { completeInitialization = resolve; });
+
+    const pending = handleAuthSession({
+      user: { id: "session-user", email: "session@example.invalid" }
+    });
+    const during = {
+      appHidden: document.getElementById("app").classList.contains("hidden"),
+      loginVisible: !document.getElementById("loginScreen").classList.contains("hidden")
+    };
+
+    completeInitialization();
+    await pending;
+    initializeApp = originalInitializeApp;
+
+    return {
+      during,
+      after: {
+        appVisible: !document.getElementById("app").classList.contains("hidden"),
+        loginHidden: document.getElementById("loginScreen").classList.contains("hidden")
+      }
+    };
+  });
+
+  expect(state.during.appHidden).toBe(true);
+  expect(state.during.loginVisible).toBe(true);
+  expect(state.after.appVisible).toBe(true);
+  expect(state.after.loginHidden).toBe(true);
+});
+
 test("password mismatch is rejected before an auth request is made", async ({ page }) => {
   await openApp(page);
 
