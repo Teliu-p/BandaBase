@@ -60,6 +60,13 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 - Atajos: Alt+1–6 conserva funciones; Alt+Q/W/E/R/T inserta figuras; Alt+A/S/D/F/G inserta silencios; Alt+Z puntillo; Alt+X marcador; Alt+C/Alt+V agrega/quita sangría; Alt+0 restablece el formato normal y desactiva el puntillo.
 - PR #117 fue fusionada como `5ab8c9960967a8ada41575ad5a2298a3db2a71da`. Pasaron Tests y Pages de main para ese SHA. Falta comprobar manualmente el renderizado real de los glifos; no se cambia Supabase ni sus migraciones.
 
+## 3D. Notación musical vectorial y compatibilidad de fuentes (PR en curso)
+
+- La rama `fix/materials-portable-notation-20261020` reemplaza la visualización de figuras y silencios por SVG inline generado desde una lista permitida. El objetivo es evitar los rectángulos vacíos cuando el sistema no dispone de glifos para el bloque Unicode Musical Symbols.
+- Los símbolos nuevos se guardan como `span` canónicos con una clave validada; el SVG no se acepta desde contenido arbitrario. El renderizador también convierte los caracteres Unicode viejos, incluidos puntillos y parejas de corcheas/semicorcheas, para que los materiales existentes sigan viéndose.
+- El icono dentro del renglón mide 1,35 em frente a una línea de 1,6 em (aprox. 85%). Los botones conservan su tamaño actual. No se toca Supabase, Storage, políticas ni migraciones.
+- La PR y su CI todavía deben validarse; no considerar el arreglo publicado hasta comprobar el HEAD de main y el deploy de Pages. La prueba de Chromium automática puede confirmar la carga, pero no sustituye la inspección visual en una computadora sin la fuente musical.
+
 ## 4. Incidente de guardado de Materiales con audios
 
 - Reporte recibido el 2026-10-15: al editar Materiales e insertar audios, pulsar «Guardar material» deja el editor abierto sin feedback visible.
