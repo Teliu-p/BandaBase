@@ -1962,7 +1962,7 @@ assert.match(
 );
 assert.match(
   materialNotationCss,
-  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.72em[\s\S]*?height:\s*\.72em[\s\S]*?vertical-align:\s*baseline/,
+  /\.material-notation-symbol\s*\{[\s\S]*?width:\s*\.9em[\s\S]*?height:\s*\.9em[\s\S]*?vertical-align:\s*-\.14em/,
   "Las figuras dentro del renglón deben limitarse a la altura visual de una mayúscula y alinearse a la línea base."
 );
 assert.match(
