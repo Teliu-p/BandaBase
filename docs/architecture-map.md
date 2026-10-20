@@ -53,7 +53,7 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - songs-controller.js: carga de catálogo, control de filtros, creación, listas asociadas y coordinación de UI.
 - songs-detail.js: detalle y edición de una canción, materiales y comentarios relacionados.
 - songs-comparison.js: comparación de versión propia con original/material asociado.
-- metronome.js: configuración de métrica, temporización de clics, acentos, subdivisiones, tap tempo, ganancia ajustable y sincronización opcional con el playhead de un audio de Materiales. Usa BPM/métrica conocidos y eventos de play/pause/seek/ratechange; no analiza la forma de onda. Una calibración manual de fase se guarda en localStorage por canción y adjunto, y se invalida para el uso actual si no coinciden BPM/métrica. Mantener pruebas para la fase del compás, calibración, cancelación de clics programados y modo independiente.
+- metronome.js: configuración de métrica, temporización de clics, acentos, subdivisiones, tap tempo, ganancia ajustable y sincronización opcional con el playhead de un audio de Materiales. Usa BPM/métrica conocidos y eventos de play/pause/seek/ratechange; no analiza la forma de onda. La calibración manual guarda fase en localStorage por canción/adjunto y, al capturarla, convierte el tiempo transcurrido según `playbackRate`; se invalida para el uso actual si no coinciden BPM/métrica. Mantener pruebas para fase, calibración a velocidad alterada, cancelación de clics y modo independiente.
 
 ### Materiales, comentarios y contenido enriquecido
 
@@ -61,9 +61,9 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - materials-editor.js: compositor enriquecido, inserción de archivos/enlaces/figuras musicales y marcadores temporales inline; la herramienta de marcador captura el tiempo del control de audio enfocado o del único reproductor activo y conserva la entrada manual como alternativa. Gestiona selección/caret, atajos numéricos y sangría mediante espacios reales con repetición al mantener presionado.
 - materials-formatting.js: sanitización y serialización/renderizado de texto enriquecido, enlaces y marcadores temporales permitidos. El marcador se persiste como un `span` canónico dentro del rich text, no como HTML arbitrario.
 - materials-save.js: proceso de guardado, carga de adjuntos, compensación ante fallos y restauración parcial.
-- materials-view.js: renderizado en flujo de bloques, chips compactos de adjuntos, reproducción de audio bajo demanda con panel flotante de tiempo/progreso y salto a todos los adjuntos de audio de la canción (también en Materiales plegados) al pulsar un marcador.
+- materials-view.js: renderizado en flujo de bloques, chips compactos de adjuntos, reproducción nativa `<audio>` bajo demanda mediante URL firmada y panel flotante de tiempo/posición. El panel permite velocidades del 25% al 200% (presets y porcentaje personalizado), solicitando conservación de afinación con `preservesPitch` y alias compatibles, y descarga de cada archivo de Materiales. Los marcadores posicionan todos los audios de la canción, incluso en Materiales plegados. El reloj de reproducción lo gestiona el navegador; la app no usa un temporizador propio para avanzar muestras de audio.
 - comments-data.js: comentarios de canción/generales, adjuntos, bloques, borrado y RPC replace_comment_blocks.
-- comments-view.js y comments-general.js: renderizado y eventos de comentarios asociados a canciones y comentarios generales.
+- comments-view.js y comments-general.js: renderizado/eventos de comentarios de canción y generales; comments-view.js también genera descarga explícita para todos sus adjuntos de tipo archivo.
 - comments-save.js: guardado del compositor de comentarios y limpieza ante fallos.
 - rich-text-composer.js: componentes reutilizables de texto, archivos y enlaces en comentarios.
 - context-menu.js: selección, menú contextual, clic derecho y pulsación larga para acciones de borrado múltiple.
@@ -76,7 +76,7 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - proposals-data.js: propuestas, opciones, votos, adjuntos/bloques, estados y RPCs de votos/contenido.
 - proposals-content.js: editor de contenido mixto de propuestas.
 - proposals-form-ui.js: formulario de propuesta y lógica de opciones.
-- proposals-view.js: tarjetas, controles de voto y resultados.
+- proposals-view.js: tarjetas, controles de voto, resultados y descarga explícita de archivos adjuntos de propuestas (las URLs firmadas fuerzan descarga con el nombre del archivo).
 - rehearsals-data.js: persistencia de ensayos heredados. Revisar las expectativas actuales de producto antes de extenderlo; la dirección de producto acordada ha sido organizar actividades y repertorio mediante Listas, no crear una sección separada de Ensayos.
 - admin-data.js: historial de auditoría, papelera, restauración mediante restore_band_change y cambio de roles.
 - admin-view.js: interfaz administrativa, etiquetas de acciones, historial y papelera.
