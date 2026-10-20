@@ -53,7 +53,7 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - songs-controller.js: carga de catálogo, control de filtros, creación, listas asociadas y coordinación de UI.
 - songs-detail.js: detalle y edición de una canción, materiales y comentarios relacionados.
 - songs-comparison.js: comparación de versión propia con original/material asociado.
-- metronome.js: configuración de métrica, temporización de clicks, acentos, subdivisiones, tap tempo y ajuste de ganancia del metrónomo. La sincronización con audio y marcadores es un flujo separado que requiere persistencia y pruebas.
+- metronome.js: configuración de métrica, temporización de clics, acentos, subdivisiones, tap tempo, ganancia ajustable y sincronización opcional con el playhead de un audio de Materiales. Usa BPM/métrica conocidos y eventos de play/pause/seek/ratechange; no analiza la forma de onda. Mantener pruebas para la fase del compás, cancelación de clics programados y modo independiente.
 
 ### Materiales, comentarios y contenido enriquecido
 

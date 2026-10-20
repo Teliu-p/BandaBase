@@ -243,6 +243,87 @@ function getMetronomeClickIntervalSeconds(
 }
 
 
+function getMetronomeNextSyncQuarterPosition(
+  audioSeconds,
+  bpm,
+  subdivision
+) {
+  const seconds = Number(audioSeconds);
+  const numericBpm = Number(bpm);
+  const clickQuarterNotes = getMetronomeSubdivisionQuarterNotes(subdivision);
+
+  if (
+    !Number.isFinite(seconds) ||
+    seconds < 0 ||
+    !Number.isFinite(numericBpm) ||
+    numericBpm <= 0 ||
+    !clickQuarterNotes
+  ) {
+    return null;
+  }
+
+  const currentQuarterPosition = seconds * numericBpm / 60;
+  return Math.max(
+    0,
+    Math.ceil(
+      (currentQuarterPosition - METRONOME_POSITION_EPSILON) /
+      clickQuarterNotes
+    ) * clickQuarterNotes
+  );
+}
+
+
+function getMetronomeBarQuarterPosition(
+  quarterPosition,
+  barQuarterNotes
+) {
+  const position = Number(quarterPosition);
+  const bar = Number(barQuarterNotes);
+  if (!Number.isFinite(position) || !Number.isFinite(bar) || bar <= 0) {
+    return null;
+  }
+
+  return ((position % bar) + bar) % bar;
+}
+
+
+function getMetronomeSyncClickContextTime(
+  currentAudioSeconds,
+  targetQuarterPosition,
+  bpm,
+  playbackRate,
+  contextTime
+) {
+  const audioSeconds = Number(currentAudioSeconds);
+  const quarterPosition = Number(targetQuarterPosition);
+  const numericBpm = Number(bpm);
+  const rate = Number(playbackRate);
+  const audioContextTime = Number(contextTime);
+
+  if (
+    !Number.isFinite(audioSeconds) ||
+    audioSeconds < 0 ||
+    !Number.isFinite(quarterPosition) ||
+    quarterPosition < 0 ||
+    !Number.isFinite(numericBpm) ||
+    numericBpm <= 0 ||
+    !Number.isFinite(rate) ||
+    rate <= 0 ||
+    !Number.isFinite(audioContextTime) ||
+    audioContextTime < 0
+  ) {
+    return null;
+  }
+
+  const targetAudioSeconds = quarterPosition * 60 / numericBpm;
+  const delaySeconds = (targetAudioSeconds - audioSeconds) / rate;
+  return audioContextTime + Math.max(
+    METRONOME_INITIAL_CLICK_LEAD_SECONDS,
+    delaySeconds
+  );
+}
+
+
 let metronomeAudioContext =
   null;
 
@@ -273,9 +354,30 @@ let metronomeTapTimes =
 let metronomeTapResetTimer =
   null;
 
+let metronomeSyncEnabled =
+  false;
+
+let metronomeSyncAudioPlayer =
+  null;
+
+let metronomeNextSyncQuarterPosition =
+  null;
+
+let metronomeStartRequestVersion =
+  0;
+
+const metronomeScheduledOscillators =
+  new Set();
+
 
 const METRONOME_SCHEDULE_AHEAD_SECONDS =
   0.12;
+
+const METRONOME_INITIAL_CLICK_LEAD_SECONDS =
+  0.01;
+
+const METRONOME_SYNC_LATE_TOLERANCE_SECONDS =
+  0.015;
 
 const METRONOME_SCHEDULER_INTERVAL_MS =
   25;
@@ -524,14 +626,27 @@ function updateMetronomeDisplay() {
       config
     );
 
-  playButton.disabled =
-    !valid &&
-    !metronomeRunning;
+  const syncInput = document.getElementById("metronomeSyncAudioInput");
+  const syncEnabled = Boolean(syncInput?.checked);
 
-  playButton.textContent =
-    metronomeRunning
-      ? "■ Detener"
-      : "▶ Reproducir";
+  if (syncEnabled) {
+    playButton.disabled = true;
+    playButton.textContent = metronomeRunning
+      ? "⏱ Siguiendo audio"
+      : "⏱ Esperando audio";
+    playButton.title = "Desactivá «Sincronizar con audio» para volver al modo independiente";
+  } else {
+    playButton.disabled =
+      !valid &&
+      !metronomeRunning;
+
+    playButton.textContent =
+      metronomeRunning
+        ? "■ Detener"
+        : "▶ Reproducir";
+
+    playButton.title = "";
+  }
 
   playButton.setAttribute(
     "aria-pressed",
@@ -707,6 +822,11 @@ function scheduleMetronomeSound(
     metronomeAudioContext.destination
   );
 
+  metronomeScheduledOscillators.add(oscillator);
+  oscillator.addEventListener("ended", () => {
+    metronomeScheduledOscillators.delete(oscillator);
+  }, { once: true });
+
   oscillator.start(
     time
   );
@@ -715,6 +835,24 @@ function scheduleMetronomeSound(
     time + 0.06
   );
 
+}
+
+
+function cancelScheduledMetronomeSounds() {
+  if (!metronomeAudioContext || metronomeAudioContext.state === "closed") {
+    metronomeScheduledOscillators.clear();
+    return;
+  }
+
+  const now = metronomeAudioContext.currentTime;
+  for (const oscillator of metronomeScheduledOscillators) {
+    try {
+      oscillator.stop(now);
+    } catch {
+      // An oscillator may already have ended or have a stop time.
+    }
+  }
+  metronomeScheduledOscillators.clear();
 }
 
 
@@ -795,7 +933,7 @@ function scheduleMetronomeAhead() {
       config
     )
   ) {
-    stopMetronome();
+    stopMetronome({ preserveSync: metronomeSyncEnabled });
 
     return;
   }
@@ -821,43 +959,115 @@ function scheduleMetronomeAhead() {
     !barQuarterNotes ||
     !clickQuarterNotes
   ) {
-    stopMetronome();
+    stopMetronome({ preserveSync: metronomeSyncEnabled });
 
     return;
   }
 
-  const scheduleUntil =
-    metronomeAudioContext.currentTime +
-    METRONOME_SCHEDULE_AHEAD_SECONDS;
-
-  while (
-    metronomeNextClickTime <
-    scheduleUntil
-  ) {
-
-    scheduleMetronomeClick(
-      metronomeNextClickTime,
-      config.meter,
-      metronomeNextClickQuarterPosition
-    );
-
-    metronomeNextClickTime +=
-      clickIntervalSeconds;
-
-    metronomeNextClickQuarterPosition +=
-      clickQuarterNotes;
-
-    while (
-      metronomeNextClickQuarterPosition >=
-      barQuarterNotes -
-        METRONOME_POSITION_EPSILON
+  if (metronomeSyncEnabled) {
+    const player = metronomeSyncAudioPlayer;
+    if (
+      !player ||
+      player.paused ||
+      player.ended ||
+      player.isConnected === false ||
+      !Number.isFinite(player.currentTime) ||
+      !Number.isFinite(player.playbackRate) ||
+      player.playbackRate <= 0
     ) {
-
-      metronomeNextClickQuarterPosition -=
-        barQuarterNotes;
-
+      stopMetronome({ preserveSync: true });
+      return;
     }
 
+    const audioTime = player.currentTime;
+    const playbackRate = player.playbackRate;
+
+    if (
+      !Number.isFinite(metronomeNextSyncQuarterPosition) ||
+      metronomeNextSyncQuarterPosition * 60 / config.bpm <
+        audioTime - METRONOME_SYNC_LATE_TOLERANCE_SECONDS
+    ) {
+      metronomeNextSyncQuarterPosition =
+        getMetronomeNextSyncQuarterPosition(
+          audioTime,
+          config.bpm,
+          config.subdivision
+        );
+    }
+
+    if (!Number.isFinite(metronomeNextSyncQuarterPosition)) {
+      stopMetronome({ preserveSync: true });
+      return;
+    }
+
+    while (true) {
+      const targetQuarterPosition = metronomeNextSyncQuarterPosition;
+      const targetAudioTime = targetQuarterPosition * 60 / config.bpm;
+      const audioDelay = (targetAudioTime - audioTime) / playbackRate;
+
+      if (audioDelay > METRONOME_SCHEDULE_AHEAD_SECONDS) break;
+
+      if (audioDelay < -METRONOME_SYNC_LATE_TOLERANCE_SECONDS) {
+        metronomeNextSyncQuarterPosition += clickQuarterNotes;
+        continue;
+      }
+
+      const contextTime = getMetronomeSyncClickContextTime(
+        audioTime,
+        targetQuarterPosition,
+        config.bpm,
+        playbackRate,
+        metronomeAudioContext.currentTime
+      );
+      const barPosition = getMetronomeBarQuarterPosition(
+        targetQuarterPosition,
+        barQuarterNotes
+      );
+
+      if (contextTime !== null && barPosition !== null) {
+        scheduleMetronomeClick(
+          contextTime,
+          config.meter,
+          barPosition
+        );
+      }
+
+      metronomeNextSyncQuarterPosition += clickQuarterNotes;
+    }
+  } else {
+    const scheduleUntil =
+      metronomeAudioContext.currentTime +
+      METRONOME_SCHEDULE_AHEAD_SECONDS;
+
+    while (
+      metronomeNextClickTime <
+      scheduleUntil
+    ) {
+
+      scheduleMetronomeClick(
+        metronomeNextClickTime,
+        config.meter,
+        metronomeNextClickQuarterPosition
+      );
+
+      metronomeNextClickTime +=
+        clickIntervalSeconds;
+
+      metronomeNextClickQuarterPosition +=
+        clickQuarterNotes;
+
+      while (
+        metronomeNextClickQuarterPosition >=
+        barQuarterNotes -
+          METRONOME_POSITION_EPSILON
+      ) {
+
+        metronomeNextClickQuarterPosition -=
+          barQuarterNotes;
+
+      }
+
+    }
   }
 
   metronomeSchedulerTimer =
@@ -904,13 +1114,24 @@ function updateMetronomeAnimation() {
 }
 
 
-function stopMetronome() {
+function stopMetronome(options = {}) {
+
+  const preserveSync = options?.preserveSync === true;
+  metronomeStartRequestVersion += 1;
 
   metronomeRunning =
     false;
 
   metronomeStarting =
     false;
+
+  if (!preserveSync) {
+    metronomeSyncEnabled = false;
+    metronomeSyncAudioPlayer = null;
+    metronomeNextSyncQuarterPosition = null;
+    const syncInput = document.getElementById("metronomeSyncAudioInput");
+    if (syncInput) syncInput.checked = false;
+  }
 
   if (metronomeSchedulerTimer) {
     window.clearTimeout(
@@ -934,13 +1155,16 @@ function stopMetronome() {
     [];
 
   clearMetronomeActiveCell();
+  cancelScheduledMetronomeSounds();
+  metronomeNextSyncQuarterPosition = null;
 
   if (
     metronomeAudioContext &&
     metronomeAudioContext.state !==
       "closed" &&
     metronomeAudioContext.state !==
-      "suspended"
+      "suspended" &&
+    !metronomeSyncEnabled
   ) {
     void metronomeAudioContext.suspend();
   }
@@ -950,7 +1174,16 @@ function stopMetronome() {
 }
 
 
-async function startMetronome() {
+async function startMetronome(syncPlayer = null) {
+
+  if (metronomeSyncEnabled) {
+    syncPlayer = syncPlayer || metronomeSyncAudioPlayer;
+    if (!syncPlayer || syncPlayer.paused || syncPlayer.ended) {
+      updateMetronomeDisplay();
+      return;
+    }
+    metronomeSyncAudioPlayer = syncPlayer;
+  }
 
   if (
     metronomeStarting ||
@@ -958,6 +1191,8 @@ async function startMetronome() {
   ) {
     return;
   }
+
+  const startRequestVersion = ++metronomeStartRequestVersion;
 
   const config =
     readMetronomeFormValues();
@@ -1000,6 +1235,19 @@ async function startMetronome() {
 
     await context.resume();
 
+    if (startRequestVersion !== metronomeStartRequestVersion) return;
+    if (
+      metronomeSyncEnabled &&
+      (
+        !syncPlayer ||
+        metronomeSyncAudioPlayer !== syncPlayer ||
+        syncPlayer.paused ||
+        syncPlayer.ended
+      )
+    ) {
+      return;
+    }
+
     metronomeRunning =
       true;
 
@@ -1008,10 +1256,18 @@ async function startMetronome() {
 
     metronomeNextClickTime =
       context.currentTime +
-      0.05;
+      METRONOME_INITIAL_CLICK_LEAD_SECONDS;
 
     metronomeNextClickQuarterPosition =
       0;
+
+    metronomeNextSyncQuarterPosition = metronomeSyncEnabled
+      ? getMetronomeNextSyncQuarterPosition(
+          syncPlayer.currentTime,
+          config.bpm,
+          config.subdivision
+        )
+      : null;
 
     updateMetronomeDisplay();
 
@@ -1024,19 +1280,20 @@ async function startMetronome() {
 
   } catch (error) {
 
-    console.error(
-      error
-    );
-
-    showNotice(
-      "No se pudo iniciar el audio del metrónomo.",
-      "error"
-    );
+    if (startRequestVersion === metronomeStartRequestVersion) {
+      console.error(error);
+      showNotice(
+        "No se pudo iniciar el audio del metrónomo.",
+        "error"
+      );
+    }
 
   } finally {
 
-    metronomeStarting =
-      false;
+    if (startRequestVersion === metronomeStartRequestVersion) {
+      metronomeStarting = false;
+      updateMetronomeDisplay();
+    }
 
   }
 
@@ -1044,6 +1301,30 @@ async function startMetronome() {
 
 
 function restartMetronomeFromForm() {
+
+  if (metronomeSyncEnabled) {
+    const player = metronomeSyncAudioPlayer;
+    const config = readMetronomeFormValues();
+    if (!isValidMetronomeConfig(config)) {
+      stopMetronome({ preserveSync: true });
+      return;
+    }
+
+    if (!metronomeRunning) {
+      updateMetronomeDisplay();
+      if (player && !player.paused && !player.ended) {
+        void startMetronome(player);
+      }
+      return;
+    }
+
+    stopMetronome({ preserveSync: true });
+    if (player && !player.paused && !player.ended) {
+      metronomeSyncAudioPlayer = player;
+      void startMetronome(player);
+    }
+    return;
+  }
 
   if (!metronomeRunning) {
     updateMetronomeDisplay();
@@ -1071,13 +1352,107 @@ function restartMetronomeFromForm() {
     (
       metronomeAudioContext?.currentTime ||
       0
-    ) + 0.05;
+    ) + METRONOME_INITIAL_CLICK_LEAD_SECONDS;
 
   metronomeNextClickQuarterPosition =
     0;
 
   updateMetronomeDisplay();
 
+}
+
+
+function getPlayingMaterialAudioPlayers() {
+  return Array.from(
+    document.querySelectorAll("#materialsList audio[data-material-audio]")
+  ).filter(player =>
+    !player.paused &&
+    !player.ended &&
+    Number.isFinite(player.currentTime)
+  );
+}
+
+
+function handleMetronomeSyncAudioEvent(event) {
+  if (!metronomeSyncEnabled) return;
+
+  const player = event.target;
+  if (!player?.matches?.("#materialsList audio[data-material-audio]")) return;
+
+  if (event.type === "play") {
+    const otherPlayingPlayers = getPlayingMaterialAudioPlayers().filter(
+      candidate => candidate !== player
+    );
+
+    if (otherPlayingPlayers.length) {
+      if (metronomeRunning || metronomeStarting) {
+        stopMetronome({ preserveSync: true });
+      }
+      metronomeSyncAudioPlayer = null;
+      showNotice(
+        "Para sincronizar el metrónomo, dejá un solo audio reproduciéndose. Pausá los demás.",
+        "info"
+      );
+      updateMetronomeDisplay();
+      return;
+    }
+
+    if (metronomeSyncAudioPlayer !== player) {
+      if (metronomeRunning || metronomeStarting) {
+        stopMetronome({ preserveSync: true });
+      }
+      metronomeSyncAudioPlayer = player;
+    }
+    void startMetronome(player);
+    return;
+  }
+
+  if (
+    (event.type === "pause" || event.type === "ended") &&
+    metronomeSyncAudioPlayer === null
+  ) {
+    const playingPlayers = getPlayingMaterialAudioPlayers();
+    if (playingPlayers.length === 1) {
+      metronomeSyncAudioPlayer = playingPlayers[0];
+      void startMetronome(playingPlayers[0]);
+    }
+    return;
+  }
+
+  if (player !== metronomeSyncAudioPlayer) return;
+
+  if (event.type === "seeking") {
+    stopMetronome({ preserveSync: true });
+    return;
+  }
+
+  if (event.type === "seeked" || event.type === "ratechange") {
+    if (!player.paused && !player.ended) {
+      stopMetronome({ preserveSync: true });
+      metronomeSyncAudioPlayer = player;
+      void startMetronome(player);
+    }
+    return;
+  }
+
+  if (event.type === "pause" || event.type === "ended") {
+    const otherPlayers = getPlayingMaterialAudioPlayers().filter(
+      candidate => candidate !== player
+    );
+
+    stopMetronome({ preserveSync: true });
+
+    if (otherPlayers.length === 1) {
+      metronomeSyncAudioPlayer = otherPlayers[0];
+      void startMetronome(otherPlayers[0]);
+    } else if (otherPlayers.length > 1) {
+      metronomeSyncAudioPlayer = null;
+      showNotice(
+        "Hay varios audios reproduciéndose. Pausá los demás para mantener la sincronización del metrónomo.",
+        "info"
+      );
+    }
+  }
 }
 
 
@@ -1094,6 +1469,47 @@ function bindMetronomeControls() {
   if (!playButton) {
     return;
   }
+
+  const syncInput = document.getElementById("metronomeSyncAudioInput");
+  syncInput?.addEventListener("change", () => {
+    metronomeSyncEnabled = syncInput.checked;
+
+    if (!metronomeSyncEnabled) {
+      metronomeSyncAudioPlayer = null;
+      stopMetronome({ preserveSync: true });
+      updateMetronomeDisplay();
+      return;
+    }
+
+    const context = getMetronomeAudioContext();
+    if (context?.state === "suspended") {
+      void context.resume().catch(() => {});
+    }
+
+    if (metronomeRunning || metronomeStarting) {
+      stopMetronome({ preserveSync: true });
+    }
+
+    const playingPlayers = getPlayingMaterialAudioPlayers();
+    if (playingPlayers.length === 1) {
+      metronomeSyncAudioPlayer = playingPlayers[0];
+      void startMetronome(playingPlayers[0]);
+    } else {
+      metronomeSyncAudioPlayer = null;
+      metronomeNextSyncQuarterPosition = null;
+      if (playingPlayers.length > 1) {
+        showNotice(
+          "Hay varios audios reproduciéndose. Pausá los demás y volvé a activar la sincronización.",
+          "info"
+        );
+      }
+      updateMetronomeDisplay();
+    }
+  });
+
+  ["play", "pause", "ended", "seeking", "seeked", "ratechange"].forEach(type => {
+    document.addEventListener(type, handleMetronomeSyncAudioEvent, true);
+  });
 
   playButton.addEventListener(
     "click",
