@@ -689,10 +689,10 @@ function renderBandListDetailContent(
   if (annotated.length) {
     html += '<div class="list-detail-list">';
     annotated.forEach(item => {
-      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      const instruments = formatBandInstrumentsHtml(item.participation_instruments) || "Sin función";
       html += '<div class="list-detail-item"><div class="list-member-row">' +
         '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
-        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+        '<div class="member-info bb-band-instrument-list">' + instruments + '</div></div>';
       if (canManage) {
         html += '<button type="button" class="btn btn-subtle" data-confirm-list-member="' + escapeHtml(item.id) + '">Marcar participando</button>';
       }
