@@ -298,7 +298,7 @@ function populateBandListInstrumentSlotsPicker(slots) {
     const value = Math.max(0, Number.parseInt(values[option.value], 10) || 0);
     return '<label class="list-instrument-slot">' +
       '<span class="list-instrument-slot-name">' +
-      '<span class="list-instrument-icon">' + option.icon + '</span>' +
+      '<span class="list-instrument-icon">' + getBandInstrumentIconHtml(option.value) + '</span>' +
       escapeHtml(option.label) +
       '</span>' +
       '<input type="number" min="0" max="99" step="1" data-list-slot="' +
