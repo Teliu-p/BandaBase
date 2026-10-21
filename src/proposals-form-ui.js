@@ -120,6 +120,10 @@ function resetProposalForm() {
   resetProposalComposer();
   openProposalComposer();
   updateProposalTypeUI();
+
+  if (typeof window.bandabaseFlushRealtimeRefreshes === "function") {
+    void window.bandabaseFlushRealtimeRefreshes();
+  }
 }
 
 function openProposalForm() {
