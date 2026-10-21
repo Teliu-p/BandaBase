@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** main `d7225cd978d27119a27de6aea91af6031e87b674`, inspeccionada el 2026-10-20 tras las PR #123–#131. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
+**Base funcional de observación:** revisión de PR #134, inspeccionada el 2026-10-21. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 
@@ -143,3 +143,13 @@ La CI verde es evidencia valiosa, pero no equivale a cubrir todos los flujos ni 
 - `trash_comments_bulk(p_comment_ids)`: valida todos los comentarios seleccionados y mueve todo el conjunto a papelera, o falla sin actualizaciones parciales.
 
 Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a anon. Sus migraciones remotas, por orden: `20261020232312`, `20261020232328`, `20261020232333`.
+
+## Actualización: sincronización en tiempo real y paridad de Materiales (2026-10-21)
+
+- `src/app-realtime.js` se carga después de `app-auth.js`. `app-shell.js` inicia la suscripción cuando la aplicación ya tiene banda/usuario; `app-auth.js` la detiene al limpiar la sesión. La suscripción cubre las tablas activas de canciones/cantantes, materiales y adjuntos, comentarios y adjuntos/bloques, listas/participación, propuestas/votos, perfiles/integrantes y auditoría.
+- La publicación `supabase_realtime` estaba vacía. La migración aplicada `20261021224042_enable_realtime_for_bandabase.sql` registra 20 tablas; confirmar siempre `pg_publication_tables` y RLS cuando se agrega otro flujo a la app.
+- El evento recibido es una señal para reconsultar con las consultas existentes, no una fuente de datos persistida en el cliente. Realtime puede perder eventos durante desconexiones; no duplicar permisos ni saltarse RLS para intentar resolver retrasos.
+- Formularios de Materiales, Propuestas y edición de Listas pueden aplazar el refresco para preservar borradores y lo vuelven a intentar cuando se cierran. El detalle de canción también evita reemplazar campos locales mientras están modificados.
+- `utils.js` dibuja instrumentos con SVG local. No volver a sustituir estos iconos por emoji/caracteres que dependan de la fuente instalada en el equipo.
+- El editor de Materiales inserta saltos de línea explícitos en `beforeinput`; la serialización aplana bloques `DIV/P` para preservar líneas vacías y la posición de chips de adjuntos. Vista y edición deben compartir reglas de espacios en blanco. La prueba de regresión de Node confirma el orden texto–adjunto–texto; Chromium CI también pasó. Aun así, una prueba autenticada con dos equipos reales queda como validación de integración final.
+

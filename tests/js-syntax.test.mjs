@@ -1309,7 +1309,8 @@ assert.deepEqual(
 
 assert.equal(
   formatBandInstruments(["guitar", "voice", "invalid"]),
-  "🎸 Guitarra, 🎤 Voz"
+  "Guitarra, Voz",
+  "El helper de texto debe devolver etiquetas sin depender de glifos emoji; los SVG se renderizan por separado."
 );
 
 const {
@@ -2776,4 +2777,266 @@ assert.match(
 assert.equal(
   failedOldFileCleanup.notices.at(-1)[1],
   "error"
+);
+
+
+// Cross-device updates require an actual subscription and a non-empty
+// supabase_realtime publication (the latter is versioned in SQL).
+const realtimeControllerSource = readFileSync(
+  join(srcDir, "app-realtime.js"),
+  "utf8"
+);
+const realtimeMigrationSource = readFileSync(
+  join(root, "supabase/migrations/20261021224042_enable_realtime_for_bandabase.sql"),
+  "utf8"
+);
+const instrumentUtilsSource = readFileSync(
+  join(srcDir, "utils.js"),
+  "utf8"
+);
+const instrumentViewSource = readFileSync(
+  join(srcDir, "app-band.js"),
+  "utf8"
+);
+const instrumentListSource = readFileSync(
+  join(srcDir, "lists-view.js"),
+  "utf8"
+);
+const materialsEditorRegressionSource = readFileSync(
+  join(srcDir, "materials-editor.js"),
+  "utf8"
+);
+const materialsFormattingRegressionSource = readFileSync(
+  join(srcDir, "materials-formatting.js"),
+  "utf8"
+);
+const materialsStylesRegressionSource = readFileSync(
+  join(srcDir, "styles.css"),
+  "utf8"
+);
+const bandabaseHtmlSource = readFileSync(indexPath, "utf8");
+
+assert.match(
+  bandabaseHtmlSource,
+  /src\/app-realtime\.js/,
+  "El controlador de actualizaciones en tiempo real debe cargarse en BandaBase."
+);
+assert.match(
+  realtimeControllerSource,
+  /\.on\(\s*"postgres_changes"[\s\S]*?schema:\s*"public"/,
+  "BandaBase debe escuchar cambios de PostgreSQL en la publicación pública."
+);
+assert.match(
+  realtimeControllerSource,
+  /bandabaseStartRealtime\s*=\s*startBandabaseRealtime/,
+  "El controlador debe ofrecer un punto de inicio para cada sesión."
+);
+for (const table of [
+  "songs", "song_singers", "comments", "comment_blocks", "comment_attachments",
+  "materials", "material_blocks", "material_attachments", "band_lists",
+  "band_list_items", "band_list_managers", "proposals", "proposal_options",
+  "proposal_votes", "profiles", "band_members"
+]) {
+  assert.match(
+    realtimeMigrationSource,
+    new RegExp("public\\." + table + "\\b"),
+    "La publicación Realtime debe incluir la tabla " + table + "."
+  );
+}
+assert.match(
+  instrumentUtilsSource,
+  /function getBandInstrumentIconHtml\(value\)/,
+  "Los iconos de instrumentos deben dibujarse con SVG local, no depender de glifos del sistema."
+);
+assert.doesNotMatch(
+  instrumentUtilsSource,
+  /🥁/,
+  "La opción batería no debe depender de un emoji que puede faltar en PCs antiguas."
+);
+assert.match(instrumentViewSource, /getBandInstrumentIconHtml\(option\.value\)/);
+assert.match(instrumentListSource, /getBandInstrumentIconHtml\(option\.value\)/);
+assert.match(
+  instrumentListSource,
+  /formatBandInstrumentsHtml\(selfItem\.participation_instruments\)\s*\|\|\s*"Sin función"\)\s*\+\s*'<\/div><\/div>'/,
+  "El estado de participación debe conservar el marcado de su fila al renderizar instrumentos con SVG."
+);
+assert.match(
+  materialsEditorRegressionSource,
+  /beforeinput[\s\S]*?insertParagraph[\s\S]*?insertMaterialComposerLineBreak/,
+  "Enter debe guardar saltos de línea explícitos y consistentes."
+);
+assert.match(
+  materialsEditorRegressionSource,
+  /createMaterialComposerSerializationRoot[\s\S]*?serializationRoot\.childNodes/,
+  "El guardado debe normalizar las líneas del editor antes de separar texto y adjuntos."
+);
+assert.match(
+  materialsStylesRegressionSource,
+  /\.material-view\s*\{[\s\S]*?white-space:\s*pre-wrap/,
+  "La vista guardada debe respetar saltos de línea como el editor."
+);
+
+// Exercise the actual DOM normalization, attachment splitter, and collector
+// with a browser-like editable structure: text + audio chip + more text,
+// followed by an empty line and a third line. This catches the regression where
+// a saved audio jumps to the beginning or text rows collapse on save.
+function makeMaterialEditorTestNode(nodeType, tagName = "", value = "", attributes = {}) {
+  const node = {
+    nodeType,
+    tagName: nodeType === 1 ? String(tagName).toUpperCase() : undefined,
+    nodeValue: nodeType === 3 ? String(value) : null,
+    className: attributes.className || "",
+    dataset: { ...(attributes.dataset || {}) },
+    childNodes: [],
+    appendChild(child) {
+      this.childNodes.push(child);
+      return child;
+    },
+    get lastChild() {
+      return this.childNodes.length
+        ? this.childNodes[this.childNodes.length - 1]
+        : null;
+    },
+    cloneNode(deep = false) {
+      const clone = makeMaterialEditorTestNode(
+        this.nodeType,
+        this.tagName || "",
+        this.nodeValue || "",
+        { className: this.className, dataset: this.dataset }
+      );
+      if (deep) {
+        this.childNodes.forEach(child => clone.appendChild(child.cloneNode(true)));
+      }
+      return clone;
+    },
+    querySelector(selector) {
+      const matches = candidate => {
+        if (candidate.nodeType !== 1) return false;
+        if (
+          selector === "div, p" &&
+          ["DIV", "P"].includes(candidate.tagName)
+        ) return true;
+        if (
+          selector === ".material-inline-attachment" &&
+          candidate.classList.contains("material-inline-attachment")
+        ) return true;
+        return false;
+      };
+      const visit = parent => {
+        for (const child of parent.childNodes) {
+          if (matches(child) || visit(child)) return true;
+        }
+        return false;
+      };
+      return visit(this) ? {} : null;
+    }
+  };
+  node.classList = {
+    contains(className) {
+      return String(node.className || "").split(/\\s+/).includes(className);
+    }
+  };
+  return node;
+}
+
+const testTextNode = value => makeMaterialEditorTestNode(3, "", value);
+const testElement = (tag, children = [], attributes = {}) => {
+  const node = makeMaterialEditorTestNode(1, tag, "", attributes);
+  children.forEach(child => node.appendChild(child));
+  return node;
+};
+const midAudioNode = testElement("span", [], {
+  className: "material-inline-attachment",
+  dataset: { attachmentId: "audio-in-the-middle" }
+});
+const materialEditorFixture = testElement("div", [
+  testElement("div", [
+    testTextNode("Antes "),
+    midAudioNode,
+    testTextNode(" después")
+  ]),
+  testElement("div", [testElement("br")]),
+  testElement("div", [testTextNode("Tercera línea")]),
+  testTextNode(" Final suelto")
+]);
+const normalizerStart = materialsEditorRegressionSource.indexOf(
+  "function createMaterialComposerSerializationRoot(editor) {"
+);
+const collectorStart = materialsEditorRegressionSource.indexOf(
+  "function collectMaterialComposerBlocks() {",
+  normalizerStart
+);
+const collectorEnd = materialsEditorRegressionSource.indexOf(
+  "\n\nfunction collectMaterialLegacyText(",
+  collectorStart
+);
+const attachmentSplitterStart = materialsFormattingRegressionSource.indexOf(
+  "function splitMaterialComposerNodeByAttachments(node) {"
+);
+const attachmentSplitterEnd = materialsFormattingRegressionSource.indexOf(
+  "\n\nfunction calculateMaterialForcedCaretPadding(",
+  attachmentSplitterStart
+);
+assert.ok(normalizerStart >= 0 && collectorStart > normalizerStart && collectorEnd > collectorStart);
+assert.ok(attachmentSplitterStart >= 0 && attachmentSplitterEnd > attachmentSplitterStart);
+const materialDomTestContext = {
+  Node: { ELEMENT_NODE: 1, TEXT_NODE: 3 },
+  document: {
+    getElementById(id) {
+      return id === "materialComposerEditor" ? materialEditorFixture : null;
+    },
+    createElement(tag) {
+      return testElement(tag);
+    },
+    createTextNode(value) {
+      return testTextNode(value);
+    }
+  },
+  serializeMaterialRichTextChildren(nodes) {
+    function textOf(node) {
+      if (node.nodeType === 3) return node.nodeValue || "";
+      if (node.nodeType !== 1) return "";
+      if (node.tagName === "BR") return "\n";
+      if (node.classList.contains("material-inline-attachment")) return "";
+      return node.childNodes.map(textOf).join("");
+    }
+    return nodes.map(textOf).join("");
+  },
+  makeMaterialStoredText(value) {
+    return value;
+  }
+};
+const normalizerSource = materialsEditorRegressionSource.slice(
+  normalizerStart,
+  collectorStart
+);
+const collectorSource = materialsEditorRegressionSource.slice(
+  collectorStart,
+  collectorEnd
+);
+const attachmentSplitterSource = materialsFormattingRegressionSource.slice(
+  attachmentSplitterStart,
+  attachmentSplitterEnd
+);
+vm.runInNewContext(
+  normalizerSource + "\n" +
+  attachmentSplitterSource + "\n" +
+  collectorSource + "\n" +
+  "globalThis.__testCollectMaterialBlocks = collectMaterialComposerBlocks;",
+  materialDomTestContext,
+  { filename: "materials-editor-serialization-regression.test.js" }
+);
+const serializedEditorBlocks = materialDomTestContext.__testCollectMaterialBlocks();
+assert.deepEqual(
+  JSON.parse(JSON.stringify(serializedEditorBlocks)),
+  [
+    { block_type: "text", content: "Antes " },
+    {
+      block_type: "attachment",
+      attachment_id: "audio-in-the-middle",
+      pendingKey: null
+    },
+    { block_type: "text", content: " después\n\nTercera línea\n Final suelto" }
+  ],
+  "El audio debe permanecer entre sus textos y deben conservarse los renglones vacíos al guardar."
 );

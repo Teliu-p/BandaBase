@@ -260,7 +260,7 @@ function renderProfileInstrumentPicker(selected) {
     '<label class="profile-instrument-option">' +
       '<input type="checkbox" data-profile-instrument="' + escapeHtml(option.value) + '"' +
       (values.includes(option.value) ? ' checked' : '') + '>' +
-      '<span>' + option.icon + ' ' + escapeHtml(option.label) + '</span>' +
+      '<span class="profile-instrument-option-label">' + getBandInstrumentIconHtml(option.value) + '<span>' + escapeHtml(option.label) + '</span></span>' +
     '</label>'
   ).join("");
 }

@@ -203,4 +203,8 @@ async function initializeApp() {
     getSavedSection()
   );
 
+  if (typeof window.bandabaseStartRealtime === "function") {
+    window.bandabaseStartRealtime();
+  }
+
 }

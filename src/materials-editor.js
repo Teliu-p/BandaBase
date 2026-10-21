@@ -1154,6 +1154,64 @@ function renderMaterialComposer(
 }
 
 
+function createMaterialComposerSerializationRoot(editor) {
+  const root = document.createElement("div");
+
+  function appendNormalizedChildren(source, target) {
+    const children = Array.from(source.childNodes || []);
+    let isFirstSourceNode = true;
+
+    let previousWasBlock = false;
+
+    children.forEach(node => {
+      const hasPreviousSourceNode = !isFirstSourceNode;
+      isFirstSourceNode = false;
+      const isBlock = node.nodeType === Node.ELEMENT_NODE &&
+        ["DIV", "P"].includes(node.tagName);
+
+      if (hasPreviousSourceNode && (previousWasBlock || isBlock)) {
+        // Normalize boundaries both before and after DIV/P blocks. Empty blocks
+        // still count, so consecutive empty lines never collapse together.
+        target.appendChild(document.createElement("br"));
+      }
+
+      if (isBlock) {
+        const blockChildren = Array.from(node.childNodes || []);
+        const isEditorPlaceholder = blockChildren.length === 1 &&
+          blockChildren[0].nodeType === Node.ELEMENT_NODE &&
+          blockChildren[0].tagName === "BR";
+
+        // Browsers often represent Enter as sibling DIVs. Flatten them to BR
+        // so saved text, indentation, and inline attachments share one layout.
+        // A lone BR inside an empty DIV is only the browser's caret placeholder.
+        if (!isEditorPlaceholder) {
+          appendNormalizedChildren(node, target);
+        }
+        previousWasBlock = true;
+        return;
+      }
+
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.querySelector?.("div, p")
+      ) {
+        const wrapper = node.cloneNode(false);
+        appendNormalizedChildren(node, wrapper);
+        target.appendChild(wrapper);
+        previousWasBlock = false;
+        return;
+      }
+
+      target.appendChild(node.cloneNode(true));
+      previousWasBlock = false;
+    });
+  }
+
+  appendNormalizedChildren(editor, root);
+  return root;
+}
+
+
 function collectMaterialComposerBlocks() {
 
   const editor =
@@ -1164,6 +1222,9 @@ function collectMaterialComposerBlocks() {
   if (!editor) {
     return [];
   }
+
+  const serializationRoot =
+    createMaterialComposerSerializationRoot(editor);
 
   const blocks = [];
   let textNodes = [];
@@ -1211,7 +1272,7 @@ function collectMaterialComposerBlocks() {
   }
 
   Array.from(
-    editor.childNodes
+    serializationRoot.childNodes
   ).forEach(
     node => {
 
@@ -1398,6 +1459,10 @@ function hideMaterialForm() {
     "showMaterialFormBtn"
   ).textContent =
     "+ Añadir material";
+
+  if (typeof window.bandabaseFlushRealtimeRefreshes === "function") {
+    void window.bandabaseFlushRealtimeRefreshes();
+  }
 
 }
 
@@ -2267,6 +2332,45 @@ function insertMaterialWrapper(
 }
 
 
+function insertMaterialComposerLineBreak(editor) {
+  if (!editor) return false;
+
+  const selection = window.getSelection();
+  let range = null;
+
+  if (selection?.rangeCount) {
+    const activeRange = selection.getRangeAt(0);
+    if (editor.contains(activeRange.commonAncestorContainer)) {
+      range = activeRange.cloneRange();
+    }
+  }
+
+  if (!range && materialSelectionRange) {
+    range = materialSelectionRange.cloneRange();
+  }
+
+  if (!range || !editor.contains(range.commonAncestorContainer)) {
+    return false;
+  }
+
+  range.deleteContents();
+  const lineBreak = document.createElement("br");
+  range.insertNode(lineBreak);
+
+  const caret = document.createRange();
+  caret.setStartAfter(lineBreak);
+  caret.collapse(true);
+
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(caret);
+  }
+
+  materialSelectionRange = caret.cloneRange();
+  return true;
+}
+
+
 function bindMaterialFormattingControls() {
 
   const editor =
@@ -2344,6 +2448,24 @@ function bindMaterialFormattingControls() {
   editor.addEventListener(
     "input",
     remember
+  );
+
+  editor.addEventListener(
+    "beforeinput",
+    function(event) {
+      if (
+        event.isComposing ||
+        (event.inputType !== "insertParagraph" &&
+          event.inputType !== "insertLineBreak")
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (insertMaterialComposerLineBreak(editor)) {
+        rememberMaterialSelection();
+      }
+    }
   );
 
   editor.addEventListener(

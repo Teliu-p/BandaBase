@@ -298,7 +298,7 @@ function populateBandListInstrumentSlotsPicker(slots) {
     const value = Math.max(0, Number.parseInt(values[option.value], 10) || 0);
     return '<label class="list-instrument-slot">' +
       '<span class="list-instrument-slot-name">' +
-      '<span class="list-instrument-icon">' + option.icon + '</span>' +
+      '<span class="list-instrument-icon">' + getBandInstrumentIconHtml(option.value) + '</span>' +
       escapeHtml(option.label) +
       '</span>' +
       '<input type="number" min="0" max="99" step="1" data-list-slot="' +
@@ -659,7 +659,7 @@ function renderBandListDetailContent(
   } else if (selfStatus === "Confirmado") {
     html += '<div class="list-self-participation">' +
       '<div><span class="status active">Estás participando</span>' +
-      '<div class="member-info">' + escapeHtml(formatBandInstruments(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
+      '<div class="member-info bb-band-instrument-list">' + (formatBandInstrumentsHtml(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
       '<button type="button" class="btn btn-subtle btn-danger" data-list-self-unregister="' + escapeHtml(list.id) + '">No voy a participar</button>' +
       '</div>';
   } else {
@@ -679,7 +679,7 @@ function renderBandListDetailContent(
       Array.isArray(item.participation_instruments) &&
       item.participation_instruments.includes(option.value)
     ).length;
-    html += '<div class="list-capacity-chip"><span>' + option.icon + ' ' + escapeHtml(option.label) + '</span><strong>' + count + '/' + limit + '</strong></div>';
+    html += '<div class="list-capacity-chip"><span class="list-capacity-label"><span class="list-instrument-icon">' + getBandInstrumentIconHtml(option.value) + '</span>' + escapeHtml(option.label) + '</span><strong>' + count + '/' + limit + '</strong></div>';
   });
   html += '</div>';
 
@@ -689,10 +689,10 @@ function renderBandListDetailContent(
   if (annotated.length) {
     html += '<div class="list-detail-list">';
     annotated.forEach(item => {
-      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      const instruments = formatBandInstrumentsHtml(item.participation_instruments) || "Sin función";
       html += '<div class="list-detail-item"><div class="list-member-row">' +
         '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
-        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+        '<div class="member-info bb-band-instrument-list">' + instruments + '</div></div>';
       if (canManage) {
         html += '<button type="button" class="btn btn-subtle" data-confirm-list-member="' + escapeHtml(item.id) + '">Marcar participando</button>';
       }
@@ -708,10 +708,10 @@ function renderBandListDetailContent(
   if (participating.length) {
     html += '<div class="list-detail-list">';
     participating.forEach(item => {
-      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      const instruments = formatBandInstrumentsHtml(item.participation_instruments) || "Sin función";
       html += '<div class="list-detail-item"><div class="list-member-row">' +
         '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
-        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+        '<div class="member-info bb-band-instrument-list">' + instruments + '</div></div>';
       if (canManage) {
         html += '<button type="button" class="btn btn-subtle btn-danger" data-unconfirm-list-member="' + escapeHtml(item.id) + '">Quitar participación</button>';
       }
