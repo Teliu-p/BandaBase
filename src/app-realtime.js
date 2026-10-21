@@ -371,9 +371,25 @@ function startBandabaseRealtime() {
 
       if (status === "SUBSCRIBED") {
         bandabaseRealtimeConnectionWarningShown = false;
-        if (bandabaseRealtimePendingDomains.size) {
-          scheduleBandabaseRealtimeFlush();
+
+        // Reconcile the current snapshot after subscribe/reconnect. Realtime
+        // events can be missed during a connection gap or subscription startup.
+        [
+          "songs",
+          "lists",
+          "proposals",
+          "comments",
+          "members",
+          "band",
+          "admin"
+        ].forEach(domain => bandabaseRealtimePendingDomains.add(domain));
+
+        if (currentSong?.id) {
+          bandabaseRealtimePendingDomains.add("materials");
+          bandabaseRealtimePendingSongIds.add(String(currentSong.id));
         }
+
+        scheduleBandabaseRealtimeFlush();
         return;
       }
 
