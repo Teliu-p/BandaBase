@@ -659,7 +659,7 @@ function renderBandListDetailContent(
   } else if (selfStatus === "Confirmado") {
     html += '<div class="list-self-participation">' +
       '<div><span class="status active">Estás participando</span>' +
-      '<div class="member-info">' + escapeHtml(formatBandInstruments(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
+      '<div class="member-info">' + formatBandInstrumentsHtml(selfItem.participation_instruments) || "Sin función" + '</div></div>' +
       '<button type="button" class="btn btn-subtle btn-danger" data-list-self-unregister="' + escapeHtml(list.id) + '">No voy a participar</button>' +
       '</div>';
   } else {
@@ -708,10 +708,10 @@ function renderBandListDetailContent(
   if (participating.length) {
     html += '<div class="list-detail-list">';
     participating.forEach(item => {
-      const instruments = formatBandInstruments(item.participation_instruments) || "Sin función";
+      const instruments = formatBandInstrumentsHtml(item.participation_instruments) || "Sin función";
       html += '<div class="list-detail-item"><div class="list-member-row">' +
         '<div><strong>' + escapeHtml(bandListMemberName(item.member_user_id)) + '</strong>' +
-        '<div class="member-info">' + escapeHtml(instruments) + '</div></div>';
+        '<div class="member-info bb-band-instrument-list">' + instruments + '</div></div>';
       if (canManage) {
         html += '<button type="button" class="btn btn-subtle btn-danger" data-unconfirm-list-member="' + escapeHtml(item.id) + '">Quitar participación</button>';
       }
