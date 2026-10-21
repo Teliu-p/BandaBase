@@ -1159,13 +1159,18 @@ function createMaterialComposerSerializationRoot(editor) {
 
   function appendNormalizedChildren(source, target) {
     const children = Array.from(source.childNodes || []);
+    let isFirstSourceNode = true;
 
     children.forEach(node => {
+      const hasPreviousSourceNode = !isFirstSourceNode;
+      isFirstSourceNode = false;
       const isBlock = node.nodeType === Node.ELEMENT_NODE &&
         ["DIV", "P"].includes(node.tagName);
 
       if (isBlock) {
-        if (target.childNodes.length && target.lastChild?.tagName !== "BR") {
+        // Every sibling DIV/P boundary is meaningful, including a blank line
+        // represented as <div><br></div>. Do not collapse consecutive breaks.
+        if (hasPreviousSourceNode) {
           target.appendChild(document.createElement("br"));
         }
 
