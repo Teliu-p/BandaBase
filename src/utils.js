@@ -180,6 +180,21 @@ function formatBandInstruments(values) {
     .join(", ");
 }
 
+function formatBandInstrumentsHtml(values) {
+  return (Array.isArray(values) ? values : [])
+    .map(value => getBandInstrumentOption(value))
+    .filter(Boolean)
+    .map(item =>
+      '<span class="bb-band-instrument">' +
+        '<span class="bb-band-instrument-icon">' +
+          getBandInstrumentIconHtml(item.value) +
+        '</span>' +
+        '<span>' + item.label + '</span>' +
+      '</span>'
+    )
+    .join(" ");
+}
+
 function normalizeBandInstruments(values) {
   return [...new Set(
     (Array.isArray(values) ? values : [])
