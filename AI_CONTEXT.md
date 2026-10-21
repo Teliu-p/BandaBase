@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección:** 2026-10-20 (zona horaria de Argentina)  
+**Última inspección:** 2026-10-21 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Último cambio funcional fusionado antes de esta actualización documental:** `d7225cd978d27119a27de6aea91af6031e87b674` (PR #131). La CI de esa PR pasó, incluyendo pruebas Chromium para sangría/atajos, carreras de sesión, limpieza al salir y errores de red. Verificar siempre el HEAD actual y Pages antes de afirmar el estado del despliegue.
+**Última revisión funcional:** PR #134 incorpora actualizaciones en tiempo real, iconos SVG propios de instrumentos y corrección de la serialización visual de Materiales. La CI completa (npm test, ESLint y smoke tests de Chromium) pasó para el código funcional. Verificar siempre el HEAD actual y Pages antes de afirmar el estado del despliegue.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -16,6 +16,14 @@ Se fusionaron PR #123, #124, #126, #127, #128, #129, #130 y #131. Los cambios ab
 Las tres migraciones nuevas ya se aplicaron a Supabase. Sus versiones remotas son `20261020232312`, `20261020232328` y `20261020232333`; los archivos SQL deben conservar exactamente esos prefijos. La prueba conjunta de las migraciones y las RPC se ejecutó con rol `authenticated` dentro de una transacción revertida. El chequeo posterior encontró 0 claves foráneas sin índice y una sola política SELECT de Storage para el bucket `materials`.
 
 Actualización de Storage (2026-10-20): el bucket `materials` sigue privado y ahora tiene límite por bucket de `52428800` bytes (50 MiB); la lectura posterior confirmó el valor guardado. La interfaz conserva el mismo tope. `allowed_mime_types = null` se mantiene para no bloquear formatos legítimos sin inventariar; no se debe interpretar como una lista MIME validada. El proyecto está en el plan Free, cuyo límite global no puede superar 50 MB; el menor entre el límite global y el del bucket es el efectivo. Para admitir archivos mayores hace falta pasar a un plan compatible, aumentar el límite global y revisar subidas reanudables para archivos mayores de 6 MB. Los asesores aún marcan protección contra contraseñas filtradas deshabilitada y dos funciones SECURITY DEFINER accesibles a `authenticated` (`is_band_member` y `get_proposal_vote_stats`); revisarlas por separado, sin alterar su comportamiento de autorización sin pruebas. El registro de migraciones mantiene la discrepancia histórica documentada de doce archivos locales sin versión remota; no ejecutar `supabase db push`, ni insertar/borrar historial manualmente como solución rápida.
+
+## Actualización de auditoría (2026-10-21): Realtime, instrumentos y Materiales
+
+- Se comprobó que la publicación PostgreSQL `supabase_realtime` existía pero no incluía ninguna tabla. La migración `20261021224042_enable_realtime_for_bandabase.sql` ya se aplicó y la consulta posterior confirmó 20 tablas en la publicación. No se modificaron registros de canciones, comentarios ni materiales.
+- `src/app-realtime.js` crea una única suscripción por banda/sesión y usa cada evento como señal para volver a consultar con el cliente autorizado por RLS. Refresca canciones/cantantes, materiales, comentarios, listas, propuestas e integrantes; informa errores de conexión y difiere ciertas vistas mientras hay formularios abiertos para no pisar borradores. No se debe asumir entrega garantizada cuando se corta la red: Realtime no reemplaza la consulta de datos como fuente de verdad.
+- Los instrumentos de perfil/listas/participación se dibujan con SVG definido en `src/utils.js`; no depender de emoji/fuentes del sistema operativo para guitarra, voz, teclado, bajo y batería.
+- En Materiales, Enter inserta saltos explícitos, la serialización aplana los `DIV/P` del `contenteditable` preservando líneas vacías y el orden de chips de adjuntos, y la vista guardada comparte `white-space: pre-wrap` con el editor. Se añadió una prueba de regresión de texto–audio–texto con una línea vacía.
+- Límite de la evidencia: CI pasó con Auth simulado y la publicación remota quedó verificada. Falta la comprobación manual desde dos PCs con sesiones reales, y confirmar el despliegue de Pages de este cambio.
 
 ## Instrucciones de arranque para cada chat nuevo
 
