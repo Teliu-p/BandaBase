@@ -659,7 +659,7 @@ function renderBandListDetailContent(
   } else if (selfStatus === "Confirmado") {
     html += '<div class="list-self-participation">' +
       '<div><span class="status active">Estás participando</span>' +
-      '<div class="member-info">' + formatBandInstrumentsHtml(selfItem.participation_instruments) || "Sin función" + '</div></div>' +
+      '<div class="member-info bb-band-instrument-list">' + (formatBandInstrumentsHtml(selfItem.participation_instruments) || "Sin función") + '</div></div>' +
       '<button type="button" class="btn btn-subtle btn-danger" data-list-self-unregister="' + escapeHtml(list.id) + '">No voy a participar</button>' +
       '</div>';
   } else {
