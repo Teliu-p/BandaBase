@@ -165,6 +165,10 @@ logoutBtn.addEventListener(
 let authTransitionVersion = 0;
 
 function clearBandabaseSessionData() {
+  if (typeof window.bandabaseStopRealtime === "function") {
+    window.bandabaseStopRealtime();
+  }
+
   currentUser = null;
   currentBand = null;
   currentProfile = null;
