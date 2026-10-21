@@ -1176,9 +1176,6 @@ function createMaterialComposerSerializationRoot(editor) {
       }
 
       if (isBlock) {
-        // Browsers often represent Enter as sibling DIVs. Flatten them to BR
-        // so saved text, indentation, and inline attachments share one layout.
-
         const blockChildren = Array.from(node.childNodes || []);
         const isEditorPlaceholder = blockChildren.length === 1 &&
           blockChildren[0].nodeType === Node.ELEMENT_NODE &&
