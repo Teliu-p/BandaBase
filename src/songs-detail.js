@@ -42,6 +42,10 @@ async function openSong(
   currentSong =
     song;
 
+  if (typeof window.bandabaseClearSongDetailDirty === "function") {
+    window.bandabaseClearSongDetailDirty();
+  }
+
   if (typeof window.bandabaseStopMetronome === "function") {
     window.bandabaseStopMetronome();
   }
@@ -342,6 +346,10 @@ document.getElementById(
       return;
     }
 
+    if (typeof window.bandabaseClearSongDetailDirty === "function") {
+      window.bandabaseClearSongDetailDirty();
+    }
+
     showNotice(
       "Canción guardada.",
       "success"
@@ -390,6 +398,10 @@ document.getElementById(
 
     currentSong =
       null;
+
+    if (typeof window.bandabaseClearSongDetailDirty === "function") {
+      window.bandabaseClearSongDetailDirty();
+    }
 
     currentMaterials = [];
 
