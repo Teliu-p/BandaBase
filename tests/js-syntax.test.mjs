@@ -2990,7 +2990,7 @@ const materialDomTestContext = {
     function textOf(node) {
       if (node.nodeType === 3) return node.nodeValue || "";
       if (node.nodeType !== 1) return "";
-      if (node.tagName === "BR") return "\\n";
+      if (node.tagName === "BR") return "\n";
       if (node.classList.contains("material-inline-attachment")) return "";
       return node.childNodes.map(textOf).join("");
     }
@@ -3013,9 +3013,9 @@ const attachmentSplitterSource = materialsFormattingRegressionSource.slice(
   attachmentSplitterEnd
 );
 vm.runInNewContext(
-  normalizerSource + "\\n" +
-  attachmentSplitterSource + "\\n" +
-  collectorSource + "\\n" +
+  normalizerSource + "\n" +
+  attachmentSplitterSource + "\n" +
+  collectorSource + "\n" +
   "globalThis.__testCollectMaterialBlocks = collectMaterialComposerBlocks;",
   materialDomTestContext,
   { filename: "materials-editor-serialization-regression.test.js" }
@@ -3030,7 +3030,7 @@ assert.deepEqual(
       attachment_id: "audio-in-the-middle",
       pendingKey: null
     },
-    { block_type: "text", content: " después\\n\\nTercera línea" }
+    { block_type: "text", content: " después\n\nTercera línea" }
   ],
   "El audio debe permanecer entre sus textos y deben conservarse los renglones vacíos al guardar."
 );
