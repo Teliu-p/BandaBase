@@ -3447,6 +3447,16 @@
   display: inline;
 }
 
+.material-view {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.material-view-text {
+  white-space: inherit;
+}
+
 .material-view-attachment {
   margin: 10px 0 0;
 }
