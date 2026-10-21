@@ -1309,7 +1309,8 @@ assert.deepEqual(
 
 assert.equal(
   formatBandInstruments(["guitar", "voice", "invalid"]),
-  "🎸 Guitarra, 🎤 Voz"
+  "Guitarra, Voz",
+  "El helper de texto debe devolver etiquetas sin depender de glifos emoji; los SVG se renderizan por separado."
 );
 
 const {
