@@ -225,9 +225,20 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
     const result = await refreshBandListData();
     if (result?.error) throw result.error;
 
+    // Active-list membership also determines each song's Repertorio state.
+    await loadSongs();
     renderBandLists();
     renderSongs();
     renderRecentListsPreview();
+
+    const detailRepertoire = document.getElementById("detailRepertoire");
+    if (
+      detailRepertoire &&
+      currentSong?.id &&
+      typeof getSongListCount === "function"
+    ) {
+      detailRepertoire.checked = getSongListCount(currentSong.id) > 0;
+    }
 
     if (currentBandList?.id) {
       const selected = currentBandLists.find(
