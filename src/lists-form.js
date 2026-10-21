@@ -192,4 +192,8 @@ function hideBandListForm() {
     "+ Nueva lista";
 
   document.getElementById("listsBrowser").classList.remove("hidden");
+
+  if (typeof window.bandabaseFlushRealtimeRefreshes === "function") {
+    void window.bandabaseFlushRealtimeRefreshes();
+  }
 }
