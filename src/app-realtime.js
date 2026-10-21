@@ -78,7 +78,7 @@ function showBandabaseRealtimeDeferredNotice() {
   );
 }
 
-function scheduleBandabaseRealtimeFlush() {
+function scheduleBandabaseRealtimeFlush(delay = 160) {
   if (bandabaseRealtimeFlushTimer !== null) {
     window.clearTimeout(bandabaseRealtimeFlushTimer);
   }
@@ -86,7 +86,7 @@ function scheduleBandabaseRealtimeFlush() {
   bandabaseRealtimeFlushTimer = window.setTimeout(() => {
     bandabaseRealtimeFlushTimer = null;
     void flushBandabaseRealtimeRefreshes();
-  }, 160);
+  }, delay);
 }
 
 function rememberBandabaseRealtimeChange(payload) {
@@ -287,6 +287,9 @@ async function flushBandabaseRealtimeRefreshes() {
   if (!readyDomains.length) {
     if (bandabaseRealtimePendingDomains.size) {
       showBandabaseRealtimeDeferredNotice();
+      // Keep checking the editor state without making network requests. This
+      // handles drafts that become safe to refresh after their last input blurs.
+      scheduleBandabaseRealtimeFlush(1000);
     }
     return;
   }
@@ -374,7 +377,7 @@ function startBandabaseRealtime() {
         return;
       }
 
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         console.warn("Canal de actualizaciones en tiempo real:", status);
         if (!bandabaseRealtimeConnectionWarningShown) {
           bandabaseRealtimeConnectionWarningShown = true;
