@@ -679,7 +679,7 @@ function renderBandListDetailContent(
       Array.isArray(item.participation_instruments) &&
       item.participation_instruments.includes(option.value)
     ).length;
-    html += '<div class="list-capacity-chip"><span>' + option.icon + ' ' + escapeHtml(option.label) + '</span><strong>' + count + '/' + limit + '</strong></div>';
+    html += '<div class="list-capacity-chip"><span class="list-capacity-label"><span class="list-instrument-icon">' + getBandInstrumentIconHtml(option.value) + '</span>' + escapeHtml(option.label) + '</span><strong>' + count + '/' + limit + '</strong></div>';
   });
   html += '</div>';
 
