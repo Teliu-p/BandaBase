@@ -2856,6 +2856,11 @@ assert.doesNotMatch(
 assert.match(instrumentViewSource, /getBandInstrumentIconHtml\(option\.value\)/);
 assert.match(instrumentListSource, /getBandInstrumentIconHtml\(option\.value\)/);
 assert.match(
+  instrumentListSource,
+  /formatBandInstrumentsHtml\(selfItem\.participation_instruments\)\s*\|\|\s*"Sin función"\)\s*\+\s*'<\/div><\/div>'/,
+  "El estado de participación debe conservar el marcado de su fila al renderizar instrumentos con SVG."
+);
+assert.match(
   materialsEditorRegressionSource,
   /beforeinput[\s\S]*?insertParagraph[\s\S]*?insertMaterialComposerLineBreak/,
   "Enter debe guardar saltos de línea explícitos y consistentes."
