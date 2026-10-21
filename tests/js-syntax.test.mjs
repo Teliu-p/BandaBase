@@ -2951,7 +2951,8 @@ const materialEditorFixture = testElement("div", [
     testTextNode(" después")
   ]),
   testElement("div", [testElement("br")]),
-  testElement("div", [testTextNode("Tercera línea")])
+  testElement("div", [testTextNode("Tercera línea")]),
+  testTextNode(" Final suelto")
 ]);
 const normalizerStart = materialsEditorRegressionSource.indexOf(
   "function createMaterialComposerSerializationRoot(editor) {"
@@ -3030,7 +3031,7 @@ assert.deepEqual(
       attachment_id: "audio-in-the-middle",
       pendingKey: null
     },
-    { block_type: "text", content: " después\n\nTercera línea" }
+    { block_type: "text", content: " después\n\nTercera línea\n Final suelto" }
   ],
   "El audio debe permanecer entre sus textos y deben conservarse los renglones vacíos al guardar."
 );
