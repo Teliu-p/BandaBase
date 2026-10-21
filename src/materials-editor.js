@@ -1154,6 +1154,54 @@ function renderMaterialComposer(
 }
 
 
+function createMaterialComposerSerializationRoot(editor) {
+  const root = document.createElement("div");
+
+  function appendNormalizedChildren(source, target) {
+    const children = Array.from(source.childNodes || []);
+
+    children.forEach(node => {
+      const isBlock = node.nodeType === Node.ELEMENT_NODE &&
+        ["DIV", "P"].includes(node.tagName);
+
+      if (isBlock) {
+        if (target.childNodes.length && target.lastChild?.tagName !== "BR") {
+          target.appendChild(document.createElement("br"));
+        }
+
+        const blockChildren = Array.from(node.childNodes || []);
+        const isEditorPlaceholder = blockChildren.length === 1 &&
+          blockChildren[0].nodeType === Node.ELEMENT_NODE &&
+          blockChildren[0].tagName === "BR";
+
+        // Browsers often represent Enter as sibling DIVs. Flatten them to BR
+        // so saved text, indentation, and inline attachments share one layout.
+        // A lone BR inside an empty DIV is only the browser's caret placeholder.
+        if (!isEditorPlaceholder) {
+          appendNormalizedChildren(node, target);
+        }
+        return;
+      }
+
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.querySelector?.("div, p")
+      ) {
+        const wrapper = node.cloneNode(false);
+        appendNormalizedChildren(node, wrapper);
+        target.appendChild(wrapper);
+        return;
+      }
+
+      target.appendChild(node.cloneNode(true));
+    });
+  }
+
+  appendNormalizedChildren(editor, root);
+  return root;
+}
+
+
 function collectMaterialComposerBlocks() {
 
   const editor =
@@ -1164,6 +1212,9 @@ function collectMaterialComposerBlocks() {
   if (!editor) {
     return [];
   }
+
+  const serializationRoot =
+    createMaterialComposerSerializationRoot(editor);
 
   const blocks = [];
   let textNodes = [];
@@ -1211,7 +1262,7 @@ function collectMaterialComposerBlocks() {
   }
 
   Array.from(
-    editor.childNodes
+    serializationRoot.childNodes
   ).forEach(
     node => {
 
@@ -2267,6 +2318,45 @@ function insertMaterialWrapper(
 }
 
 
+function insertMaterialComposerLineBreak(editor) {
+  if (!editor) return false;
+
+  const selection = window.getSelection();
+  let range = null;
+
+  if (selection?.rangeCount) {
+    const activeRange = selection.getRangeAt(0);
+    if (editor.contains(activeRange.commonAncestorContainer)) {
+      range = activeRange.cloneRange();
+    }
+  }
+
+  if (!range && materialSelectionRange) {
+    range = materialSelectionRange.cloneRange();
+  }
+
+  if (!range || !editor.contains(range.commonAncestorContainer)) {
+    return false;
+  }
+
+  range.deleteContents();
+  const lineBreak = document.createElement("br");
+  range.insertNode(lineBreak);
+
+  const caret = document.createRange();
+  caret.setStartAfter(lineBreak);
+  caret.collapse(true);
+
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(caret);
+  }
+
+  materialSelectionRange = caret.cloneRange();
+  return true;
+}
+
+
 function bindMaterialFormattingControls() {
 
   const editor =
@@ -2344,6 +2434,24 @@ function bindMaterialFormattingControls() {
   editor.addEventListener(
     "input",
     remember
+  );
+
+  editor.addEventListener(
+    "beforeinput",
+    function(event) {
+      if (
+        event.isComposing ||
+        (event.inputType !== "insertParagraph" &&
+          event.inputType !== "insertLineBreak")
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (insertMaterialComposerLineBreak(editor)) {
+        rememberMaterialSelection();
+      }
+    }
   );
 
   editor.addEventListener(
