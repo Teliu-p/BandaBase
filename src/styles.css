@@ -2956,6 +2956,35 @@
     vertical-align: -0.2em;
   }
 
+  .bb-band-instrument {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .bb-band-instrument-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
+    flex: 0 0 auto;
+  }
+
+  .bb-band-instrument-icon .bb-instrument-icon {
+    width: 100%;
+    height: 100%;
+  }
+
+  .bb-band-instrument-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+  }
+
   .profile-instrument-option-label,
   .list-capacity-label {
     display: inline-flex;
