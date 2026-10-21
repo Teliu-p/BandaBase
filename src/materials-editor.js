@@ -1161,18 +1161,23 @@ function createMaterialComposerSerializationRoot(editor) {
     const children = Array.from(source.childNodes || []);
     let isFirstSourceNode = true;
 
+    let previousWasBlock = false;
+
     children.forEach(node => {
       const hasPreviousSourceNode = !isFirstSourceNode;
       isFirstSourceNode = false;
       const isBlock = node.nodeType === Node.ELEMENT_NODE &&
         ["DIV", "P"].includes(node.tagName);
 
+      if (hasPreviousSourceNode && (previousWasBlock || isBlock)) {
+        // Normalize boundaries both before and after DIV/P blocks. Empty blocks
+        // still count, so consecutive empty lines never collapse together.
+        target.appendChild(document.createElement("br"));
+      }
+
       if (isBlock) {
-        // Every sibling DIV/P boundary is meaningful, including a blank line
-        // represented as <div><br></div>. Do not collapse consecutive breaks.
-        if (hasPreviousSourceNode) {
-          target.appendChild(document.createElement("br"));
-        }
+        // Browsers often represent Enter as sibling DIVs. Flatten them to BR
+        // so saved text, indentation, and inline attachments share one layout.
 
         const blockChildren = Array.from(node.childNodes || []);
         const isEditorPlaceholder = blockChildren.length === 1 &&
@@ -1185,6 +1190,7 @@ function createMaterialComposerSerializationRoot(editor) {
         if (!isEditorPlaceholder) {
           appendNormalizedChildren(node, target);
         }
+        previousWasBlock = true;
         return;
       }
 
@@ -1195,10 +1201,12 @@ function createMaterialComposerSerializationRoot(editor) {
         const wrapper = node.cloneNode(false);
         appendNormalizedChildren(node, wrapper);
         target.appendChild(wrapper);
+        previousWasBlock = false;
         return;
       }
 
       target.appendChild(node.cloneNode(true));
+      previousWasBlock = false;
     });
   }
 
