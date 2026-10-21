@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-10-20, Argentina.  
-**Último cambio funcional fusionado antes de esta actualización documental:** `d7225cd978d27119a27de6aea91af6031e87b674` (PR #131); su CI pasó. Los flujos de GitHub Actions se ejecutaron para las PR #123, #124, #126–#131 y pasaron. No se infiere por eso que se probaron todas las funciones con cuentas reales.  
+**Última actualización:** 2026-10-21, Argentina.  
+**Último cambio funcional documentado:** PR #134 (actualizaciones en tiempo real, iconos SVG propios y paridad del editor Materiales); la CI funcional pasó en el run #618. Los flujos de GitHub Actions anteriores para las PR #123, #124, #126–#132 también pasaron. Comprobar la CI más reciente después de modificar estos documentos. No se infiere por eso que se probaron todas las funciones con cuentas reales.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
@@ -169,3 +169,17 @@ Verificación post-aplicación: la política SELECT de Storage y la política UP
 - **Migraciones históricas:** los 44 registros remotos previos coincidían con el estado documentado; las tres nuevas versiones se registraron correctamente y su nombre local se alinea en esta rama con la versión remota. La discrepancia histórica anterior de 12 archivos locales sin una fila remota equivalente sigue abierta como asunto independiente; no ejecutar `db push`, no insertar versiones manualmente y no borrar SQL histórico para esconderla.
 - **Prueba funcional real:** la CI usa un stub de Auth. Las pruebas simulan respuestas y transacciones autenticadas en SQL, pero aún conviene hacer una pasada manual con una cuenta de prueba para guardar una canción con cantantes, crear/editar una lista y responsables, asignar/quitar canciones, guardar/borrar comentarios con adjuntos y descargar archivos en registros activos/eliminados.
 - **Asesores:** queda habilitar la protección contra contraseñas filtradas mediante Auth settings y revisar, por separado, las políticas múltiples restantes. No reducir permisos ni quitar índices automáticamente.
+
+## 12. Corrección de sincronización entre dispositivos, instrumentos y Materiales (2026-10-21)
+
+### Actualizaciones en tiempo real
+La inspección de Supabase encontró la publicación `supabase_realtime` sin tablas. La migración `20261021224042_enable_realtime_for_bandabase.sql` se aplicó; una consulta posterior confirmó 20 tablas habilitadas. El cambio solo altera la publicación, no los datos de canciones, comentarios ni materiales.
+
+`src/app-realtime.js` escucha eventos PostgreSQL y refresca las vistas con nuevas consultas bajo RLS. Cubre canciones/cantantes, materiales, comentarios (incluidos bloques y adjuntos), listas/participación, propuestas/votos e integrantes. Hay limpieza al cerrar sesión, avisos ante errores de conexión y protección para diferir actualizaciones cuando hay borradores abiertos. Las notificaciones Realtime son señales para reconsultar; no deben tratarse como una fuente de datos garantizada ante una desconexión.
+
+### Iconos y editor
+- Los instrumentos se renderizan con SVG local generado por `getBandInstrumentIconHtml`, en lugar de caracteres emoji. La vista de perfiles, las plazas de instrumentos de una lista, los contadores de capacidad y la participación usan la misma fuente gráfica.
+- `src/materials-editor.js` intercepta Enter/Shift+Enter e inserta saltos `BR` explícitos. Antes de extraer bloques de texto y adjuntos, normaliza los `DIV/P` del DOM contenteditable, incluidos renglones vacíos. `src/styles.css` conserva el espacio en blanco en la vista guardada para que los saltos/sangrías coincidan mejor con la edición.
+- Una prueba de regresión verifica el orden texto–adjunto de audio–texto y la preservación de dos saltos entre líneas.
+- **Verificación:** CI #618 pasó npm test, ESLint y Chromium. Esto no prueba que WebSockets funcionen a través de las redes de dos PCs reales; queda la comprobación manual autenticada y la verificación del despliegue de Pages.
+
