@@ -1450,6 +1450,10 @@ function hideMaterialForm() {
   ).textContent =
     "+ Añadir material";
 
+  if (typeof window.bandabaseFlushRealtimeRefreshes === "function") {
+    void window.bandabaseFlushRealtimeRefreshes();
+  }
+
 }
 
 
