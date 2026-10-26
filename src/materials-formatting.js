@@ -1407,7 +1407,7 @@ function createMaterialClipboardFragment(html, plainText = "") {
 
     nodes.forEach((node, index) => {
       const isBlock = node.nodeType === Node.ELEMENT_NODE &&
-        ["ADDRESS", "ARTICLE", "BLOCKQUOTE", "BODY", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "P", "PRE"].includes(node.tagName);
+        ["ADDRESS", "ARTICLE", "BLOCKQUOTE", "BODY", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "OL", "P", "PRE", "SECTION", "TABLE", "TR", "UL"].includes(node.tagName);
 
       if (index > 0 && (previousWasBlock || isBlock)) {
         target.appendChild(document.createElement("br"));
@@ -1430,16 +1430,20 @@ function createMaterialClipboardFragment(html, plainText = "") {
       // Clipboard HTML from a selected audio chip may contain its player
       // controls. Do not create a cross-material attachment reference; preserve
       // the visible track name instead of importing unsafe or invalid markup.
-      if (
-        node.nodeType === Node.ELEMENT_NODE &&
-        node.classList?.contains("material-inline-audio")
-      ) {
-        const name = node.querySelector?.(".material-inline-audio-name")?.textContent ||
-          node.querySelector?.(".material-inline-audio-label")?.textContent ||
-          "";
-        if (name) target.appendChild(document.createTextNode(name));
-        previousWasBlock = false;
-        return;
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (["SCRIPT", "STYLE", "META", "LINK", "IFRAME", "OBJECT", "EMBED", "HEAD"].includes(node.tagName)) {
+          previousWasBlock = false;
+          return;
+        }
+
+        if (node.classList?.contains("material-inline-audio")) {
+          const name = node.querySelector?.(".material-inline-audio-name")?.textContent ||
+            node.querySelector?.(".material-inline-audio-label")?.textContent ||
+            "";
+          if (name) target.appendChild(document.createTextNode(name));
+          previousWasBlock = false;
+          return;
+        }
       }
 
       appendSanitizedMaterialNode(target, node);
