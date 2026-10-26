@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-10-21, Argentina.  
-**Último cambio funcional documentado:** PR #134 (actualizaciones en tiempo real, iconos SVG propios y paridad del editor Materiales); la CI funcional pasó en el run #618. Los flujos de GitHub Actions anteriores para las PR #123, #124, #126–#132 también pasaron. Comprobar la CI más reciente después de modificar estos documentos. No se infiere por eso que se probaron todas las funciones con cuentas reales.  
+**Última actualización:** 2026-10-26, Argentina.  
+**Último cambio funcional documentado antes de este apartado:** PR #134 (actualizaciones en tiempo real, iconos SVG propios y paridad del editor Materiales); la CI funcional pasó en el run #618. Este apartado documenta el trabajo siguiente en PR #135; comprobar su CI/estado y Pages antes de asumir integración. Los runs anteriores no sustituyen una prueba auditiva con pistas reales.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
@@ -182,4 +182,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - `src/materials-editor.js` intercepta Enter/Shift+Enter e inserta saltos `BR` explícitos. Antes de extraer bloques de texto y adjuntos, normaliza los `DIV/P` del DOM contenteditable, incluidos renglones vacíos. `src/styles.css` conserva el espacio en blanco en la vista guardada para que los saltos/sangrías coincidan mejor con la edición.
 - Una prueba de regresión verifica el orden texto–adjunto de audio–texto y la preservación de dos saltos entre líneas.
 - **Verificación:** CI #618 pasó npm test, ESLint y Chromium. Esto no prueba que WebSockets funcionen a través de las redes de dos PCs reales; queda la comprobación manual autenticada y la verificación del despliegue de Pages.
+
+## 13. Pegado enriquecido, comparación compartida y reproducción agrupada (2026-10-26)
+
+- **Portapapeles enriquecido:** `src/materials-editor.js` obtiene `text/html` y `text/plain`. `createMaterialClipboardFragment` normaliza bloques de lista/párrafo, pasa el HTML por la allowlist de Materiales y descarta scripts, estilos y contenido embebido activo. Conserva formatos admitidos, enlaces, símbolos musicales vectoriales y marcadores. Si la selección contiene un chip de audio renderizado, pega su nombre legible, no una referencia de adjunto que pertenezca a otro material.
+- **Comparación con original:** `src/songs-comparison.js` presenta sus bloques con `renderMaterialViewBlock` y enlaza sus controles con `bindMaterialViewEvents`. El botón de edición abre `openMaterialEditor` en modo `COMPARISON_MATERIAL_TYPE`; `src/materials-save.js` usa el flujo normal de adjuntos/bloques y recarga la comparación al finalizar. `src/materials-data.js` conserva un tipo explícito al crear, con `Texto` como valor por defecto. El detalle de canción limpia la comparación anterior al cambiar de tema.
+- **Calibración del metrónomo:** `src/metronome.js` guarda el desfase manual bajo una clave por canción y verifica BPM/métrica. Al leer puede migrar una calibración previa por adjunto desde cualquiera de las pistas disponibles. No requiere conservar activo el archivo que se calibró originalmente.
+- **Grupo de pistas:** clic derecho alterna la selección de cada chip de audio; clicar Play en una de las pistas seleccionadas prepara URLs/metadatos, alinea los playheads con precisión de milisegundos, copia la velocidad de reproducción y llama a `play()` para las pistas juntas. Se aplica a los audios visibles tanto en Materiales normales como en comparación. Si se cierran/colapsan los materiales de una pista seleccionada, deben estar abiertos para que la app encuentre el reproductor.
+- **Validación pendiente fuera de CI:** comprobar el comportamiento auditivo con un original y varios splits reales, la tolerancia de deriva después de varios minutos, y las restricciones de autoplay del navegador. No inferir que la prueba auditiva está completa a partir de la simulación de Playwright.
 

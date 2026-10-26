@@ -34,6 +34,36 @@ function loadComparison(
 }
 
 
+function renderOriginalComparisonMaterialView() {
+  const container = document.getElementById("originalComparisonMaterialView");
+  const editButton = document.getElementById("editOriginalComparisonBtn");
+  if (!container || !editButton) return;
+
+  const material = currentOriginalComparisonMaterial;
+  if (!material) {
+    container.innerHTML =
+      '<div class="empty-state">Todavía no hay diferencias anotadas.</div>';
+    editButton.textContent = "Añadir diferencias";
+    return;
+  }
+
+  const blocks = material.blocks?.length
+    ? material.blocks
+    : [{
+        block_type: "text",
+        content: material.content || ""
+      }];
+
+  container.innerHTML =
+    '<div class="material-view">' +
+    blocks.map(renderMaterialViewBlock).join("") +
+    "</div>";
+
+  editButton.textContent = "Editar diferencias";
+  bindMaterialViewEvents(container);
+}
+
+
 async function loadOriginalComparisonMaterial() {
 
   if (!currentSong) {
@@ -69,15 +99,8 @@ async function loadOriginalComparisonMaterial() {
       material;
 
     if (!material) {
-
-      openCommentComposer(
-        "comparison",
-        [],
-        []
-      );
-
+      renderOriginalComparisonMaterialView();
       return;
-
     }
 
     const [
@@ -166,11 +189,7 @@ async function loadOriginalComparisonMaterial() {
       blocks
     };
 
-    openCommentComposer(
-      "comparison",
-      blocks,
-      attachments
-    );
+    renderOriginalComparisonMaterialView();
 
   } catch (error) {
     if (currentSong?.id !== songId) return;
@@ -583,6 +602,28 @@ async function saveOriginalComparison() {
 
   await loadOriginalComparisonMaterial();
 }
+
+
+document.getElementById("editOriginalComparisonBtn")?.addEventListener(
+  "click",
+  function() {
+    if (typeof openMaterialEditor !== "function") {
+      showNotice("El editor de Materiales todavía no está disponible.", "error");
+      return;
+    }
+
+    openMaterialEditor(
+      currentOriginalComparisonMaterial,
+      COMPARISON_MATERIAL_TYPE
+    );
+
+    const editorForm = document.getElementById("materialForm");
+    editorForm?.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+);
 
 
 document.getElementById(

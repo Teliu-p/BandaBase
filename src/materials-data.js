@@ -83,6 +83,7 @@ async function createMaterial(
   const {
     band_id,
     song_id,
+    type,
     name,
     content,
     created_by
@@ -94,7 +95,7 @@ async function createMaterial(
     .insert({
       band_id,
       song_id,
-      type: "Texto",
+      type: type || "Texto",
       name,
       content,
       created_by

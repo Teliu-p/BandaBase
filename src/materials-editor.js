@@ -7,6 +7,7 @@ let materialIndentRepeatCount = 0;
 let materialIndentPointerHandled = false;
 let materialIndentPointerResetTimer = null;
 let materialNotationDotPending = false;
+let editingMaterialType = null;
 
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
@@ -523,17 +524,28 @@ function getCurrentMaterialAudioMarkerSeconds() {
   const activeSeconds = getMaterialAudioMarkerSecondsFromPlaybackTime(activePlayer?.currentTime);
   if (activeSeconds !== null) return activeSeconds;
 
-  // Otherwise capture the playhead only when one audio is unambiguously playing.
+  // If a group is playing, its tracks share the same playhead. Prefer the
+  // metronome reference when it is among them; otherwise use the first active
+  // track only if every active playhead is closely aligned.
   const playingPlayers = Array.from(
-    document.querySelectorAll("#materialsList [data-material-audio]")
+    document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]")
   ).filter(player =>
     !player.paused &&
     !player.ended &&
     Number.isFinite(player.currentTime)
   );
 
-  if (playingPlayers.length !== 1) return null;
-  return getMaterialAudioMarkerSecondsFromPlaybackTime(playingPlayers[0].currentTime);
+  if (!playingPlayers.length) return null;
+
+  const metronomeReference = window.bandabaseGetMetronomeSyncAudioPlayer?.();
+  const reference = metronomeReference && playingPlayers.includes(metronomeReference)
+    ? metronomeReference
+    : playingPlayers[0];
+  if (playingPlayers.some(player => Math.abs(player.currentTime - reference.currentTime) > 0.25)) {
+    return null;
+  }
+
+  return getMaterialAudioMarkerSecondsFromPlaybackTime(reference.currentTime);
 }
 
 
@@ -543,7 +555,7 @@ function insertMaterialAudioMarker(button = null) {
   // Keep manual entry available if playback does not identify one audio position.
   if (seconds === null) {
     const input = window.prompt(
-      "No se detectó un único audio activo. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
+      "No se detectó una posición de audio clara. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
       "0:30"
     );
     if (input === null) return false;
@@ -1345,12 +1357,18 @@ function collectMaterialLegacyText(
 }
 
 function openMaterialEditor(
-  material = null
+  material = null,
+  materialType = null
 ) {
 
   editingMaterialId =
     material?.id ||
     null;
+
+  editingMaterialType =
+    material?.type === COMPARISON_MATERIAL_TYPE
+      ? COMPARISON_MATERIAL_TYPE
+      : materialType;
 
   // Evitar que la vista expandida y el formulario de edición muestren
   // simultáneamente el mismo contenido como si fueran dos materiales.
@@ -1381,7 +1399,11 @@ function openMaterialEditor(
     "materialName"
   ).value =
     material?.name ||
-    "";
+    (
+      editingMaterialType === COMPARISON_MATERIAL_TYPE
+        ? "Diferencias con la original"
+        : ""
+    );
 
   renderMaterialComposer(
     material?.blocks ||
@@ -1407,9 +1429,11 @@ function openMaterialEditor(
   document.getElementById(
     "showMaterialFormBtn"
   ).textContent =
-    material
-      ? "Editando material"
-      : "+ Añadir material";
+    editingMaterialType === COMPARISON_MATERIAL_TYPE
+      ? "Editando diferencias con la original"
+      : material
+        ? "Editando material"
+        : "+ Añadir material";
 
   document.getElementById(
     "materialName"
@@ -1428,6 +1452,9 @@ function showMaterialForm() {
 function hideMaterialForm() {
 
   editingMaterialId =
+    null;
+
+  editingMaterialType =
     null;
 
   materialDraftInitialAttachmentIds =
@@ -2647,16 +2674,22 @@ document
 
       event.preventDefault();
 
+      const clipboard =
+        event.clipboardData;
+
+      const html =
+        clipboard?.getData("text/html") ||
+        "";
+
       const text =
-        event.clipboardData?.getData(
-          "text/plain"
-        ) ||
+        clipboard?.getData("text/plain") ||
         "";
 
       rememberMaterialSelection();
 
       insertMaterialNodeAtSelection(
-        createMaterialAutoLinkFragment(
+        createMaterialClipboardFragment(
+          html,
           text
         )
       );

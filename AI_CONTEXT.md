@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección:** 2026-10-21 (zona horaria de Argentina)  
+**Última inspección:** 2026-10-26 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Última revisión funcional:** PR #134 incorpora actualizaciones en tiempo real, iconos SVG propios de instrumentos y corrección de la serialización visual de Materiales. La CI completa (npm test, ESLint y smoke tests de Chromium) pasó para el código funcional. Verificar siempre el HEAD actual y Pages antes de afirmar el estado del despliegue.
+**Trabajo funcional reciente:** PR #135 incorpora pegado enriquecido seguro, editor/render compartido para “Comparación con original”, calibración del metrónomo compartida por canción y selección de varias pistas para reproducción conjunta. Revisar su estado real y CI antes de afirmar que está integrado o desplegado. Verificar siempre el HEAD actual y Pages.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -24,6 +24,14 @@ Actualización de Storage (2026-10-20): el bucket `materials` sigue privado y ah
 - Los instrumentos de perfil/listas/participación se dibujan con SVG definido en `src/utils.js`; no depender de emoji/fuentes del sistema operativo para guitarra, voz, teclado, bajo y batería.
 - En Materiales, Enter inserta saltos explícitos, la serialización aplana los `DIV/P` del `contenteditable` preservando líneas vacías y el orden de chips de adjuntos, y la vista guardada comparte `white-space: pre-wrap` con el editor. Se añadió una prueba de regresión de texto–audio–texto con una línea vacía.
 - Límite de la evidencia: CI pasó con Auth simulado y la publicación remota quedó verificada. Falta la comprobación manual desde dos PCs con sesiones reales, y confirmar el despliegue de Pages de este cambio.
+
+## Actualización funcional (2026-10-26): pegado enriquecido, comparación y grupos de audio
+
+- La PR #135 añade `createMaterialClipboardFragment` en `materials-formatting.js`: al pegar se prioriza `text/html`, se sanitiza con la allowlist del compositor y se conserva texto plano como respaldo. El formato válido incluye negrita, cursiva, tamaños admitidos, enlaces, figuras SVG de notación y marcadores temporales. Los adjuntos de audio copiados como chips no se convierten en referencias DB cruzadas a otro material.
+- “Comparación con original” usa `renderMaterialViewBlock` y `bindMaterialViewEvents`, igual que los materiales normales. Su botón abre el editor compartido; `createMaterial` debe conservar `COMPARISON_MATERIAL_TYPE` si el caller lo pasa. Al cambiar de canción se vacía de inmediato la comparación anterior.
+- La calibración manual del metrónomo queda guardada por canción y se reutiliza al elegir cualquier pista alineada. La lectura puede migrar un ajuste antiguo por adjunto si encuentra alguno entre las pistas cargadas. Sigue validando BPM y métrica.
+- Clic derecho sobre una pista de audio alterna la selección de grupo. Al pulsar Play en una pista seleccionada, se cargan todas las URLs/metadatos, se alinean al mismo tiempo (incluidos milisegundos) y se llama a `play()` para todas. Con el metrónomo sincronizado, la transición de grupo evita reaccionar de manera independiente a cada evento play/pause.
+- Las pruebas incluyen pegado HTML enriquecido con contenido activo descartado, comparación usando el renderizador/editor compartido y selección/alineación de pistas en Chromium. Hace falta todavía probar de oído la alineación con originales/splits reales y verificar el despliegue de GitHub Pages después de la integración.
 
 ## Instrucciones de arranque para cada chat nuevo
 

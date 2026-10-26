@@ -208,7 +208,12 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
   }
 
   if (domain === "materials") {
-    if (currentSong) await loadMaterials();
+    if (currentSong) {
+      await Promise.all([
+        loadMaterials(),
+        loadOriginalComparisonMaterial()
+      ]);
+    }
     return;
   }
 

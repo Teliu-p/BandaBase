@@ -1313,9 +1313,30 @@ layout: null
                   Diferencias con la original
                 </h4>
 
+                <div
+                  id="originalComparisonMaterialView"
+                  class="material-comparison-view"
+                >
+                  <div class="empty-state">
+                    Todavía no hay diferencias anotadas.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  id="editOriginalComparisonBtn"
+                  class="btn btn-primary"
+                >
+                  Añadir diferencias
+                </button>
+
+                <!-- Se conserva el formulario anterior oculto para evitar
+                     romper sus inicializadores mientras esta vista usa el
+                     editor único de Materiales. -->
                 <form
                   id="originalComparisonForm"
-                  class="comparison-composer-form"
+                  class="comparison-composer-form hidden"
+                  aria-hidden="true"
                 >
 
                   <label for="comparisonComposerEditor">
@@ -1498,7 +1519,7 @@ layout: null
                 <input id="metronomeSyncAudioInput" type="checkbox">
                 Sincronizar con audio
               </label>
-              <p>El metrónomo sigue el BPM y la posición del audio. Usá un audio de referencia a la vez.</p>
+              <p>El metrónomo sigue el BPM y la posición de cualquier pista de esta canción. El ajuste manual se comparte con los originales y sus splits alineados.</p>
               <button type="button" id="metronomeSyncCalibrateBtn" class="btn btn-subtle">Guardar ajuste manual</button>
               <p id="metronomeSyncCalibrationStatus" class="metronome-sync-calibration-status" role="status" aria-live="polite">Reproducí un audio y el metrónomo normal, alinealos de oído y guardá el ajuste. Después activá «Sincronizar con audio».</p>
             </div>
@@ -1526,7 +1547,7 @@ layout: null
               </h3>
 
               <p style="margin-top:4px;">
-                Textos que pueden incluir archivos, audios y enlaces.
+                Textos que pueden incluir archivos, audios y enlaces. Clic derecho sobre pistas de audio para seleccionarlas; reproducí una seleccionada para iniciar el grupo.
               </p>
 
             </div>

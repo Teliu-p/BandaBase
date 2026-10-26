@@ -42,6 +42,11 @@ async function openSong(
   currentSong =
     song;
 
+  currentOriginalComparisonMaterial = null;
+  if (typeof renderOriginalComparisonMaterialView === "function") {
+    renderOriginalComparisonMaterialView();
+  }
+
   if (typeof window.bandabaseClearSongDetailDirty === "function") {
     window.bandabaseClearSongDetailDirty();
   }

@@ -261,6 +261,7 @@ async function loadMaterials() {
     materialAudioMarkerStateSongId = songId;
     materialAudioMarkerTimeSeconds = null;
     materialAudioMarkerSelectionVersion += 1;
+    clearMaterialAudioGroupSelection();
     disposeMaterialAudioSeekEnginePool();
   }
 
@@ -505,7 +506,7 @@ function setMaterialAudioPlaybackRate(player, percentage) {
 
 function seekMaterialAudioPlayerToTime(player, seconds) {
   const target = Number(seconds);
-  if (!player || !Number.isSafeInteger(target) || target < 0 || target > 86400) return false;
+  if (!player || !Number.isFinite(target) || target < 0 || target > 86400) return false;
 
   if (player.readyState < 1 || !Number.isFinite(player.duration) || player.duration <= 0) {
     player.dataset.materialAudioPendingSeek = String(target);
@@ -574,22 +575,11 @@ function disposeMaterialAudioSeekEnginePool() {
 
 
 function getMaterialAudioAttachmentsForCurrentSong() {
-  const attachmentsById = new Map();
-
-  (currentMaterials || []).forEach(material => {
-    (material.attachments || []).forEach(attachment => {
-      if (
-        attachment?.id &&
-        attachment.kind === "file" &&
-        String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
-        attachment.storage_path
-      ) {
-        attachmentsById.set(String(attachment.id), attachment);
-      }
-    });
-  });
-
-  return Array.from(attachmentsById.values());
+  return getAllCurrentMaterialAttachments().filter(attachment =>
+    attachment.kind === "file" &&
+    String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
+    attachment.storage_path
+  );
 }
 
 
@@ -668,7 +658,7 @@ async function selectMaterialAudioMarker(seconds) {
   const materialsList = document.getElementById("materialsList");
   if (!materialsList) return;
 
-  materialsList.querySelectorAll("[data-material-audio-marker]").forEach(button => {
+  document.querySelectorAll("[data-material-audio-marker]").forEach(button => {
     const active = Number(button.dataset.materialAudioMarkerSeconds) === seconds;
     button.setAttribute("aria-pressed", String(active));
     button.classList.toggle("is-active", active);
@@ -676,7 +666,7 @@ async function selectMaterialAudioMarker(seconds) {
 
   // Update any in-flight player load immediately, so an older loadedmetadata
   // event cannot briefly apply a previously selected timestamp.
-  materialsList.querySelectorAll("[data-material-audio]").forEach(player => {
+  document.querySelectorAll("[data-material-audio]").forEach(player => {
     player.dataset.materialAudioPendingSeek = String(seconds);
   });
 
@@ -686,7 +676,7 @@ async function selectMaterialAudioMarker(seconds) {
   if (!attachments.length) return;
 
   const visiblePlayers = Array.from(
-    materialsList.querySelectorAll("[data-material-audio]")
+    document.querySelectorAll("[data-material-audio]")
   );
 
   const results = await Promise.all(attachments.map(async attachment => {
@@ -754,6 +744,159 @@ function closeMaterialAudioPopovers(exceptPanel = null) {
 
 
 let materialAudioPopoverDismissalBound = false;
+let materialAudioGroupSelectedIds = new Set();
+
+function getAllCurrentMaterialAttachments() {
+  const materials = [
+    ...(currentMaterials || []),
+    ...(currentOriginalComparisonMaterial ? [currentOriginalComparisonMaterial] : [])
+  ];
+  const attachments = new Map();
+
+  materials.forEach(material => {
+    (material.attachments || []).forEach(attachment => {
+      if (attachment?.id) attachments.set(String(attachment.id), attachment);
+    });
+  });
+
+  return Array.from(attachments.values());
+}
+
+function clearMaterialAudioGroupSelection() {
+  materialAudioGroupSelectedIds.clear();
+  document.querySelectorAll("[data-material-audio-group-badge]").forEach(badge => {
+    badge.hidden = true;
+  });
+  document.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
+    wrapper.classList.remove("is-group-selected");
+  });
+}
+
+function updateMaterialAudioGroupSelectionUi(root = document) {
+  const count = materialAudioGroupSelectedIds.size;
+  root.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
+    const id = String(wrapper.dataset.materialAudioId || "");
+    const selected = Boolean(id && materialAudioGroupSelectedIds.has(id));
+    wrapper.classList.toggle("is-group-selected", selected);
+    wrapper.title = selected
+      ? "Pista seleccionada para reproducción en grupo. Clic derecho para quitarla."
+      : "Clic derecho para seleccionar esta pista y reproducir varias a la vez.";
+    const badge = wrapper.querySelector("[data-material-audio-group-badge]");
+    if (badge) {
+      badge.hidden = !selected;
+      badge.textContent = selected ? "Grupo " + count : "";
+    }
+  });
+}
+
+async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
+  const selectedIds = [...materialAudioGroupSelectedIds];
+  if (selectedIds.length < 2) return false;
+
+  const visibleWrappers = Array.from(
+    document.querySelectorAll("[data-material-inline-audio]")
+  );
+  const wrappers = selectedIds.map(id =>
+    visibleWrappers.find(wrapper => String(wrapper.dataset.materialAudioId || "") === id)
+  );
+
+  if (wrappers.some(wrapper => !wrapper)) {
+    showNotice(
+      "Abrí los materiales que contienen todas las pistas seleccionadas para poder iniciarlas juntas.",
+      "error"
+    );
+    return true;
+  }
+
+  const controls = wrappers.map(wrapper => wrapper.__materialAudioControls || null);
+  if (controls.some(control => !control?.player || typeof control.ensureAudioUrl !== "function")) {
+    showNotice("No se pudieron preparar todas las pistas seleccionadas. Volvé a abrir Materiales e intentá de nuevo.", "error");
+    return true;
+  }
+
+  const players = controls.map(control => control.player);
+  const selectedPlayerSet = new Set(players);
+  const allPlaying = players.every(player => !player.paused && !player.ended);
+  window.bandabaseMaterialAudioGroupTransitionInProgress = true;
+
+  try {
+    if (allPlaying) {
+      players.forEach(player => player.pause());
+      return true;
+    }
+
+    // Pause selected players during loading too: otherwise a single already
+    // playing track could keep advancing while other signed URLs are prepared.
+    players.forEach(player => {
+      if (!player.paused && !player.ended) player.pause();
+    });
+
+    // Do not leave an unrelated track playing under a newly launched split group.
+    document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]").forEach(player => {
+      if (!selectedPlayerSet.has(player) && !player.paused && !player.ended) player.pause();
+    });
+
+    const loaded = await Promise.all(controls.map(control => control.ensureAudioUrl()));
+    if (loaded.some(value => !value)) {
+      throw new Error("No se pudieron cargar todas las pistas del grupo.");
+    }
+
+    const metadataReady = await Promise.all(players.map(waitForMaterialAudioMetadata));
+    if (metadataReady.some(value => !value)) {
+      throw new Error("No se pudo leer la duración de todas las pistas seleccionadas.");
+    }
+
+    const clickedControl =
+      controls.find(control => control.wrapper === clickedWrapper) ||
+      controls[0];
+    const clickedPlayer = clickedControl.player;
+    const duration = Number.isFinite(clickedPlayer.duration) ? clickedPlayer.duration : 0;
+    let startSeconds = Number(clickedPlayer.currentTime) || 0;
+    if (
+      clickedPlayer.ended ||
+      (duration > 0 && startSeconds >= duration - 0.05)
+    ) {
+      startSeconds = 0;
+    }
+
+    startSeconds = Math.round(startSeconds * 1000) / 1000;
+    const playbackRate = Number(clickedPlayer.playbackRate) || 1;
+    const playbackPercent = playbackRate * 100;
+
+    const aligned = players.map(player => {
+      delete player.dataset.materialAudioPendingSeek;
+      setMaterialAudioPlaybackRate(player, playbackPercent);
+      materialAudioPlaybackRates.set(
+        String(player.closest("[data-material-audio-id]")?.dataset.materialAudioId || ""),
+        playbackPercent
+      );
+      return seekMaterialAudioPlayerToTime(player, startSeconds);
+    });
+
+    if (aligned.some(positioned => !positioned)) {
+      throw new Error("No se pudieron alinear todas las pistas en la misma posición.");
+    }
+
+    // Invoke play() in the same task, after every player is loaded and aligned.
+    await Promise.all(players.map(player => player.play()));
+  } catch (error) {
+    players.forEach(player => {
+      if (!player.paused) player.pause();
+    });
+    showNotice(
+      error?.message || "No se pudieron iniciar las pistas al mismo tiempo.",
+      "error"
+    );
+  } finally {
+    window.bandabaseMaterialAudioGroupTransitionInProgress = false;
+    controls.forEach(control => control.updateAudioUi?.());
+    if (typeof window.bandabaseSyncMetronomeWithAudio === "function") {
+      window.bandabaseSyncMetronomeWithAudio(null, true);
+    }
+  }
+
+  return true;
+}
 
 function bindMaterialAudioPopoverDismissal() {
   if (materialAudioPopoverDismissalBound) return;
@@ -802,12 +945,13 @@ function renderMaterialViewBlock(block) {
   ) {
     const label = escapeHtml(name);
     return (
-      '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '">' +
+      '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '" title="Clic derecho para seleccionar esta pista y reproducir varias a la vez.">' +
         '<button type="button" class="material-inline-audio-play" data-material-audio-play aria-label="Reproducir ' + safeName + '" title="Reproducir audio">▶</button>' +
         '<button type="button" class="material-inline-audio-name" data-material-audio-details aria-expanded="false" title="Mostrar tiempo, posición y velocidad">' +
           label +
         '</button>' +
         '<button type="button" class="material-inline-audio-download" data-download-attachment="' + attachmentId + '" aria-label="Descargar ' + safeName + '" title="Descargar archivo">↓</button>' +
+        '<span class="material-audio-group-badge" data-material-audio-group-badge hidden></span>' +
         '<span class="material-inline-audio-panel" data-material-audio-panel hidden>' +
           '<span class="material-inline-audio-time" data-material-audio-time>00:00 / --:--</span>' +
           '<input type="range" class="material-inline-audio-seek" data-material-audio-seek min="0" max="1000" step="1" value="0" disabled aria-label="Posición del audio">' +
@@ -989,7 +1133,7 @@ function renderMaterials() {
 }
 
 
-function bindMaterialViewEvents() {
+function bindMaterialViewEvents(root = document) {
   bindMaterialAudioPopoverDismissal();
 
   document.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
@@ -1138,6 +1282,27 @@ function bindMaterialViewEvents() {
       }
     }
 
+    wrapper.__materialAudioControls = {
+      wrapper,
+      player,
+      ensureAudioUrl,
+      updateAudioUi,
+      applySpeedPercentage
+    };
+
+    wrapper.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      if (!attachmentId) return;
+
+      if (materialAudioGroupSelectedIds.has(attachmentId)) {
+        materialAudioGroupSelectedIds.delete(attachmentId);
+      } else {
+        materialAudioGroupSelectedIds.add(attachmentId);
+      }
+
+      updateMaterialAudioGroupSelectionUi(document);
+    });
+
     player.addEventListener("play", updateAudioUi);
     player.addEventListener("pause", updateAudioUi);
     player.addEventListener("ended", updateAudioUi);
@@ -1191,6 +1356,20 @@ function bindMaterialViewEvents() {
 
     playButton.addEventListener("click", async () => {
       if (playButton.disabled) return;
+
+      if (
+        materialAudioGroupSelectedIds.has(attachmentId) &&
+        materialAudioGroupSelectedIds.size > 1
+      ) {
+        playButton.disabled = true;
+        try {
+          await toggleMaterialAudioGroupPlayback(wrapper);
+        } finally {
+          playButton.disabled = false;
+          updateAudioUi();
+        }
+        return;
+      }
 
       if (!player.paused && !player.ended) {
         player.pause();
@@ -1247,22 +1426,25 @@ function bindMaterialViewEvents() {
     updateAudioUi();
   });
 
-  document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
-    button.addEventListener("click", () => {
-      const seconds = Number(button.dataset.materialAudioMarkerSeconds);
-      selectMaterialAudioMarker(seconds);
-    });
+  root.querySelectorAll("[data-material-audio-marker]").forEach(button => {
+    if (button.dataset.materialAudioMarkerBound !== "true") {
+      button.dataset.materialAudioMarkerBound = "true";
+      button.addEventListener("click", () => {
+        const seconds = Number(button.dataset.materialAudioMarkerSeconds);
+        selectMaterialAudioMarker(seconds);
+      });
+    }
   });
 
   if (materialAudioMarkerTimeSeconds !== null) {
-    document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
+    root.querySelectorAll("[data-material-audio-marker]").forEach(button => {
       const active = Number(button.dataset.materialAudioMarkerSeconds) === materialAudioMarkerTimeSeconds;
       button.setAttribute("aria-pressed", String(active));
       button.classList.toggle("is-active", active);
     });
   }
 
-    document
+    root
     .querySelectorAll(
       "[data-material-toggle]"
     )
@@ -1303,7 +1485,7 @@ function bindMaterialViewEvents() {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-edit-material]"
     )
@@ -1336,7 +1518,7 @@ function bindMaterialViewEvents() {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-delete-material]"
     )
@@ -1438,7 +1620,7 @@ function bindMaterialViewEvents() {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-open-attachment]"
     )
@@ -1450,15 +1632,11 @@ function bindMaterialViewEvents() {
           async function() {
 
             const attachment =
-              currentMaterials
-                .flatMap(
-                  material =>
-                    material.attachments || []
-                )
+              getAllCurrentMaterialAttachments()
                 .find(
                   item =>
-                    item.id ===
-                    button.dataset.openAttachment
+                    String(item.id) ===
+                    String(button.dataset.openAttachment)
                 );
 
             if (!attachment) {
@@ -1539,13 +1717,12 @@ function bindMaterialViewEvents() {
       }
     );
 
-  document.querySelectorAll("[data-download-attachment]").forEach(button => {
+  root.querySelectorAll("[data-download-attachment]").forEach(button => {
     button.addEventListener("click", async () => {
       if (button.dataset.loading === "true") return;
 
-      const attachment = currentMaterials
-        .flatMap(material => material.attachments || [])
-        .find(item => item.id === button.dataset.downloadAttachment);
+      const attachment = getAllCurrentMaterialAttachments()
+        .find(item => String(item.id) === String(button.dataset.downloadAttachment));
 
       if (!attachment || attachment.kind !== "file" || !attachment.storage_path) {
         showNotice("No se encontró el archivo adjunto para descargar.", "error");
@@ -1590,6 +1767,8 @@ function bindMaterialViewEvents() {
     });
   });
 
+  updateMaterialAudioGroupSelectionUi(document);
 }
+
 
 
