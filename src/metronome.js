@@ -457,9 +457,38 @@ function readMetronomeSyncCalibration(player, config) {
     let raw = window.localStorage.getItem(key);
     let migratedLegacyValue = false;
 
-    if (!raw && legacyKey) {
-      raw = window.localStorage.getItem(legacyKey);
-      migratedLegacyValue = Boolean(raw);
+    // Migrate the older per-attachment adjustment even when the user starts
+    // a different split first. Every aligned track uses the same song offset.
+    const legacyKeys = [];
+    if (legacyKey) legacyKeys.push(legacyKey);
+
+    if (typeof getAllCurrentMaterialAttachments === "function") {
+      const songId = String(currentSong?.id || "");
+      getAllCurrentMaterialAttachments().forEach(attachment => {
+        if (
+          !attachment?.id ||
+          attachment.kind !== "file" ||
+          !String(attachment.mime_type || "").toLowerCase().startsWith("audio/")
+        ) {
+          return;
+        }
+
+        legacyKeys.push(
+          METRONOME_SYNC_CALIBRATION_STORAGE_PREFIX + ":" +
+          encodeURIComponent(songId) + ":" +
+          encodeURIComponent(String(attachment.id))
+        );
+      });
+    }
+
+    if (!raw) {
+      for (const candidateKey of [...new Set(legacyKeys)]) {
+        raw = window.localStorage.getItem(candidateKey);
+        if (raw) {
+          migratedLegacyValue = true;
+          break;
+        }
+      }
     }
 
     if (!raw) {
