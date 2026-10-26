@@ -825,6 +825,12 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       return true;
     }
 
+    // Pause selected players during loading too: otherwise a single already
+    // playing track could keep advancing while other signed URLs are prepared.
+    players.forEach(player => {
+      if (!player.paused && !player.ended) player.pause();
+    });
+
     // Do not leave an unrelated track playing under a newly launched split group.
     document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]").forEach(player => {
       if (!selectedPlayerSet.has(player) && !player.paused && !player.ended) player.pause();
@@ -885,7 +891,7 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
     window.bandabaseMaterialAudioGroupTransitionInProgress = false;
     controls.forEach(control => control.updateAudioUi?.());
     if (typeof window.bandabaseSyncMetronomeWithAudio === "function") {
-      window.bandabaseSyncMetronomeWithAudio();
+      window.bandabaseSyncMetronomeWithAudio(null, true);
     }
   }
 
