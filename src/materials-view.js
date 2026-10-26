@@ -1761,7 +1761,7 @@ function bindMaterialViewEvents(root = document) {
     });
   });
 
-  updateMaterialAudioGroupSelectionUi(root);
+  updateMaterialAudioGroupSelectionUi(document);
 }
 
 
