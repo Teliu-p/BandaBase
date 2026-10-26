@@ -480,7 +480,7 @@ test("pasting rich clipboard HTML preserves supported Materials formatting and m
         '<span class="material-text-size-1">Grande</span>' +
         '<a href="https://example.com">Enlace</a>' +
         '<span class="material-notation-symbol" data-material-notation="noteQuarter" data-material-dotted="false"></span>' +
-        '<span class="material-audio-marker" data-audio-marker-seconds="30">00:30</span>' +
+        '<button type="button" class="material-audio-marker" data-material-audio-marker-seconds="30">00:30</button>' +
         '<script>window.__clipboardScriptRan = true; alert("unsafe")</script>'
     );
     clipboard.setData("text/plain", "Negrita Cursiva Grande 00:30");
