@@ -2091,4 +2091,7 @@ if (
 
   window.bandabaseSyncMetronomeWithAudio =
     syncMetronomeWithAudio;
+
+  window.bandabaseGetMetronomeSyncAudioPlayer =
+    () => metronomeSyncAudioPlayer;
 }
