@@ -658,7 +658,7 @@ async function selectMaterialAudioMarker(seconds) {
   const materialsList = document.getElementById("materialsList");
   if (!materialsList) return;
 
-  materialsList.querySelectorAll("[data-material-audio-marker]").forEach(button => {
+  document.querySelectorAll("[data-material-audio-marker]").forEach(button => {
     const active = Number(button.dataset.materialAudioMarkerSeconds) === seconds;
     button.setAttribute("aria-pressed", String(active));
     button.classList.toggle("is-active", active);
@@ -666,7 +666,7 @@ async function selectMaterialAudioMarker(seconds) {
 
   // Update any in-flight player load immediately, so an older loadedmetadata
   // event cannot briefly apply a previously selected timestamp.
-  materialsList.querySelectorAll("[data-material-audio]").forEach(player => {
+  document.querySelectorAll("[data-material-audio]").forEach(player => {
     player.dataset.materialAudioPendingSeek = String(seconds);
   });
 
@@ -676,7 +676,7 @@ async function selectMaterialAudioMarker(seconds) {
   if (!attachments.length) return;
 
   const visiblePlayers = Array.from(
-    materialsList.querySelectorAll("[data-material-audio]")
+    document.querySelectorAll("[data-material-audio]")
   );
 
   const results = await Promise.all(attachments.map(async attachment => {
@@ -1608,7 +1608,7 @@ function bindMaterialViewEvents(root = document) {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-open-attachment]"
     )
@@ -1755,9 +1755,8 @@ function bindMaterialViewEvents(root = document) {
     });
   });
 
-}
-
   updateMaterialAudioGroupSelectionUi(root);
+}
 
 
 
