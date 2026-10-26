@@ -2088,4 +2088,7 @@ if (
 
   window.bandabaseSyncMetronome =
     syncMetronomeFromSongForm;
+
+  window.bandabaseSyncMetronomeWithAudio =
+    syncMetronomeWithAudio;
 }
