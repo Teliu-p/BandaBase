@@ -419,7 +419,18 @@ const METRONOME_SYNC_CALIBRATION_STORAGE_PREFIX =
   "bandabase.metronome-sync-calibration.v1";
 
 
-function getMetronomeSyncCalibrationStorageKey(player) {
+function getMetronomeSyncCalibrationStorageKey() {
+  const songId = String(currentSong?.id || "");
+  if (!songId) return null;
+
+  // The manually captured offset belongs to the song. All original/split
+  // tracks are expected to share the same timeline, so they reuse one value.
+  return METRONOME_SYNC_CALIBRATION_STORAGE_PREFIX + ":" +
+    encodeURIComponent(songId);
+}
+
+
+function getLegacyMetronomeSyncCalibrationStorageKey(player) {
   const songId = String(currentSong?.id || "");
   const attachmentId = String(
     player?.closest?.("[data-material-audio-id]")?.dataset.materialAudioId || ""
@@ -432,22 +443,30 @@ function getMetronomeSyncCalibrationStorageKey(player) {
 
 
 function readMetronomeSyncCalibration(player, config) {
-  const key = getMetronomeSyncCalibrationStorageKey(player);
+  const key = getMetronomeSyncCalibrationStorageKey();
+  const legacyKey = getLegacyMetronomeSyncCalibrationStorageKey(player);
   if (!key) {
     return {
       audioZeroTime: 0,
       calibrated: false,
-      status: "No se pudo identificar la canción y el audio para recuperar el ajuste."
+      status: "No se pudo identificar la canción para recuperar el ajuste."
     };
   }
 
   try {
-    const raw = window.localStorage.getItem(key);
+    let raw = window.localStorage.getItem(key);
+    let migratedLegacyValue = false;
+
+    if (!raw && legacyKey) {
+      raw = window.localStorage.getItem(legacyKey);
+      migratedLegacyValue = Boolean(raw);
+    }
+
     if (!raw) {
       return {
         audioZeroTime: 0,
         calibrated: false,
-        status: "No hay ajuste manual para este audio; se usará el inicio del archivo como referencia."
+        status: "Todavía no hay un ajuste manual para esta canción. Podés calibrarlo con cualquiera de sus pistas."
       };
     }
 
@@ -477,10 +496,16 @@ function readMetronomeSyncCalibration(player, config) {
       };
     }
 
+    if (migratedLegacyValue) {
+      saveMetronomeSyncCalibration(config, audioZeroTime);
+    }
+
     return {
       audioZeroTime,
       calibrated: true,
-      status: "Usando el ajuste manual guardado para este audio."
+      status: migratedLegacyValue
+        ? "Se recuperó el ajuste anterior y ahora sirve para cualquier pista alineada de esta canción."
+        : "Usando el ajuste manual de esta canción para la pista que esté reproduciéndose."
     };
   } catch {
     return {
@@ -492,8 +517,8 @@ function readMetronomeSyncCalibration(player, config) {
 }
 
 
-function saveMetronomeSyncCalibration(player, config, audioZeroTime) {
-  const key = getMetronomeSyncCalibrationStorageKey(player);
+function saveMetronomeSyncCalibration(config, audioZeroTime) {
+  const key = getMetronomeSyncCalibrationStorageKey();
   if (!key || !Number.isFinite(audioZeroTime)) return false;
 
   try {
@@ -509,7 +534,6 @@ function saveMetronomeSyncCalibration(player, config, audioZeroTime) {
     return false;
   }
 }
-
 
 function updateMetronomeSyncCalibrationStatus(message) {
   const status = document.getElementById("metronomeSyncCalibrationStatus");
