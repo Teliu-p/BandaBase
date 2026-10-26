@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** revisión de PR #134, inspeccionada el 2026-10-21. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
+**Base funcional de observación:** revisión de PR #135, inspeccionada el 2026-10-26. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 
@@ -152,4 +152,12 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - Formularios de Materiales, Propuestas y edición de Listas pueden aplazar el refresco para preservar borradores y lo vuelven a intentar cuando se cierran. El detalle de canción también evita reemplazar campos locales mientras están modificados.
 - `utils.js` dibuja instrumentos con SVG local. No volver a sustituir estos iconos por emoji/caracteres que dependan de la fuente instalada en el equipo.
 - El editor de Materiales inserta saltos de línea explícitos en `beforeinput`; la serialización aplana bloques `DIV/P` para preservar líneas vacías y la posición de chips de adjuntos. Vista y edición deben compartir reglas de espacios en blanco. La prueba de regresión de Node confirma el orden texto–adjunto–texto; Chromium CI también pasó. Aun así, una prueba autenticada con dos equipos reales queda como validación de integración final.
+
+## Actualización: portapapeles, comparación y grupo de pistas (2026-10-26)
+
+- `materials-editor.js` captura HTML del portapapeles; `materials-formatting.js:createMaterialClipboardFragment` lo procesa con el sanitizador de Materiales. La notación musical se reconstruye desde claves permitidas y se dibuja en SVG; no se importan scripts, estilos ni referencias a adjuntos de otro material.
+- `songs-comparison.js:renderOriginalComparisonMaterialView` usa los mismos renderizadores de bloques y bind de controles que la lista de Materiales. Su botón abre `openMaterialEditor(material, COMPARISON_MATERIAL_TYPE)`; `materials-save.js` persiste los bloques/adjuntos por la misma ruta. `materials-data.js:createMaterial` respeta el tipo pasado, usando `Texto` si falta.
+- `metronome.js` persiste `audioZeroTime` por canción, valida BPM/métrica y migra offsets almacenados por adjunto. Los eventos play/pause del conjunto de pistas se agrupan con `window.bandabaseMaterialAudioGroupTransitionInProgress`; tras sincronizar los playheads, `syncMetronomeWithAudio` usa un reproductor del grupo como referencia.
+- `materials-view.js` mantiene `materialAudioGroupSelectedIds`: clic derecho en el chip de audio cambia selección, un distintivo indica el grupo y Play en una pista seleccionada hace que los reproductores seleccionados carguen, se posicionen al mismo `currentTime` (milisegundos) y arranquen juntos. Los reproductores deben estar visibles en DOM; el grupo se puede formar incluyendo audio en la vista de comparación.
+- Las pruebas de Chromium simulan las llamadas a `play()` y la alineación del playhead; esto no mide latencia audible ni deriva con archivos reales. Siempre hacer una prueba auditiva de original y stems antes de declarar sincronización práctica verificada.
 
