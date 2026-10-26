@@ -177,7 +177,15 @@ async function saveMaterialDraft() {
       material =>
         material.id ===
         materialId
+    ) ||
+    (
+      currentOriginalComparisonMaterial?.id === materialId
+        ? currentOriginalComparisonMaterial
+        : null
     );
+
+  const isComparisonMaterialDraft =
+    editingMaterialType === COMPARISON_MATERIAL_TYPE;
 
   const wasNew =
     !materialId;
@@ -259,6 +267,9 @@ async function saveMaterialDraft() {
             collectMaterialLegacyText(
               composedBlocks
             ),
+          ...(isComparisonMaterialDraft
+            ? { type: COMPARISON_MATERIAL_TYPE }
+            : {}),
           created_by:
             currentUser.id
         }
@@ -693,14 +704,15 @@ async function saveMaterialDraft() {
     }
   }
 
-  openMaterialIds.add(
-    materialId
-  );
+  if (!isComparisonMaterialDraft) {
+    openMaterialIds.add(materialId);
+  }
 
   hideMaterialForm();
 
-  const successMessage =
-    wasNew
+  const successMessage = isComparisonMaterialDraft
+    ? "Diferencias con la original guardadas."
+    : wasNew
       ? "Material agregado."
       : "Material actualizado.";
 
@@ -714,6 +726,10 @@ async function saveMaterialDraft() {
   );
 
   await loadMaterials();
+
+  if (isComparisonMaterialDraft) {
+    await loadOriginalComparisonMaterial();
+  }
 
   } catch (error) {
     console.error("Error inesperado al guardar Materiales:", error);
