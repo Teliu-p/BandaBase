@@ -261,6 +261,7 @@ async function loadMaterials() {
     materialAudioMarkerStateSongId = songId;
     materialAudioMarkerTimeSeconds = null;
     materialAudioMarkerSelectionVersion += 1;
+    clearMaterialAudioGroupSelection();
     disposeMaterialAudioSeekEnginePool();
   }
 
@@ -574,22 +575,11 @@ function disposeMaterialAudioSeekEnginePool() {
 
 
 function getMaterialAudioAttachmentsForCurrentSong() {
-  const attachmentsById = new Map();
-
-  (currentMaterials || []).forEach(material => {
-    (material.attachments || []).forEach(attachment => {
-      if (
-        attachment?.id &&
-        attachment.kind === "file" &&
-        String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
-        attachment.storage_path
-      ) {
-        attachmentsById.set(String(attachment.id), attachment);
-      }
-    });
-  });
-
-  return Array.from(attachmentsById.values());
+  return getAllCurrentMaterialAttachments().filter(attachment =>
+    attachment.kind === "file" &&
+    String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
+    attachment.storage_path
+  );
 }
 
 
@@ -754,6 +744,147 @@ function closeMaterialAudioPopovers(exceptPanel = null) {
 
 
 let materialAudioPopoverDismissalBound = false;
+let materialAudioGroupSelectedIds = new Set();
+
+function getAllCurrentMaterialAttachments() {
+  const materials = [
+    ...(currentMaterials || []),
+    ...(currentOriginalComparisonMaterial ? [currentOriginalComparisonMaterial] : [])
+  ];
+  const attachments = new Map();
+
+  materials.forEach(material => {
+    (material.attachments || []).forEach(attachment => {
+      if (attachment?.id) attachments.set(String(attachment.id), attachment);
+    });
+  });
+
+  return Array.from(attachments.values());
+}
+
+function clearMaterialAudioGroupSelection() {
+  materialAudioGroupSelectedIds.clear();
+  document.querySelectorAll("[data-material-audio-group-badge]").forEach(badge => {
+    badge.hidden = true;
+  });
+  document.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
+    wrapper.classList.remove("is-group-selected");
+  });
+}
+
+function updateMaterialAudioGroupSelectionUi(root = document) {
+  const count = materialAudioGroupSelectedIds.size;
+  root.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
+    const id = String(wrapper.dataset.materialAudioId || "");
+    const selected = Boolean(id && materialAudioGroupSelectedIds.has(id));
+    wrapper.classList.toggle("is-group-selected", selected);
+    wrapper.title = selected
+      ? "Pista seleccionada para reproducción en grupo. Clic derecho para quitarla."
+      : "Clic derecho para seleccionar esta pista y reproducir varias a la vez.";
+    const badge = wrapper.querySelector("[data-material-audio-group-badge]");
+    if (badge) {
+      badge.hidden = !selected;
+      badge.textContent = selected ? "Grupo " + count : "";
+    }
+  });
+}
+
+async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
+  const selectedIds = [...materialAudioGroupSelectedIds];
+  if (selectedIds.length < 2) return false;
+
+  const visibleWrappers = Array.from(
+    document.querySelectorAll("[data-material-inline-audio]")
+  );
+  const wrappers = selectedIds.map(id =>
+    visibleWrappers.find(wrapper => String(wrapper.dataset.materialAudioId || "") === id)
+  );
+
+  if (wrappers.some(wrapper => !wrapper)) {
+    showNotice(
+      "Abrí los materiales que contienen todas las pistas seleccionadas para poder iniciarlas juntas.",
+      "error"
+    );
+    return true;
+  }
+
+  const controls = wrappers.map(wrapper => wrapper.__materialAudioControls || null);
+  if (controls.some(control => !control?.player || typeof control.ensureAudioUrl !== "function")) {
+    showNotice("No se pudieron preparar todas las pistas seleccionadas. Volvé a abrir Materiales e intentá de nuevo.", "error");
+    return true;
+  }
+
+  const players = controls.map(control => control.player);
+  const selectedPlayerSet = new Set(players);
+  const isPlaying = players.some(player => !player.paused && !player.ended);
+  window.bandabaseMaterialAudioGroupTransitionInProgress = true;
+
+  try {
+    if (isPlaying) {
+      players.forEach(player => player.pause());
+      return true;
+    }
+
+    // Do not leave an unrelated track playing under a newly launched split group.
+    document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]").forEach(player => {
+      if (!selectedPlayerSet.has(player) && !player.paused && !player.ended) player.pause();
+    });
+
+    const loaded = await Promise.all(controls.map(control => control.ensureAudioUrl()));
+    if (loaded.some(value => !value)) {
+      throw new Error("No se pudieron cargar todas las pistas del grupo.");
+    }
+
+    const metadataReady = await Promise.all(players.map(waitForMaterialAudioMetadata));
+    if (metadataReady.some(value => !value)) {
+      throw new Error("No se pudo leer la duración de todas las pistas seleccionadas.");
+    }
+
+    const clickedControl =
+      controls.find(control => control.wrapper === clickedWrapper) ||
+      controls[0];
+    const clickedPlayer = clickedControl.player;
+    const duration = Number.isFinite(clickedPlayer.duration) ? clickedPlayer.duration : 0;
+    let startSeconds = Number(clickedPlayer.currentTime) || 0;
+    if (
+      clickedPlayer.ended ||
+      (duration > 0 && startSeconds >= duration - 0.05)
+    ) {
+      startSeconds = 0;
+    }
+
+    const playbackRate = Number(clickedPlayer.playbackRate) || 1;
+    const playbackPercent = playbackRate * 100;
+
+    players.forEach(player => {
+      delete player.dataset.materialAudioPendingSeek;
+      setMaterialAudioPlaybackRate(player, playbackPercent);
+      materialAudioPlaybackRates.set(
+        String(player.closest("[data-material-audio-id]")?.dataset.materialAudioId || ""),
+        playbackPercent
+      );
+      seekMaterialAudioPlayerToTime(player, startSeconds);
+    });
+
+    await Promise.all(players.map(player => player.play()));
+  } catch (error) {
+    players.forEach(player => {
+      if (!player.paused) player.pause();
+    });
+    showNotice(
+      error?.message || "No se pudieron iniciar las pistas al mismo tiempo.",
+      "error"
+    );
+  } finally {
+    window.bandabaseMaterialAudioGroupTransitionInProgress = false;
+    controls.forEach(control => control.updateAudioUi?.());
+    if (typeof window.bandabaseSyncMetronomeWithAudio === "function") {
+      window.bandabaseSyncMetronomeWithAudio();
+    }
+  }
+
+  return true;
+}
 
 function bindMaterialAudioPopoverDismissal() {
   if (materialAudioPopoverDismissalBound) return;
