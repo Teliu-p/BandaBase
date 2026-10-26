@@ -478,6 +478,8 @@ test("pasting rich clipboard HTML preserves supported Materials formatting and m
       "text/html",
       '<strong>Negrita</strong><em>Cursiva</em>' +
         '<span class="material-text-size-1">Grande</span>' +
+        '<a href="https://example.com">Enlace</a>' +
+        '<span class="material-notation-symbol" data-material-notation="noteQuarter" data-material-dotted="false"></span>' +
         '<span class="material-audio-marker" data-audio-marker-seconds="30">00:30</span>' +
         '<script>window.__clipboardScriptRan = true; alert("unsafe")</script>'
     );
@@ -502,6 +504,9 @@ test("pasting rich clipboard HTML preserves supported Materials formatting and m
   expect(result.html).toContain("<strong>Negrita</strong>");
   expect(result.html).toContain("<em>Cursiva</em>");
   expect(result.html).toContain("material-text-size-1");
+  expect(result.html).toContain('<a href="https://example.com"');
+  expect(result.html).toContain("material-notation-symbol");
+  expect(result.html).toContain("material-notation-svg");
   expect(result.html).toContain('data-audio-marker-seconds="30"');
   expect(result.html).not.toContain("<script");
   expect(result.html).not.toContain("unsafe");
@@ -598,8 +603,47 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
       text: wrapper.querySelector("[data-material-audio-group-badge]").textContent,
       selectedClass: wrapper.classList.contains("is-group-selected")
     }));
+
+    const playCalls = [];
+    const fakePlayers = wrappers.map((wrapper, index) => ({
+      paused: true,
+      ended: false,
+      readyState: 1,
+      duration: 120,
+      currentTime: index === 0 ? 7.1234 : 0.2,
+      playbackRate: index === 0 ? 1.25 : 1,
+      preservesPitch: false,
+      dataset: {},
+      closest: () => wrapper,
+      play() {
+        playCalls.push(wrapper.dataset.materialAudioId);
+        this.paused = false;
+        this.ended = false;
+        return Promise.resolve();
+      },
+      pause() {
+        this.paused = true;
+      }
+    }));
+
+    wrappers.forEach((wrapper, index) => {
+      wrapper.__materialAudioControls = {
+        wrapper,
+        player: fakePlayers[index],
+        ensureAudioUrl: async () => true,
+        updateAudioUi() {}
+      };
+    });
+
+    await toggleMaterialAudioGroupPlayback(wrappers[0]);
+    const syncedPlayers = fakePlayers.map(player => ({
+      time: player.currentTime,
+      rate: player.playbackRate,
+      paused: player.paused
+    }));
+
     root.remove();
-    return { selected, badges };
+    return { selected, badges, playCalls, syncedPlayers };
   });
 
   expect(result.selected.sort()).toEqual(["audio-group-original", "audio-group-split"]);
@@ -607,5 +651,10 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     { hidden: false, text: "Grupo 2", selectedClass: true },
     { hidden: false, text: "Grupo 2", selectedClass: true }
   ]);
-  expect(runtimeErrors, "JavaScript errors while selecting audio tracks").toEqual([]);
+  expect(result.playCalls).toEqual(["audio-group-original", "audio-group-split"]);
+  expect(result.syncedPlayers).toEqual([
+    { time: 7.123, rate: 1.25, paused: false },
+    { time: 7.123, rate: 1.25, paused: false }
+  ]);
+  expect(runtimeErrors, "JavaScript errors while selecting and starting audio tracks").toEqual([]);
 });
