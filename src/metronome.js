@@ -1652,7 +1652,7 @@ function getPlayingMaterialAudioPlayers() {
   );
 }
 
-function syncMetronomeWithAudio(preferredPlayer = null) {
+function syncMetronomeWithAudio(preferredPlayer = null, forceRestart = false) {
   if (!metronomeSyncEnabled) return;
 
   const playingPlayers = getPlayingMaterialAudioPlayers();
@@ -1672,7 +1672,7 @@ function syncMetronomeWithAudio(preferredPlayer = null) {
     return;
   }
 
-  if (metronomeSyncAudioPlayer !== player || !metronomeRunning) {
+  if (forceRestart || metronomeSyncAudioPlayer !== player || !metronomeRunning) {
     if (metronomeRunning || metronomeStarting) {
       stopMetronome({ preserveSync: true });
     }
