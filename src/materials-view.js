@@ -506,7 +506,7 @@ function setMaterialAudioPlaybackRate(player, percentage) {
 
 function seekMaterialAudioPlayerToTime(player, seconds) {
   const target = Number(seconds);
-  if (!player || !Number.isSafeInteger(target) || target < 0 || target > 86400) return false;
+  if (!player || !Number.isFinite(target) || target < 0 || target > 86400) return false;
 
   if (player.readyState < 1 || !Number.isFinite(player.duration) || player.duration <= 0) {
     player.dataset.materialAudioPendingSeek = String(target);
@@ -816,11 +816,11 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
 
   const players = controls.map(control => control.player);
   const selectedPlayerSet = new Set(players);
-  const isPlaying = players.some(player => !player.paused && !player.ended);
+  const allPlaying = players.every(player => !player.paused && !player.ended);
   window.bandabaseMaterialAudioGroupTransitionInProgress = true;
 
   try {
-    if (isPlaying) {
+    if (allPlaying) {
       players.forEach(player => player.pause());
       return true;
     }
@@ -853,19 +853,25 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       startSeconds = 0;
     }
 
+    startSeconds = Math.round(startSeconds * 1000) / 1000;
     const playbackRate = Number(clickedPlayer.playbackRate) || 1;
     const playbackPercent = playbackRate * 100;
 
-    players.forEach(player => {
+    const aligned = players.map(player => {
       delete player.dataset.materialAudioPendingSeek;
       setMaterialAudioPlaybackRate(player, playbackPercent);
       materialAudioPlaybackRates.set(
         String(player.closest("[data-material-audio-id]")?.dataset.materialAudioId || ""),
         playbackPercent
       );
-      seekMaterialAudioPlayerToTime(player, startSeconds);
+      return seekMaterialAudioPlayerToTime(player, startSeconds);
     });
 
+    if (aligned.some(positioned => !positioned)) {
+      throw new Error("No se pudieron alinear todas las pistas en la misma posición.");
+    }
+
+    // Invoke play() in the same task, after every player is loaded and aligned.
     await Promise.all(players.map(player => player.play()));
   } catch (error) {
     players.forEach(player => {
