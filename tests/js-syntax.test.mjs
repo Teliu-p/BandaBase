@@ -3055,7 +3055,7 @@ assert.match(
 );
 assert.match(
   richClipboardSource,
-  /function createMaterialClipboardFragment\([\s\S]*?appendSanitizedMaterialNode\([\s\S]*?SCRIPT.*?STYLE.*?IFRAME/,
+  /function createMaterialClipboardFragment\([\s\S]*?SCRIPT.*?STYLE.*?IFRAME[\s\S]*?appendSanitizedMaterialNode\(/,
   "El HTML pegado debe pasar por el sanitizador, conservar el formato permitido y descartar contenido activo."
 );
 assert.match(
@@ -3084,7 +3084,7 @@ assert.match(
   "La creación de materiales debe conservar el tipo explícito, especialmente Comparación con original."
 );
 assert.match(
-  materialsSaveSource,
+  materialSaveSource,
   /isComparisonMaterialDraft[\s\S]*?type:\s*COMPARISON_MATERIAL_TYPE[\s\S]*?loadOriginalComparisonMaterial\(\)/,
   "Las diferencias creadas desde el editor compartido deben guardarse y recargarse como comparación."
 );
