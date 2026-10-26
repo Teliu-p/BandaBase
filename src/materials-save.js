@@ -179,12 +179,15 @@ async function saveMaterialDraft() {
         materialId
     ) ||
     (
+      typeof currentOriginalComparisonMaterial !== "undefined" &&
       currentOriginalComparisonMaterial?.id === materialId
         ? currentOriginalComparisonMaterial
         : null
     );
 
   const isComparisonMaterialDraft =
+    typeof editingMaterialType !== "undefined" &&
+    typeof COMPARISON_MATERIAL_TYPE !== "undefined" &&
     editingMaterialType === COMPARISON_MATERIAL_TYPE;
 
   const wasNew =
