@@ -606,7 +606,7 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
 
     const playCalls = [];
     const fakePlayers = wrappers.map((wrapper, index) => ({
-      paused: true,
+      paused: index !== 0,
       ended: false,
       readyState: 1,
       duration: 120,
@@ -626,11 +626,15 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
       }
     }));
 
+    const pausedWhileLoading = [];
     wrappers.forEach((wrapper, index) => {
       wrapper.__materialAudioControls = {
         wrapper,
         player: fakePlayers[index],
-        ensureAudioUrl: async () => true,
+        ensureAudioUrl: async () => {
+          pausedWhileLoading.push(fakePlayers[index].paused);
+          return true;
+        },
         updateAudioUi() {}
       };
     });
@@ -643,7 +647,7 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     }));
 
     root.remove();
-    return { selected, badges, playCalls, syncedPlayers };
+    return { selected, badges, playCalls, syncedPlayers, pausedWhileLoading };
   });
 
   expect(result.selected.sort()).toEqual(["audio-group-original", "audio-group-split"]);
@@ -652,6 +656,7 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     { hidden: false, text: "Grupo 2", selectedClass: true }
   ]);
   expect(result.playCalls).toEqual(["audio-group-original", "audio-group-split"]);
+  expect(result.pausedWhileLoading).toEqual([true, true]);
   expect(result.syncedPlayers).toEqual([
     { time: 7.123, rate: 1.25, paused: false },
     { time: 7.123, rate: 1.25, paused: false }
