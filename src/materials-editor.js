@@ -524,17 +524,28 @@ function getCurrentMaterialAudioMarkerSeconds() {
   const activeSeconds = getMaterialAudioMarkerSecondsFromPlaybackTime(activePlayer?.currentTime);
   if (activeSeconds !== null) return activeSeconds;
 
-  // Otherwise capture the playhead only when one audio is unambiguously playing.
+  // If a group is playing, its tracks share the same playhead. Prefer the
+  // metronome reference when it is among them; otherwise use the first active
+  // track only if every active playhead is closely aligned.
   const playingPlayers = Array.from(
-    document.querySelectorAll("#materialsList [data-material-audio]")
+    document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]")
   ).filter(player =>
     !player.paused &&
     !player.ended &&
     Number.isFinite(player.currentTime)
   );
 
-  if (playingPlayers.length !== 1) return null;
-  return getMaterialAudioMarkerSecondsFromPlaybackTime(playingPlayers[0].currentTime);
+  if (!playingPlayers.length) return null;
+
+  const metronomeReference = window.bandabaseGetMetronomeSyncAudioPlayer?.();
+  const reference = metronomeReference && playingPlayers.includes(metronomeReference)
+    ? metronomeReference
+    : playingPlayers[0];
+  if (playingPlayers.some(player => Math.abs(player.currentTime - reference.currentTime) > 0.25)) {
+    return null;
+  }
+
+  return getMaterialAudioMarkerSecondsFromPlaybackTime(reference.currentTime);
 }
 
 
@@ -544,7 +555,7 @@ function insertMaterialAudioMarker(button = null) {
   // Keep manual entry available if playback does not identify one audio position.
   if (seconds === null) {
     const input = window.prompt(
-      "No se detectó un único audio activo. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
+      "No se detectó una posición de audio clara. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
       "0:30"
     );
     if (input === null) return false;
