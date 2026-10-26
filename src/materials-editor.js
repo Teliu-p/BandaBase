@@ -7,6 +7,7 @@ let materialIndentRepeatCount = 0;
 let materialIndentPointerHandled = false;
 let materialIndentPointerResetTimer = null;
 let materialNotationDotPending = false;
+let editingMaterialType = null;
 
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
@@ -1345,12 +1346,18 @@ function collectMaterialLegacyText(
 }
 
 function openMaterialEditor(
-  material = null
+  material = null,
+  materialType = null
 ) {
 
   editingMaterialId =
     material?.id ||
     null;
+
+  editingMaterialType =
+    material?.type === COMPARISON_MATERIAL_TYPE
+      ? COMPARISON_MATERIAL_TYPE
+      : materialType;
 
   // Evitar que la vista expandida y el formulario de edición muestren
   // simultáneamente el mismo contenido como si fueran dos materiales.
@@ -1381,7 +1388,11 @@ function openMaterialEditor(
     "materialName"
   ).value =
     material?.name ||
-    "";
+    (
+      editingMaterialType === COMPARISON_MATERIAL_TYPE
+        ? "Diferencias con la original"
+        : ""
+    );
 
   renderMaterialComposer(
     material?.blocks ||
@@ -1407,9 +1418,11 @@ function openMaterialEditor(
   document.getElementById(
     "showMaterialFormBtn"
   ).textContent =
-    material
-      ? "Editando material"
-      : "+ Añadir material";
+    editingMaterialType === COMPARISON_MATERIAL_TYPE
+      ? "Editando diferencias con la original"
+      : material
+        ? "Editando material"
+        : "+ Añadir material";
 
   document.getElementById(
     "materialName"
@@ -1428,6 +1441,9 @@ function showMaterialForm() {
 function hideMaterialForm() {
 
   editingMaterialId =
+    null;
+
+  editingMaterialType =
     null;
 
   materialDraftInitialAttachmentIds =
@@ -2647,16 +2663,22 @@ document
 
       event.preventDefault();
 
+      const clipboard =
+        event.clipboardData;
+
+      const html =
+        clipboard?.getData("text/html") ||
+        "";
+
       const text =
-        event.clipboardData?.getData(
-          "text/plain"
-        ) ||
+        clipboard?.getData("text/plain") ||
         "";
 
       rememberMaterialSelection();
 
       insertMaterialNodeAtSelection(
-        createMaterialAutoLinkFragment(
+        createMaterialClipboardFragment(
+          html,
           text
         )
       );
