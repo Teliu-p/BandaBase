@@ -560,7 +560,7 @@ test("the original comparison uses the shared Materials renderer and editor", as
 test("right-click selects multiple Materiales audio tracks for grouped playback", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate(async () => {
     clearMaterialAudioGroupSelection();
 
     const root = document.createElement("div");
