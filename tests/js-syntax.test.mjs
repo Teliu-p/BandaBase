@@ -1461,12 +1461,12 @@ assert.match(
 assert.match(
   metronomeSource,
   /function captureManualMetronomeSyncCalibration\([\s\S]*?getPlayingMaterialAudioPlayers\(\)[\s\S]*?metronomeGridOriginContextTime[\s\S]*?saveMetronomeSyncCalibration/,
-  "La calibración manual debe capturar una única referencia de audio y guardar la fase que se obtuvo con el metrónomo normal."
+  "La calibración manual debe capturar la fase con una o varias pistas alineadas y guardar un ajuste reutilizable por canción."
 );
 assert.match(
   metronomeSource,
   /function readMetronomeSyncCalibration\([\s\S]*?window\.localStorage\.getItem[\s\S]*?calibration\.bpm[\s\S]*?calibration\.meter/,
-  "La calibración debe persistir por audio y no reutilizarse si cambian BPM o métrica."
+  "La calibración debe compartirse por canción, migrar ajustes por pista anteriores y validarse frente a BPM/métrica."
 );
 assert.match(
   metronomeSource,
@@ -1933,7 +1933,7 @@ assert.match(
 );
 assert.match(
   materialEditorSource,
-  /function getCurrentMaterialAudioMarkerSeconds\([\s\S]*?document\.activeElement\?\.closest\?\.\("\[data-material-inline-audio\]"\)[\s\S]*?querySelectorAll\("\#materialsList \[data-material-audio\]"\)[\s\S]*?playingPlayers\.length !== 1/,
+  /function getCurrentMaterialAudioMarkerSeconds\([\s\S]*?document\.activeElement\?\.closest\?\.\("\[data-material-inline-audio\]"\)[\s\S]*?querySelectorAll\("\[data-material-inline-audio\] audio\[data-material-audio\]"\)[\s\S]*?playingPlayers\.some\([\s\S]*?reference\.currentTime/,
   "La inserción debe tomar el tiempo del control de audio enfocado o del único reproductor activo."
 );
 assert.match(
@@ -3040,3 +3040,126 @@ assert.deepEqual(
   ],
   "El audio debe permanecer entre sus textos y deben conservarse los renglones vacíos al guardar."
 );
+
+// Rich clipboard paste must route HTML through the Materials allowlist,
+// preserving supported formatting while refusing active content and embeds.
+const richClipboardSource = readFileSync(join(srcDir, "materials-formatting.js"), "utf8");
+const comparisonSource = readFileSync(join(srcDir, "songs-comparison.js"), "utf8");
+const materialsDataSource = readFileSync(join(srcDir, "materials-data.js"), "utf8");
+const groupedAudioSource = readFileSync(join(srcDir, "materials-view.js"), "utf8");
+
+assert.match(
+  materialEditorSource,
+  /clipboardData[\s\S]*?getData\("text\/html"\)[\s\S]*?getData\("text\/plain"\)[\s\S]*?createMaterialClipboardFragment/,
+  "Pegar en Materiales debe preferir el HTML enriquecido y conservar el texto plano como respaldo."
+);
+assert.match(
+  richClipboardSource,
+  /function createMaterialClipboardFragment\([\s\S]*?appendSanitizedMaterialNode\([\s\S]*?SCRIPT.*?STYLE.*?IFRAME/,
+  "El HTML pegado debe pasar por el sanitizador, conservar el formato permitido y descartar contenido activo."
+);
+assert.match(
+  richClipboardSource,
+  /material-notation-symbol|createMaterialNotationElement/,
+  "El formato pegado debe conservar figuras musicales dibujadas como SVG propio."
+);
+assert.match(
+  richClipboardSource,
+  /material-audio-marker|formatMaterialAudioMarkerLabel/,
+  "El formato pegado debe conservar los marcadores temporales de audio."
+);
+assert.match(
+  comparisonSource,
+  /function renderOriginalComparisonMaterialView\([\s\S]*?blocks\.map\(renderMaterialViewBlock\)[\s\S]*?bindMaterialViewEvents\(container\)/,
+  "La comparación con original debe usar el mismo renderizador de bloques y controles que Materiales normales."
+);
+assert.match(
+  comparisonSource,
+  /openMaterialEditor\(\s*currentOriginalComparisonMaterial\s*,\s*COMPARISON_MATERIAL_TYPE\s*\)/,
+  "Las diferencias con la original deben abrir el editor enriquecido compartido."
+);
+assert.match(
+  materialsDataSource,
+  /type:\s*type\s*\|\|\s*"Texto"/,
+  "La creación de materiales debe conservar el tipo explícito, especialmente Comparación con original."
+);
+assert.match(
+  materialsSaveSource,
+  /isComparisonMaterialDraft[\s\S]*?type:\s*COMPARISON_MATERIAL_TYPE[\s\S]*?loadOriginalComparisonMaterial\(\)/,
+  "Las diferencias creadas desde el editor compartido deben guardarse y recargarse como comparación."
+);
+assert.match(
+  groupedAudioSource,
+  /addEventListener\("contextmenu"[\s\S]*?materialAudioGroupSelectedIds\.has[\s\S]*?toggleMaterialAudioGroupPlayback/,
+  "Clic derecho debe permitir seleccionar pistas para reproducción en grupo."
+);
+assert.match(
+  groupedAudioSource,
+  /async function toggleMaterialAudioGroupPlayback[\s\S]*?ensureAudioUrl\(\)[\s\S]*?waitForMaterialAudioMetadata[\s\S]*?seekMaterialAudioPlayerToTime[\s\S]*?players\.map\(player => player\.play\(\)\)/,
+  "La reproducción de grupo debe cargar pistas, alinearlas al mismo punto y lanzarlas juntas."
+);
+assert.match(
+  groupedAudioSource,
+  /function getAllCurrentMaterialAttachments\([\s\S]*?currentOriginalComparisonMaterial/,
+  "La selección de pistas debe reconocer audios de Materiales normales y de la comparación."
+);
+assert.match(
+  metronomeSource,
+  /function getMetronomeSyncCalibrationStorageKey\(\)[\s\S]*?currentSong\?\.id[\s\S]*?encodeURIComponent\(songId\)/,
+  "El ajuste manual del metrónomo debe almacenarse por canción, no por adjunto."
+);
+assert.match(
+  metronomeSource,
+  /getLegacyMetronomeSyncCalibrationStorageKey[\s\S]*?getAllCurrentMaterialAttachments\(\)[\s\S]*?saveMetronomeSyncCalibration\(config, audioZeroTime\)/,
+  "La primera lectura debe poder migrar la calibración antigua de cualquier pista a la clave compartida de la canción."
+);
+assert.match(
+  metronomeSource,
+  /function getPlayingMaterialAudioPlayers\(\)[\s\S]*?\[data-material-inline-audio\] audio\[data-material-audio\]/,
+  "El metrónomo sincronizado debe encontrar reproductores visibles tanto en Materiales como en la comparación."
+);
+
+// Verify that the normal material creation helper respects an explicit type
+// instead of silently converting a new comparison to the ordinary 'Texto'.
+const { createMaterial: createMaterialForTypeTest } = loadPureFunctions(
+  "src/materials-data.js",
+  ["createMaterial"]
+);
+const materialInsertCalls = [];
+const materialTypeTestClient = {
+  from(table) {
+    assert.equal(table, "materials");
+    return {
+      insert(payload) {
+        materialInsertCalls.push(payload);
+        return {
+          select() {
+            return {
+              single() {
+                return Promise.resolve({ data: payload, error: null });
+              }
+            };
+          }
+        };
+      }
+    };
+  }
+};
+await createMaterialForTypeTest(materialTypeTestClient, {
+  band_id: "band-test",
+  song_id: "song-test",
+  type: "Comparación",
+  name: "Diferencias con la original",
+  content: "Contenido de prueba",
+  created_by: "user-test"
+});
+assert.equal(materialInsertCalls.at(-1).type, "Comparación");
+await createMaterialForTypeTest(materialTypeTestClient, {
+  band_id: "band-test",
+  song_id: "song-test",
+  name: "Material normal",
+  content: "Contenido de prueba",
+  created_by: "user-test"
+});
+assert.equal(materialInsertCalls.at(-1).type, "Texto");
+
