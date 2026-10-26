@@ -3100,6 +3100,21 @@ assert.match(
 );
 assert.match(
   groupedAudioSource,
+  /players\.forEach\(player => \{\s*if \(!player\.paused && !player\.ended\) player\.pause\(\);\s*\}\);[\s\S]*?controls\.map\(control => control\.ensureAudioUrl\(\)\)/,
+  "Una pista que ya sonaba debe pausarse mientras se preparan las demás para que el grupo comience alineado."
+);
+assert.match(
+  metronomeSource,
+  /function syncMetronomeWithAudio\(preferredPlayer = null, forceRestart = false\)[\s\S]*?if \(forceRestart \|\| metronomeSyncAudioPlayer !== player \|\| !metronomeRunning\)/,
+  "El metrónomo debe poder reiniciarse sobre el playhead alineado después de iniciar o detener un grupo."
+);
+assert.match(
+  groupedAudioSource,
+  /bandabaseSyncMetronomeWithAudio\(null, true\)/,
+  "Al terminar la transición de un grupo de pistas, hay que recalibrar la referencia activa del metrónomo."
+);
+assert.match(
+  groupedAudioSource,
   /function getAllCurrentMaterialAttachments\([\s\S]*?currentOriginalComparisonMaterial/,
   "La selección de pistas debe reconocer audios de Materiales normales y de la comparación."
 );
