@@ -1384,6 +1384,78 @@ function createMaterialRichTextFragment(
 
 }
 
+/*
+ * Paste rich clipboard HTML through the same allowlist used by stored
+ * Materiales content. We keep emphasis, supported text sizes, links, notation
+ * SVGs and audio markers, but never import arbitrary styles/scripts/embeds.
+ */
+function createMaterialClipboardFragment(html, plainText = "") {
+  const fallbackText = String(plainText || "");
+  const rawHtml = String(html || "");
+
+  if (!rawHtml.trim()) {
+    return createMaterialAutoLinkFragment(fallbackText);
+  }
+
+  const template = document.createElement("template");
+  template.innerHTML = rawHtml;
+  const fragment = document.createDocumentFragment();
+
+  function appendClipboardChildren(source, target) {
+    const nodes = Array.from(source.childNodes || []);
+    let previousWasBlock = false;
+
+    nodes.forEach((node, index) => {
+      const isBlock = node.nodeType === Node.ELEMENT_NODE &&
+        ["ADDRESS", "ARTICLE", "BLOCKQUOTE", "BODY", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "P", "PRE"].includes(node.tagName);
+
+      if (index > 0 && (previousWasBlock || isBlock)) {
+        target.appendChild(document.createElement("br"));
+      }
+
+      if (isBlock) {
+        const children = Array.from(node.childNodes || []);
+        const isEmptyLine = children.length === 1 &&
+          children[0].nodeType === Node.ELEMENT_NODE &&
+          children[0].tagName === "BR";
+
+        if (!isEmptyLine) {
+          appendClipboardChildren(node, target);
+        }
+
+        previousWasBlock = true;
+        return;
+      }
+
+      // Clipboard HTML from a selected audio chip may contain its player
+      // controls. Do not create a cross-material attachment reference; preserve
+      // the visible track name instead of importing unsafe or invalid markup.
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.classList?.contains("material-inline-audio")
+      ) {
+        const name = node.querySelector?.(".material-inline-audio-name")?.textContent ||
+          node.querySelector?.(".material-inline-audio-label")?.textContent ||
+          "";
+        if (name) target.appendChild(document.createTextNode(name));
+        previousWasBlock = false;
+        return;
+      }
+
+      appendSanitizedMaterialNode(target, node);
+      previousWasBlock = false;
+    });
+  }
+
+  appendClipboardChildren(template.content, fragment);
+
+  if (!fragment.childNodes.length && fallbackText) {
+    return createMaterialAutoLinkFragment(fallbackText);
+  }
+
+  return fragment;
+}
+
 
 function renderMaterialRichTextHtml(
   content
