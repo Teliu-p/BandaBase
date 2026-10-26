@@ -1183,7 +1183,10 @@ function appendSanitizedMaterialNode(
   }
 
   if (node.classList?.contains("material-audio-marker")) {
-    const markerSeconds = Number(node.getAttribute("data-audio-marker-seconds"));
+    const markerValue =
+      node.getAttribute("data-audio-marker-seconds") ??
+      node.getAttribute("data-material-audio-marker-seconds");
+    const markerSeconds = markerValue === null ? Number.NaN : Number(markerValue);
     if (!Number.isSafeInteger(markerSeconds) || markerSeconds < 0 || markerSeconds > 86400) {
       target.appendChild(document.createTextNode(node.textContent || ""));
       return;
