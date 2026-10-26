@@ -3912,3 +3912,40 @@
     width: 100%;
   }
 }
+
+
+/* Multitrack Materiales: selección por clic derecho para reproducción conjunta. */
+.material-inline-audio.is-group-selected {
+  border-color: var(--bb-accent);
+  box-shadow: 0 0 0 1px var(--bb-accent);
+  background: var(--bb-surface-inset);
+}
+
+.material-audio-group-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--bb-accent);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.material-audio-group-badge[hidden] {
+  display: none !important;
+}
+
+.material-comparison-view {
+  min-width: 0;
+  margin: 10px 0 14px;
+}
+
+.material-comparison-view .material-view {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
