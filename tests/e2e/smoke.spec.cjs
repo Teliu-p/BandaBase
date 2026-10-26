@@ -504,7 +504,7 @@ test("pasting rich clipboard HTML preserves supported Materials formatting and m
   expect(result.html).toContain("<strong>Negrita</strong>");
   expect(result.html).toContain("<em>Cursiva</em>");
   expect(result.html).toContain("material-text-size-1");
-  expect(result.html).toContain('<a href="https://example.com"');
+  expect(result.html).toContain('<a href="https://example.com/"');
   expect(result.html).toContain("material-notation-symbol");
   expect(result.html).toContain("material-notation-svg");
   expect(result.html).toContain('data-audio-marker-seconds="30"');
