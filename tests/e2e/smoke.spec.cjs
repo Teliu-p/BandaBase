@@ -452,3 +452,160 @@ test("the login form remains within a narrow mobile viewport", async ({ page }) 
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(376);
   }
 });
+
+
+test("pasting rich clipboard HTML preserves supported Materials formatting and markers", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(() => {
+    const editor = document.getElementById("materialComposerEditor");
+    editor.replaceChildren();
+
+    const prefix = document.createTextNode("Inicio ");
+    editor.appendChild(prefix);
+    editor.focus();
+
+    const range = document.createRange();
+    range.setStart(prefix, prefix.length);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    rememberMaterialSelection();
+
+    const clipboard = new DataTransfer();
+    clipboard.setData(
+      "text/html",
+      '<strong>Negrita</strong><em>Cursiva</em>' +
+        '<span class="material-text-size-1">Grande</span>' +
+        '<span class="material-audio-marker" data-audio-marker-seconds="30">00:30</span>' +
+        '<script>window.__clipboardScriptRan = true; alert("unsafe")</script>'
+    );
+    clipboard.setData("text/plain", "Negrita Cursiva Grande 00:30");
+
+    const paste = new ClipboardEvent("paste", {
+      clipboardData: clipboard,
+      bubbles: true,
+      cancelable: true
+    });
+    editor.dispatchEvent(paste);
+
+    return {
+      html: editor.innerHTML,
+      text: editor.textContent,
+      defaultPrevented: paste.defaultPrevented,
+      unsafeScriptRan: Boolean(window.__clipboardScriptRan)
+    };
+  });
+
+  expect(result.defaultPrevented).toBe(true);
+  expect(result.html).toContain("<strong>Negrita</strong>");
+  expect(result.html).toContain("<em>Cursiva</em>");
+  expect(result.html).toContain("material-text-size-1");
+  expect(result.html).toContain('data-audio-marker-seconds="30"');
+  expect(result.html).not.toContain("<script");
+  expect(result.html).not.toContain("unsafe");
+  expect(result.unsafeScriptRan).toBe(false);
+  expect(runtimeErrors, "JavaScript errors while pasting rich clipboard content").toEqual([]);
+});
+
+
+test("the original comparison uses the shared Materials renderer and editor", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(() => {
+    currentOriginalComparisonMaterial = {
+      id: "comparison-test-material",
+      type: COMPARISON_MATERIAL_TYPE,
+      name: "Diferencias con la original",
+      content: makeMaterialStoredText("<strong>Verso</strong> <em>original</em>"),
+      attachments: [],
+      blocks: [{
+        block_type: "text",
+        content: makeMaterialStoredText("<strong>Verso</strong> <em>original</em>")
+      }]
+    };
+
+    renderOriginalComparisonMaterialView();
+    const comparisonView = document.getElementById("originalComparisonMaterialView");
+    const viewHtml = comparisonView.innerHTML;
+    document.getElementById("editOriginalComparisonBtn").click();
+
+    return {
+      viewHtml,
+      editorVisible: !document.getElementById("materialForm").classList.contains("hidden"),
+      editorHtml: document.getElementById("materialComposerEditor").innerHTML,
+      editingId: editingMaterialId,
+      editingType: editingMaterialType
+    };
+  });
+
+  expect(result.viewHtml).toContain('class="material-view-text material-rich-text"');
+  expect(result.viewHtml).toContain("<strong>Verso</strong>");
+  expect(result.viewHtml).toContain("<em>original</em>");
+  expect(result.editorVisible).toBe(true);
+  expect(result.editorHtml).toContain("<strong>Verso</strong>");
+  expect(result.editorHtml).toContain("<em>original</em>");
+  expect(result.editingId).toBe("comparison-test-material");
+  expect(result.editingType).toBe("ComparacionOriginal");
+  expect(runtimeErrors, "JavaScript errors while opening the comparison editor").toEqual([]);
+});
+
+
+test("right-click selects multiple Materiales audio tracks for grouped playback", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(() => {
+    clearMaterialAudioGroupSelection();
+
+    const root = document.createElement("div");
+    root.id = "grouped-audio-selection-test";
+    root.innerHTML =
+      renderMaterialViewBlock({
+        block_type: "attachment",
+        attachment: {
+          id: "audio-group-original",
+          kind: "file",
+          name: "Original.mp3",
+          mime_type: "audio/mpeg",
+          storage_path: "test/original.mp3"
+        }
+      }) +
+      renderMaterialViewBlock({
+        block_type: "attachment",
+        attachment: {
+          id: "audio-group-split",
+          kind: "file",
+          name: "Guitarra.wav",
+          mime_type: "audio/wav",
+          storage_path: "test/guitarra.wav"
+        }
+      });
+    document.body.appendChild(root);
+    bindMaterialViewEvents(root);
+
+    const wrappers = Array.from(root.querySelectorAll("[data-material-inline-audio]"));
+    wrappers.forEach(wrapper => {
+      wrapper.dispatchEvent(new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true
+      }));
+    });
+
+    const selected = [...materialAudioGroupSelectedIds];
+    const badges = wrappers.map(wrapper => ({
+      hidden: wrapper.querySelector("[data-material-audio-group-badge]").hidden,
+      text: wrapper.querySelector("[data-material-audio-group-badge]").textContent,
+      selectedClass: wrapper.classList.contains("is-group-selected")
+    }));
+    root.remove();
+    return { selected, badges };
+  });
+
+  expect(result.selected.sort()).toEqual(["audio-group-original", "audio-group-split"]);
+  expect(result.badges).toEqual([
+    { hidden: false, text: "Grupo 2", selectedClass: true },
+    { hidden: false, text: "Grupo 2", selectedClass: true }
+  ]);
+  expect(runtimeErrors, "JavaScript errors while selecting audio tracks").toEqual([]);
+});
