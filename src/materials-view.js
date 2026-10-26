@@ -933,12 +933,13 @@ function renderMaterialViewBlock(block) {
   ) {
     const label = escapeHtml(name);
     return (
-      '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '">' +
+      '<span class="material-inline-audio" data-material-inline-audio data-material-audio-id="' + attachmentId + '" title="Clic derecho para seleccionar esta pista y reproducir varias a la vez.">' +
         '<button type="button" class="material-inline-audio-play" data-material-audio-play aria-label="Reproducir ' + safeName + '" title="Reproducir audio">▶</button>' +
         '<button type="button" class="material-inline-audio-name" data-material-audio-details aria-expanded="false" title="Mostrar tiempo, posición y velocidad">' +
           label +
         '</button>' +
         '<button type="button" class="material-inline-audio-download" data-download-attachment="' + attachmentId + '" aria-label="Descargar ' + safeName + '" title="Descargar archivo">↓</button>' +
+        '<span class="material-audio-group-badge" data-material-audio-group-badge hidden></span>' +
         '<span class="material-inline-audio-panel" data-material-audio-panel hidden>' +
           '<span class="material-inline-audio-time" data-material-audio-time>00:00 / --:--</span>' +
           '<input type="range" class="material-inline-audio-seek" data-material-audio-seek min="0" max="1000" step="1" value="0" disabled aria-label="Posición del audio">' +
@@ -1120,7 +1121,7 @@ function renderMaterials() {
 }
 
 
-function bindMaterialViewEvents() {
+function bindMaterialViewEvents(root = document) {
   bindMaterialAudioPopoverDismissal();
 
   document.querySelectorAll("[data-material-inline-audio]").forEach(wrapper => {
@@ -1269,6 +1270,27 @@ function bindMaterialViewEvents() {
       }
     }
 
+    wrapper.__materialAudioControls = {
+      wrapper,
+      player,
+      ensureAudioUrl,
+      updateAudioUi,
+      applySpeedPercentage
+    };
+
+    wrapper.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      if (!attachmentId) return;
+
+      if (materialAudioGroupSelectedIds.has(attachmentId)) {
+        materialAudioGroupSelectedIds.delete(attachmentId);
+      } else {
+        materialAudioGroupSelectedIds.add(attachmentId);
+      }
+
+      updateMaterialAudioGroupSelectionUi(document);
+    });
+
     player.addEventListener("play", updateAudioUi);
     player.addEventListener("pause", updateAudioUi);
     player.addEventListener("ended", updateAudioUi);
@@ -1322,6 +1344,20 @@ function bindMaterialViewEvents() {
 
     playButton.addEventListener("click", async () => {
       if (playButton.disabled) return;
+
+      if (
+        materialAudioGroupSelectedIds.has(attachmentId) &&
+        materialAudioGroupSelectedIds.size > 1
+      ) {
+        playButton.disabled = true;
+        try {
+          await toggleMaterialAudioGroupPlayback(wrapper);
+        } finally {
+          playButton.disabled = false;
+          updateAudioUi();
+        }
+        return;
+      }
 
       if (!player.paused && !player.ended) {
         player.pause();
@@ -1378,22 +1414,25 @@ function bindMaterialViewEvents() {
     updateAudioUi();
   });
 
-  document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
-    button.addEventListener("click", () => {
-      const seconds = Number(button.dataset.materialAudioMarkerSeconds);
-      selectMaterialAudioMarker(seconds);
-    });
+  root.querySelectorAll("[data-material-audio-marker]").forEach(button => {
+    if (button.dataset.materialAudioMarkerBound !== "true") {
+      button.dataset.materialAudioMarkerBound = "true";
+      button.addEventListener("click", () => {
+        const seconds = Number(button.dataset.materialAudioMarkerSeconds);
+        selectMaterialAudioMarker(seconds);
+      });
+    }
   });
 
   if (materialAudioMarkerTimeSeconds !== null) {
-    document.querySelectorAll("#materialsList [data-material-audio-marker]").forEach(button => {
+    root.querySelectorAll("[data-material-audio-marker]").forEach(button => {
       const active = Number(button.dataset.materialAudioMarkerSeconds) === materialAudioMarkerTimeSeconds;
       button.setAttribute("aria-pressed", String(active));
       button.classList.toggle("is-active", active);
     });
   }
 
-    document
+    root
     .querySelectorAll(
       "[data-material-toggle]"
     )
@@ -1434,7 +1473,7 @@ function bindMaterialViewEvents() {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-edit-material]"
     )
@@ -1467,7 +1506,7 @@ function bindMaterialViewEvents() {
     );
 
 
-  document
+  root
     .querySelectorAll(
       "[data-delete-material]"
     )
@@ -1581,15 +1620,11 @@ function bindMaterialViewEvents() {
           async function() {
 
             const attachment =
-              currentMaterials
-                .flatMap(
-                  material =>
-                    material.attachments || []
-                )
+              getAllCurrentMaterialAttachments()
                 .find(
                   item =>
-                    item.id ===
-                    button.dataset.openAttachment
+                    String(item.id) ===
+                    String(button.dataset.openAttachment)
                 );
 
             if (!attachment) {
@@ -1670,13 +1705,12 @@ function bindMaterialViewEvents() {
       }
     );
 
-  document.querySelectorAll("[data-download-attachment]").forEach(button => {
+  root.querySelectorAll("[data-download-attachment]").forEach(button => {
     button.addEventListener("click", async () => {
       if (button.dataset.loading === "true") return;
 
-      const attachment = currentMaterials
-        .flatMap(material => material.attachments || [])
-        .find(item => item.id === button.dataset.downloadAttachment);
+      const attachment = getAllCurrentMaterialAttachments()
+        .find(item => String(item.id) === String(button.dataset.downloadAttachment));
 
       if (!attachment || attachment.kind !== "file" || !attachment.storage_path) {
         showNotice("No se encontró el archivo adjunto para descargar.", "error");
@@ -1722,5 +1756,8 @@ function bindMaterialViewEvents() {
   });
 
 }
+
+  updateMaterialAudioGroupSelectionUi(root);
+
 
 
