@@ -2024,7 +2024,7 @@ assert.equal(audioRateStub.webkitPreservesPitch, true);
 
 assert.match(
   materialViewSource,
-  /data-material-audio-play[\s\S]*?createSignedUrl[\s\S]*?player\.src\s*=\s*signedUrl/,
+  /data-material-audio-play[\s\S]*?getAttachmentAccessUrl\("material_attachments"[\s\S]*?player\.src\s*=\s*audioUrl/,
   "El audio debe cargar una URL firmada de forma perezosa al interactuar."
 );
 assert.match(
@@ -2054,7 +2054,7 @@ assert.match(
 );
 assert.match(
   materialViewSource,
-  /data-download-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  /data-download-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"material_attachments"[\s\S]*?download:\s*true/,
   "Todos los archivos adjuntos a Materiales, también audios, deben poder descargarse con su nombre."
 );
 const proposalContentSource = readFileSync(join(srcDir, "proposals-content.js"), "utf8");
@@ -2066,12 +2066,12 @@ assert.match(
 );
 assert.match(
   proposalViewSource,
-  /data-download-proposal-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.file_name/,
+  /data-download-proposal-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"proposal_attachments"[\s\S]*?download:\s*true/,
   "La descarga de archivos de Propuestas debe usar una URL firmada que fuerce la descarga."
 );
 assert.match(
   commentsViewSource,
-  /data-download-comment-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  /data-download-comment-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"comment_attachments"[\s\S]*?download:\s*true/,
   "Todos los archivos adjuntos a comentarios, incluidos los audios, deben poder descargarse."
 );
 assert.match(
