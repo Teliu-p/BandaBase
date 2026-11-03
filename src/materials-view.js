@@ -630,7 +630,10 @@ async function ensureMaterialAudioSourceForMarker(player, attachment) {
   if (player.src && expiresAt > Date.now() + 15000) return true;
 
   try {
-    const accessUrl = await getAttachmentAccessUrl("material_attachments", attachment);
+    const accessUrl = await getAttachmentAccessUrl(
+      "material_attachments",
+      { ...attachment, storage_path: storagePath }
+    );
     player.src = accessUrl;
     player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
     player.preload = "metadata";
