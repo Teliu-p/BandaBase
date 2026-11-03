@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección:** 2026-10-26 (zona horaria de Argentina)  
+**Última inspección:** 2026-11-03 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Trabajo funcional reciente:** PR #135 incorpora pegado enriquecido seguro, editor/render compartido para “Comparación con original”, calibración del metrónomo compartida por canción y selección de varias pistas para reproducción conjunta. Revisar su estado real y CI antes de afirmar que está integrado o desplegado. Verificar siempre el HEAD actual y Pages.
+**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada de pistas. La rama `feat/local-audio-attachment-routing-20261103` añade resolución de adjuntos de audio mediante el servidor local con fallback a Supabase Storage; está en revisión y no está fusionada ni desplegada. Main verificado el 2026-11-03: `f215f6222f8b0a4c590f0f60d0cd7742f0c2125e`. Verificar siempre HEAD, PR, CI y Pages antes de asumir integración.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -100,3 +100,10 @@ En cada PR que cambie comportamiento, arquitectura, esquema, permisos o flujos d
 ## Plantilla de traspaso para una conversación nueva
 
 Estoy trabajando en BandaBase. Leé primero AI_CONTEXT.md y los cuatro documentos de contexto que enlaza. Después verificá el estado actual de main, PR abiertas, CI y, si aplica, esquema/políticas reales de Supabase. No asumas que los SHA ni los problemas abiertos de los documentos siguen vigentes. Antes de cambiar código, explicá el flujo exacto y las pruebas; hacé un diff mínimo, evitá producción a ciegas y actualizá la documentación en la misma PR. Confirmá con evidencia qué verificaste y qué no.
+
+## Actualización de contexto (2026-11-03): biblioteca local de audio
+
+Se probó el servidor local en Windows con un FLAC de 11.441.359 bytes. La prueba autenticada desde GitHub Pages obtuvo ticket HTTP 200, lectura HEAD 200, tipo audio/flac, descarga por rango HTTP 206 con 1024 bytes correctos y reproducción audible en un reproductor temporal. La nueva integración cliente está en la rama `feat/local-audio-attachment-routing-20261103`; no está fusionada ni desplegada. Mantiene fallback a Supabase Storage para audios no copiados o servidor local inaccesible, y no modifica datos ni `storage_path`. El endpoint está configurado por defecto a loopback; otras computadoras requieren el hostname de Tailscale Funnel, todavía pendiente. No activar Funnel hasta que la integración pase CI y la prueba final en la UI.
+
+
+Verificación de CI de la integración local (PR #136): commit `f6440040196e25553a5eb4ed73b6e11b300e028a`; workflow [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) pasó `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). La PR sigue en borrador, no fusionada ni desplegada. Falta la prueba de los controles finales de la interfaz con sesión real y, para otras computadoras, configurar y probar Tailscale Funnel.

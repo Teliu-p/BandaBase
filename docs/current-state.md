@@ -191,3 +191,15 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - **Grupo de pistas:** clic derecho alterna la selección de cada chip de audio; clicar Play en una de las pistas seleccionadas prepara URLs/metadatos, alinea los playheads con precisión de milisegundos, copia la velocidad de reproducción y llama a `play()` para las pistas juntas. Se aplica a los audios visibles tanto en Materiales normales como en comparación. Si se cierran/colapsan los materiales de una pista seleccionada, deben estar abiertos para que la app encuentre el reproductor.
 - **Validación pendiente fuera de CI:** comprobar el comportamiento auditivo con un original y varios splits reales, la tolerancia de deriva después de varios minutos, y las restricciones de autoplay del navegador. No inferir que la prueba auditiva está completa a partir de la simulación de Playwright.
 
+
+
+## 14. Integración de biblioteca local de audio (rama en revisión, 2026-11-03)
+
+- Rama: `feat/local-audio-attachment-routing-20261103`, basada en `main` `f215f6222f8b0a4c590f0f60d0cd7742f0c2125e`. Esta integración todavía no está fusionada ni desplegada.
+- `src/attachment-access.js` centraliza la resolución de adjuntos. Para MIME `audio/*` pide un ticket al servidor local usando la tabla y el UUID del adjunto con el JWT del usuario; el servidor local verifica el registro con Supabase/RLS y entrega el archivo del manifiesto. Materiales (incluidos marcadores, reproducción y descarga), Comentarios (reproducción, apertura y descarga) y Propuestas (apertura y descarga) llaman al resolutor común.
+- Si el adjunto no está copiado en la biblioteca (HTTP 409), el servidor local no está disponible o no hay token local utilizable, se mantiene el acceso firmado actual de Supabase Storage. Los rechazos HTTP del servidor, especialmente 403, no se silencian mediante fallback. Los adjuntos no-audio permanecen en Storage.
+- El endpoint por defecto en la app es `http://127.0.0.1:8788`. `window.BANDABASE_AUDIO_SERVER_URL` permite configurarlo para un host HTTPS futuro. El valor de Funnel aún no se conoce/configura; mientras tanto, este modo solo apunta a un servidor en la misma computadora. El acceso desde dispositivos externos queda pendiente.
+- Prueba manual previa de extremo a extremo del servidor (desde la página desplegada con sesión real): ticket HTTP 200, HEAD 200, MIME `audio/flac`, Content-Length 11.441.359, Range 206 y 1024 bytes recibidos; el FLAC se reprodujo audiblemente en un reproductor temporal. Esto no valida todavía los controles finales de la interfaz.
+- No se cambiaron datos, tablas, `storage_path`, políticas, RLS, Storage ni migraciones.
+- **CI aprobada:** workflow [Tests #41720921806](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) en `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test` pasó; ESLint `no-undef` pasó; Playwright/Chromium pasó (14 pruebas). La revisión del diff completó sin cambios en Supabase.
+- Pendiente: prueba autenticada con los controles finales de Materiales/Comentarios/Propuestas después de desplegar la PR, y configuración de Funnel para probar el acceso desde una segunda computadora.

@@ -87,13 +87,13 @@ const commentsViewSource = readFileSync(
 
 assert.match(
   materialsViewSource,
-  /data-material-audio-play[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
-  "Materiales debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+  /data-material-audio-play[\s\S]*getAttachmentAccessUrl\("material_attachments"[\s\S]*player\.src\s*=\s*audioUrl/,
+  "Materiales debe resolver la URL del audio solo desde la acción explícita de reproducir."
 );
 assert.match(
   commentsViewSource,
-  /data-comment-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
-  "Comentarios debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+  /data-comment-audio-load[\s\S]*getAttachmentAccessUrl\("comment_attachments"[\s\S]*player\.src\s*=\s*audioUrl/,
+  "Comentarios debe resolver la URL del audio solo desde la acción explícita de reproducir."
 );
 
 const renderCommentsStart = commentsViewSource.indexOf("function renderComments() {");
@@ -194,14 +194,197 @@ assert.doesNotMatch(
 );
 assert.match(
   proposalsViewSource,
-  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*createSignedUrl\s*\(/,
-  "Propuestas debe solicitar la URL firmada desde la acción explícita de abrir un archivo."
+  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*getAttachmentAccessUrl\(\s*"proposal_attachments"/,
+  "Propuestas debe resolver la URL desde la acción explícita de abrir un archivo."
 );
 assert.match(
   proposalsContentSource,
   /data-open-proposal-attachment/,
   "Los adjuntos de archivos de Propuestas deben presentar un control para abrirlos bajo demanda."
 );
+
+const attachmentAccessSource = readFileSync(
+  join(srcDir, "attachment-access.js"),
+  "utf8"
+);
+assert.match(
+  attachmentAccessSource,
+  /response\.status === 409/,
+  "Los adjuntos que todavía no están en la biblioteca local deben seguir usando Supabase Storage."
+);
+assert.match(
+  attachmentAccessSource,
+  /Authorization.*Bearer/,
+  "Las solicitudes locales deben llevar la sesión autenticada del usuario."
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/app-state.js",
+  "src/attachment-access.js"
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/attachment-access.js",
+  "src/materials-data.js"
+);
+
+async function runAttachmentAccessRegressionTests() {
+  const fetchCalls = [];
+  const storageCalls = [];
+  let fetchBehavior = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ url: "/api/media/local-ticket" })
+  });
+
+  const testContext = {
+    URL,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+    window: {
+      BANDABASE_AUDIO_SERVER_URL: "http://127.0.0.1:8788"
+    },
+    supabaseClient: {
+      auth: {
+        getSession: async () => ({
+          data: { session: { access_token: "test-access-token" } },
+          error: null
+        })
+      },
+      storage: {
+        from(bucket) {
+          return {
+            createSignedUrl: async (...args) => {
+              storageCalls.push({ bucket, args });
+              return {
+                data: { signedUrl: "https://storage.example.test/signed" },
+                error: null
+              };
+            }
+          };
+        }
+      }
+    },
+    fetch: async (url, options) => {
+      fetchCalls.push({ url, options });
+      return fetchBehavior(url, options);
+    }
+  };
+
+  vm.runInNewContext(
+    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl };",
+    testContext,
+    { filename: "src/attachment-access.js#tests" }
+  );
+
+  const getAttachmentAccessUrl = testContext.__testExports.getAttachmentAccessUrl;
+  const audioAttachment = {
+    id: "11111111-2222-4333-8444-555555555555",
+    storage_path: "private/song.flac",
+    mime_type: "audio/flac",
+    name: "song.flac"
+  };
+
+  const localUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    audioAttachment
+  );
+  assert.equal(
+    localUrl,
+    "http://127.0.0.1:8788/api/media/local-ticket",
+    "Un audio presente en la biblioteca debe usar el ticket local."
+  );
+  assert.equal(fetchCalls.length, 1);
+  assert.equal(fetchCalls[0].url, "http://127.0.0.1:8788/api/ticket");
+  assert.equal(fetchCalls[0].options.headers.Authorization, "Bearer test-access-token");
+  assert.deepEqual(
+    JSON.parse(fetchCalls[0].options.body),
+    {
+      table: "material_attachments",
+      attachment_id: audioAttachment.id,
+      download: false
+    }
+  );
+  assert.equal(storageCalls.length, 0);
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ error: "No está en la biblioteca local." })
+  });
+  const fallbackUrl = await getAttachmentAccessUrl(
+    "comment_attachments",
+    audioAttachment,
+    { download: true }
+  );
+  assert.equal(
+    fallbackUrl,
+    "https://storage.example.test/signed",
+    "Un audio no copiado localmente debe conservar el fallback a Storage."
+  );
+  assert.equal(storageCalls.length, 1);
+  assert.equal(storageCalls[0].bucket, "materials");
+  assert.equal(storageCalls[0].args[0], audioAttachment.storage_path);
+  assert.equal(storageCalls[0].args[2].download, audioAttachment.name);
+  assert.equal(
+    JSON.parse(fetchCalls[1].options.body).table,
+    "comment_attachments"
+  );
+  assert.equal(JSON.parse(fetchCalls[1].options.body).download, true);
+
+  const previousFetchCount = fetchCalls.length;
+  const nonAudioUrl = await getAttachmentAccessUrl(
+    "proposal_attachments",
+    {
+      id: audioAttachment.id,
+      storage_path: "private/document.pdf",
+      mime_type: "application/pdf",
+      file_name: "document.pdf"
+    }
+  );
+  assert.equal(nonAudioUrl, "https://storage.example.test/signed");
+  assert.equal(
+    fetchCalls.length,
+    previousFetchCount,
+    "Los adjuntos que no son audio deben conservar su apertura directa desde Storage."
+  );
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 403,
+    json: async () => ({ error: "El usuario no tiene permiso." })
+  });
+  const previousStorageCount = storageCalls.length;
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /El usuario no tiene permiso/,
+    "Un rechazo de autorización local debe mostrarse y no convertirse en un fallback silencioso."
+  );
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  fetchBehavior = async () => {
+    throw new TypeError("Servidor local no disponible");
+  };
+  const offlineFallback = await getAttachmentAccessUrl(
+    "proposal_attachments",
+    audioAttachment
+  );
+  assert.equal(offlineFallback, "https://storage.example.test/signed");
+  assert.equal(
+    storageCalls.length,
+    previousStorageCount + 1,
+    "Cuando el servidor local está apagado, el audio debe seguir funcionando desde Storage."
+  );
+
+  await assert.rejects(
+    getAttachmentAccessUrl("unsupported_table", audioAttachment),
+    /Tipo de adjunto no admitido/,
+    "El resolver debe limitar las tablas a los tres tipos de adjuntos admitidos."
+  );
+}
+
+await runAttachmentAccessRegressionTests();
 
 const html = readFileSync(indexPath, "utf8");
 const styles = readFileSync(join(root, "src", "styles.css"), "utf8");
@@ -1841,7 +2024,7 @@ assert.equal(audioRateStub.webkitPreservesPitch, true);
 
 assert.match(
   materialViewSource,
-  /data-material-audio-play[\s\S]*?createSignedUrl[\s\S]*?player\.src\s*=\s*signedUrl/,
+  /data-material-audio-play[\s\S]*?getAttachmentAccessUrl\("material_attachments"[\s\S]*?player\.src\s*=\s*audioUrl/,
   "El audio debe cargar una URL firmada de forma perezosa al interactuar."
 );
 assert.match(
@@ -1871,7 +2054,7 @@ assert.match(
 );
 assert.match(
   materialViewSource,
-  /data-download-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  /data-download-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"material_attachments"[\s\S]*?download:\s*true/,
   "Todos los archivos adjuntos a Materiales, también audios, deben poder descargarse con su nombre."
 );
 const proposalContentSource = readFileSync(join(srcDir, "proposals-content.js"), "utf8");
@@ -1883,12 +2066,12 @@ assert.match(
 );
 assert.match(
   proposalViewSource,
-  /data-download-proposal-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.file_name/,
+  /data-download-proposal-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"proposal_attachments"[\s\S]*?download:\s*true/,
   "La descarga de archivos de Propuestas debe usar una URL firmada que fuerce la descarga."
 );
 assert.match(
   commentsViewSource,
-  /data-download-comment-attachment[\s\S]*?createSignedUrl[\s\S]*?download:\s*attachment\.name/,
+  /data-download-comment-attachment[\s\S]*?getAttachmentAccessUrl\([\s\S]*?"comment_attachments"[\s\S]*?download:\s*true/,
   "Todos los archivos adjuntos a comentarios, incluidos los audios, deben poder descargarse."
 );
 assert.match(
