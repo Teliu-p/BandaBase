@@ -168,3 +168,12 @@ PR: https://github.com/Teliu-p/BandaBase/pull/115.
 ## Formato recomendado para agregar incidentes
 
 Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipótesis), archivos/funciones/policies implicados, fix/commit/PR, pruebas ejecutadas y limitaciones no cubiertas. Registrar también si se modificaron datos o esquema remoto; nunca insinuar que una comprobación estática equivale a una prueba real.
+
+### 2026-11-03 — integrar la biblioteca local de audio sin romper Storage
+
+- Se verificó en la computadora anfitriona que el servidor local devuelve /health, genera un ticket autorizado con la sesión real y entrega el FLAC con soporte de rangos; el navegador pudo reproducirlo audiblemente en un reproductor temporal.
+- Decisión de integración: mantener `storage_path` y los registros existentes sin cambios. Un nuevo resolutor cliente pide al servidor local un ticket por UUID/tabla solo para audio; el servidor consulta Supabase con el JWT y RLS antes de entregar el archivo indicado por el manifiesto.
+- Compatibilidad: HTTP 409 (no copiado) y servidor local inaccesible usan el flujo anterior de URLs firmadas de Storage. Un 403 u otro error HTTP explícito no se oculta con un fallback. Adjuntos no-audio siguen en Storage.
+- Rama de trabajo: `feat/local-audio-attachment-routing-20261103`, base `f215f6222f8b0a4c590f0f60d0cd7742f0c2125e`. La CI y la verificación con los controles reales de UI quedan pendientes hasta revisar esta rama.
+- Límite abierto: el endpoint por defecto usa loopback y por tanto solo sirve en la misma computadora. Para que otras PCs accedan al equipo anfitrión se requiere configurar la URL HTTPS de Tailscale Funnel y validarla desde un segundo dispositivo. Funnel todavía no está activado.
+- No se modificó Supabase: sin cambios en datos, esquema, políticas, RLS, Storage, migraciones o `storage_path`.
