@@ -203,3 +203,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - No se cambiaron datos, tablas, `storage_path`, políticas, RLS, Storage ni migraciones.
 - **CI de la PR aprobada:** workflow [Tests #41720921806](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) en `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas) pasaron. Tras el merge, [Tests de main #41721358288](https://github.com/Teliu-p/BandaBase/actions/runs/41721358288) y [Pages #41721358287](https://github.com/Teliu-p/BandaBase/actions/runs/41721358287) también pasaron.
 - Pendiente: prueba autenticada con los controles finales de Materiales/Comentarios/Propuestas en la web desplegada y configuración de Funnel para probar el acceso desde una segunda computadora.
+
+## 15. Configuración de acceso mediante Tailscale Funnel (2026-11-03)
+
+- El host Windows tiene Tailscale 1.104.5 conectado como `laptop-2pepu3jl`. Funnel se inició en primer plano y publicó `https://laptop-2pepu3jl.tail831d95.ts.net/` como proxy de `http://127.0.0.1:8788`.
+- Verificación manual: `/health` por HTTPS respondió `ok=true`; el POST sin credenciales a `/api/ticket` devolvió 403 local y público, con el mismo cuerpo «Falta la sesión autenticada de BandaBase.»; el preflight OPTIONS desde el origen de GitHub Pages respondió 204 y permitió los encabezados Authorization/Content-Type y el método POST.
+- El usuario confirmó reproducción normal desde el reproductor habitual de Materiales en la computadora anfitriona. Esto valida la interfaz de esa computadora, no todavía el acceso desde otro equipo.
+- En la rama `funnel-audio-config-20261103` se añade `src/audio-server-config.js`, se carga antes de `attachment-access.js` y configura el hostname HTTPS de Funnel. La regresión comprueba la carga ordenada y que el resolutor utiliza ese hostname. CI de esta rama y despliegue de Pages quedan pendientes hasta terminar el PR.
+- Pendiente: verificar reproducción autenticada desde otra PC y fallback a Storage cuando el host esté apagado. Mantener abiertas las ventanas del servidor Python y de Funnel para la prueba.
+- No se modificó Supabase, RLS, Storage, esquema, datos ni migraciones.
