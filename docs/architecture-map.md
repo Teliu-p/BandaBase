@@ -179,3 +179,10 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - El resolutor común sigue solicitando tickets con el JWT de Supabase; no se modificó su flujo de autorización ni el fallback a Storage. El hostname público no es una credencial.
 - Pruebas manuales del host: `/health` por HTTPS respondió correctamente; el preflight CORS desde `https://teliu-p.github.io` devolvió 204 y permitió POST con Authorization/Content-Type. Un POST sin token respondió 403 tanto directo como vía Funnel con el mismo mensaje del servidor («Falta la sesión autenticada de BandaBase.»), confirmando que el proxy transmite el control de autenticación.
 - El usuario confirmó que el reproductor habitual de Materiales reproduce normalmente en la PC anfitriona. Falta probar un audio con sesión real desde una segunda computadora; para ello el host, el servidor Python y Funnel deben permanecer activos.
+
+
+## Resultado de integración Funnel (2026-11-03)
+
+- La configuración se integró mediante PR #137 en `678c218ac591f25d022d760280249158cfddefd8`: `src/audio-server-config.js` establece el origen HTTPS de Funnel y se carga antes de `attachment-access.js`.
+- Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron en main. El usuario confirmó reproducción del audio desde el reproductor habitual de Materiales en el host.
+- La validación desde una segunda computadora sigue pendiente; la configuración del cliente y el CORS están listos según las pruebas descritas arriba.
