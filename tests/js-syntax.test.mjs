@@ -228,6 +228,164 @@ assertScriptBefore(
   "src/materials-data.js"
 );
 
+async function runAttachmentAccessRegressionTests() {
+  const fetchCalls = [];
+  const storageCalls = [];
+  let fetchBehavior = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ url: "/api/media/local-ticket" })
+  });
+
+  const testContext = {
+    URL,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+    window: {
+      BANDABASE_AUDIO_SERVER_URL: "http://127.0.0.1:8788"
+    },
+    supabaseClient: {
+      auth: {
+        getSession: async () => ({
+          data: { session: { access_token: "test-access-token" } },
+          error: null
+        })
+      },
+      storage: {
+        from(bucket) {
+          return {
+            createSignedUrl: async (...args) => {
+              storageCalls.push({ bucket, args });
+              return {
+                data: { signedUrl: "https://storage.example.test/signed" },
+                error: null
+              };
+            }
+          };
+        }
+      }
+    },
+    fetch: async (url, options) => {
+      fetchCalls.push({ url, options });
+      return fetchBehavior(url, options);
+    }
+  };
+
+  vm.runInNewContext(
+    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl };",
+    testContext,
+    { filename: "src/attachment-access.js#tests" }
+  );
+
+  const getAttachmentAccessUrl = testContext.__testExports.getAttachmentAccessUrl;
+  const audioAttachment = {
+    id: "11111111-2222-4333-8444-555555555555",
+    storage_path: "private/song.flac",
+    mime_type: "audio/flac",
+    name: "song.flac"
+  };
+
+  const localUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    audioAttachment
+  );
+  assert.equal(
+    localUrl,
+    "http://127.0.0.1:8788/api/media/local-ticket",
+    "Un audio presente en la biblioteca debe usar el ticket local."
+  );
+  assert.equal(fetchCalls.length, 1);
+  assert.equal(fetchCalls[0].url, "http://127.0.0.1:8788/api/ticket");
+  assert.equal(fetchCalls[0].options.headers.Authorization, "Bearer test-access-token");
+  assert.deepEqual(
+    JSON.parse(fetchCalls[0].options.body),
+    {
+      table: "material_attachments",
+      attachment_id: audioAttachment.id,
+      download: false
+    }
+  );
+  assert.equal(storageCalls.length, 0);
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ error: "No está en la biblioteca local." })
+  });
+  const fallbackUrl = await getAttachmentAccessUrl(
+    "comment_attachments",
+    audioAttachment,
+    { download: true }
+  );
+  assert.equal(
+    fallbackUrl,
+    "https://storage.example.test/signed",
+    "Un audio no copiado localmente debe conservar el fallback a Storage."
+  );
+  assert.equal(storageCalls.length, 1);
+  assert.equal(storageCalls[0].bucket, "materials");
+  assert.equal(storageCalls[0].args[0], audioAttachment.storage_path);
+  assert.equal(storageCalls[0].args[2].download, audioAttachment.name);
+  assert.equal(
+    JSON.parse(fetchCalls[1].options.body).table,
+    "comment_attachments"
+  );
+  assert.equal(JSON.parse(fetchCalls[1].options.body).download, true);
+
+  const previousFetchCount = fetchCalls.length;
+  const nonAudioUrl = await getAttachmentAccessUrl(
+    "proposal_attachments",
+    {
+      id: audioAttachment.id,
+      storage_path: "private/document.pdf",
+      mime_type: "application/pdf",
+      file_name: "document.pdf"
+    }
+  );
+  assert.equal(nonAudioUrl, "https://storage.example.test/signed");
+  assert.equal(
+    fetchCalls.length,
+    previousFetchCount,
+    "Los adjuntos que no son audio deben conservar su apertura directa desde Storage."
+  );
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 403,
+    json: async () => ({ error: "El usuario no tiene permiso." })
+  });
+  const previousStorageCount = storageCalls.length;
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /El usuario no tiene permiso/,
+    "Un rechazo de autorización local debe mostrarse y no convertirse en un fallback silencioso."
+  );
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  fetchBehavior = async () => {
+    throw new TypeError("Servidor local no disponible");
+  };
+  const offlineFallback = await getAttachmentAccessUrl(
+    "proposal_attachments",
+    audioAttachment
+  );
+  assert.equal(offlineFallback, "https://storage.example.test/signed");
+  assert.equal(
+    storageCalls.length,
+    previousStorageCount + 1,
+    "Cuando el servidor local está apagado, el audio debe seguir funcionando desde Storage."
+  );
+
+  await assert.rejects(
+    getAttachmentAccessUrl("unsupported_table", audioAttachment),
+    /Tipo de adjunto no admitido/,
+    "El resolver debe limitar las tablas a los tres tipos de adjuntos admitidos."
+  );
+}
+
+await runAttachmentAccessRegressionTests();
+
 const html = readFileSync(indexPath, "utf8");
 const styles = readFileSync(join(root, "src", "styles.css"), "utf8");
 assert.match(
