@@ -209,6 +209,15 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - El host Windows tiene Tailscale 1.104.5 conectado como `laptop-2pepu3jl`. Funnel se inició en primer plano y publicó `https://laptop-2pepu3jl.tail831d95.ts.net/` como proxy de `http://127.0.0.1:8788`.
 - Verificación manual: `/health` por HTTPS respondió `ok=true`; el POST sin credenciales a `/api/ticket` devolvió 403 local y público, con el mismo cuerpo «Falta la sesión autenticada de BandaBase.»; el preflight OPTIONS desde el origen de GitHub Pages respondió 204 y permitió los encabezados Authorization/Content-Type y el método POST.
 - El usuario confirmó reproducción normal desde el reproductor habitual de Materiales en la computadora anfitriona. Esto valida la interfaz de esa computadora, no todavía el acceso desde otro equipo.
-- En la rama `funnel-audio-config-20261103` se añade `src/audio-server-config.js`, se carga antes de `attachment-access.js` y configura el hostname HTTPS de Funnel. La regresión comprueba la carga ordenada y que el resolutor utiliza ese hostname. CI de esta rama y despliegue de Pages quedan pendientes hasta terminar el PR.
+- PR #137 (`funnel-audio-config-20261103`) quedó fusionada en main como `678c218ac591f25d022d760280249158cfddefd8`. Añade `src/audio-server-config.js`, cargado antes de `attachment-access.js`, y configura el hostname HTTPS. La regresión comprueba el orden y el uso de ese hostname. Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron.
 - Pendiente: verificar reproducción autenticada desde otra PC y fallback a Storage cuando el host esté apagado. Mantener abiertas las ventanas del servidor Python y de Funnel para la prueba.
+- No se modificó Supabase, RLS, Storage, esquema, datos ni migraciones.
+
+
+## 16. Resultado de integración y despliegue Funnel (2026-11-03)
+
+- PR #137 quedó fusionada en main como `678c218ac591f25d022d760280249158cfddefd8`; el HEAD se verificó después del merge.
+- Tests de main [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) pasaron incluyendo regresiones, ESLint no-undef y smoke tests con Chromium. GitHub Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) completó build y deploy con éxito.
+- La aplicación carga `src/audio-server-config.js` antes de `src/attachment-access.js`, por lo que el resolutor utiliza el hostname HTTPS de Funnel. Se mantiene el envío del JWT de sesión y la consulta con RLS del servidor.
+- Pendiente exclusivamente la prueba autenticada de reproducción desde una segunda computadora. El usuario debe mantener encendidos/despiertos el equipo anfitrión, el servidor Python y Funnel.
 - No se modificó Supabase, RLS, Storage, esquema, datos ni migraciones.
