@@ -41,6 +41,7 @@ La lista exacta y el orden final deben leerse directamente de index.html antes d
 - app-dom.js: referencias a elementos del DOM.
 - app-navigation.js: navegación de secciones, estado de sección y vistas recientes en Inicio.
 - app-update-state.js y app-update.js: detección de nueva compilación, caché y avisos/recarga controlada.
+- attachment-access.js: resolución de URLs de adjuntos de audio. Primero solicita un ticket al servidor local con el JWT vigente; si el archivo aún no está en la biblioteca (HTTP 409) o el servidor no responde, conserva el enlace firmado de Supabase Storage. Solo admite las tres tablas de adjuntos existentes. Se carga inmediatamente después de app-state.js y antes de los consumidores.
 
 ### Canciones
 
@@ -101,7 +102,7 @@ lists-view.js coordina UI con lists-data.js. public.band_list_items registra can
 
 ### Materiales y adjuntos
 
-El editor representa texto, enlaces y archivos como bloques ordenados. Guardar material puede involucrar registro base, objetos en Storage, filas de adjuntos y reemplazo de bloques. materials-save.js implementa compensación/rollback para pasos parciales; no reducir este flujo a un INSERT simple. Audio usa URLs firmadas bajo demanda para evitar cargarlo hasta que el usuario quiera reproducirlo.
+El editor representa texto, enlaces y archivos como bloques ordenados. Guardar material puede involucrar registro base, objetos en Storage, filas de adjuntos y reemplazo de bloques. materials-save.js implementa compensación/rollback para pasos parciales; no reducir este flujo a un INSERT simple. Audio usa URLs firmadas bajo demanda para evitar cargarlo hasta que el usuario quiera reproducirlo. Desde la integración de biblioteca local, los adjuntos con MIME audio/* intentan obtener un ticket de attachment-access.js; el servidor consulta el registro con el JWT del usuario y RLS antes de entregar el archivo del manifiesto. Los audios no copiados y los casos de servidor local inaccesible mantienen el fallback a Storage. Los archivos que no son audio continúan usando Storage sin pasar por el endpoint local.
 
 ### Propuestas y votos
 
@@ -161,3 +162,13 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - `materials-view.js` mantiene `materialAudioGroupSelectedIds`: clic derecho en el chip de audio cambia selección, un distintivo indica el grupo y Play en una pista seleccionada hace que los reproductores seleccionados carguen, se posicionen al mismo `currentTime` (milisegundos) y arranquen juntos. Los reproductores deben estar visibles en DOM; el grupo se puede formar incluyendo audio en la vista de comparación.
 - Las pruebas de Chromium simulan las llamadas a `play()` y la alineación del playhead; esto no mide latencia audible ni deriva con archivos reales. Siempre hacer una prueba auditiva de original y stems antes de declarar sincronización práctica verificada.
 
+
+
+## Actualización: acceso a la biblioteca local de audio (rama de integración, 2026-11-03)
+
+- `src/attachment-access.js` centraliza el acceso de Materiales, Comentarios y Propuestas. Para adjuntos con MIME `audio/*`, solicita `POST /api/ticket` con la tabla, el UUID del adjunto y el JWT de Supabase; el servidor local vuelve a consultar la fila con ese JWT, por lo que RLS sigue siendo la autoridad de permisos.
+- Cuando el servidor devuelve un ticket, el navegador usa la URL `/api/media/` del propio servidor. HTTP 409 (adjunto todavía no copiado) y un servidor local inaccesible conservan el fallback firmado de Supabase Storage. Los rechazos HTTP de autorización/servidor se muestran al usuario en lugar de ocultarse con un fallback.
+- Los adjuntos que no son audio no intentan usar el servidor local, porque el endpoint de medios local está diseñado para servir audio inline; sus aperturas y descargas siguen en Supabase Storage.
+- El endpoint predeterminado es `http://127.0.0.1:8788`. Se puede sustituir en runtime con `window.BANDABASE_AUDIO_SERVER_URL`; para usuarios de otras computadoras hará falta configurar el hostname HTTPS de Tailscale Funnel. Ese paso no está realizado en esta rama.
+- El cambio no modifica `storage_path`, filas de adjuntos, esquema, políticas, RLS, Storage ni migraciones.
+- La verificación manual inicial del servidor local confirmó /health, ticket 200, HEAD 200, audio/flac, Range 206 y reproducción audible del FLAC de prueba. La nueva integración de UI queda sujeta a CI y a una prueba autenticada desde la aplicación desplegada; la prueba previa usó un reproductor temporal, no la interfaz final de Materiales.
