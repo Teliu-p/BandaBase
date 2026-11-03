@@ -194,7 +194,7 @@ assert.doesNotMatch(
 );
 assert.match(
   proposalsViewSource,
-  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*getAttachmentAccessUrl\("proposal_attachments"/,
+  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*getAttachmentAccessUrl\(\s*"proposal_attachments"/,
   "Propuestas debe resolver la URL desde la acción explícita de abrir un archivo."
 );
 assert.match(
