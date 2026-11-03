@@ -183,5 +183,13 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Se activó Tailscale Funnel en el host `laptop-2pepu3jl`, exponiendo HTTPS y reenviando al listener existente `127.0.0.1:8788`. El comando queda en primer plano: el proceso debe permanecer abierto junto con el servidor Python; no se configuró un servicio persistente.
 - `/health` respondió correctamente por HTTPS. El preflight OPTIONS con origen GitHub Pages devolvió 204 y admitió POST, Authorization y Content-Type.
 - El POST de prueba sin Authorization devolvió 403 tanto al endpoint loopback como al hostname HTTPS, con el mismo mensaje de sesión faltante. Se interpreta como rechazo intencional del servidor local; no se cambió a 401 ni se relajó la autorización.
-- Decisión de cliente: guardar el hostname de Funnel en `src/audio-server-config.js`, separado del resolutor, y cargarlo antes de `attachment-access.js`. El endpoint solo entrega URLs de ticket tras validar el JWT y consultar la fila con RLS. Si el Funnel o el servidor no están disponibles, se mantiene el fallback previo a Storage.
+- Decisión de cliente: guardar el hostname de Funnel en `src/audio-server-config.js`, separado del resolutor, y cargarlo antes de `attachment-access.js`. El endpoint solo entrega URLs de ticket tras validar el JWT y consultar la fila con RLS. Si el Funnel o el servidor no están disponibles, se mantiene el fallback previo a Storage. PR #137 se fusionó como `678c218ac591f25d022d760280249158cfddefd8`; Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron.
 - El usuario confirmó que Materiales reproduce normalmente en el reproductor habitual de la PC anfitriona. La prueba de otra PC aún está pendiente. No se modificó Supabase ni el servidor Python.
+
+
+## 2026-11-03 — Resultado de despliegue de la configuración Funnel
+
+- PR #137 se fusionó en main como `678c218ac591f25d022d760280249158cfddefd8`. Los tests de main y el despliegue de GitHub Pages finalizaron correctamente: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635), [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206).
+- La app ya carga el hostname Funnel antes del helper de adjuntos. La prueba manual del usuario confirmó la reproducción habitual en Materiales desde el host.
+- Sigue pendiente una prueba de reproducción autenticada desde una segunda PC; eso no se considera validado por CI ni por los chequeos HTTP/CORS desde PowerShell.
+- El proceso `tailscale funnel 8788` corre en primer plano, al igual que el servidor Python. No se configuró arranque automático ni persistencia tras cerrar sesión/suspender/apagar el host.
