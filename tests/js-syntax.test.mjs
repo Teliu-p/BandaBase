@@ -87,13 +87,13 @@ const commentsViewSource = readFileSync(
 
 assert.match(
   materialsViewSource,
-  /data-material-audio-play[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
-  "Materiales debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+  /data-material-audio-play[\s\S]*getAttachmentAccessUrl\("material_attachments"[\s\S]*player\.src\s*=\s*audioUrl/,
+  "Materiales debe resolver la URL del audio solo desde la acción explícita de reproducir."
 );
 assert.match(
   commentsViewSource,
-  /data-comment-audio-load[\s\S]*createSignedUrl[\s\S]*player\.src\s*=\s*signedUrl/,
-  "Comentarios debe solicitar la URL del audio solo desde la acción explícita de reproducir."
+  /data-comment-audio-load[\s\S]*getAttachmentAccessUrl\("comment_attachments"[\s\S]*player\.src\s*=\s*audioUrl/,
+  "Comentarios debe resolver la URL del audio solo desde la acción explícita de reproducir."
 );
 
 const renderCommentsStart = commentsViewSource.indexOf("function renderComments() {");
@@ -194,13 +194,38 @@ assert.doesNotMatch(
 );
 assert.match(
   proposalsViewSource,
-  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*createSignedUrl\s*\(/,
-  "Propuestas debe solicitar la URL firmada desde la acción explícita de abrir un archivo."
+  /querySelectorAll\([\s\S]{0,100}\[data-open-proposal-attachment\][\s\S]*getAttachmentAccessUrl\("proposal_attachments"/,
+  "Propuestas debe resolver la URL desde la acción explícita de abrir un archivo."
 );
 assert.match(
   proposalsContentSource,
   /data-open-proposal-attachment/,
   "Los adjuntos de archivos de Propuestas deben presentar un control para abrirlos bajo demanda."
+);
+
+const attachmentAccessSource = readFileSync(
+  join(srcDir, "attachment-access.js"),
+  "utf8"
+);
+assert.match(
+  attachmentAccessSource,
+  /response\.status === 409/,
+  "Los adjuntos que todavía no están en la biblioteca local deben seguir usando Supabase Storage."
+);
+assert.match(
+  attachmentAccessSource,
+  /Authorization.*Bearer/,
+  "Las solicitudes locales deben llevar la sesión autenticada del usuario."
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/app-state.js",
+  "src/attachment-access.js"
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/attachment-access.js",
+  "src/materials-data.js"
 );
 
 const html = readFileSync(indexPath, "utf8");
