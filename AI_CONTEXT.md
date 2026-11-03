@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-11-03 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró la resolución de adjuntos de audio mediante el servidor local con fallback a Supabase Storage; merge funcional `e96712ee41de5599e36a58b1d1dd72d2919946bd`. Tests de main (#41721358288) y Pages (#41721358287) pasaron. La prueba manual desde el reproductor habitual de Materiales confirmó reproducción normal en el equipo anfitrión; el acceso autenticado desde otras PCs vía Funnel sigue pendiente. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
+**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró el acceso local a adjuntos de audio con fallback a Supabase Storage. PR #137 configuró el hostname HTTPS de Tailscale Funnel y se fusionó en `main` como `678c218ac591f25d022d760280249158cfddefd8`. Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron. El usuario confirmó reproducción desde el reproductor habitual de Materiales en el host; el acceso autenticado desde una segunda PC sigue pendiente. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
