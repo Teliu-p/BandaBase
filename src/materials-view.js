@@ -630,15 +630,8 @@ async function ensureMaterialAudioSourceForMarker(player, attachment) {
   if (player.src && expiresAt > Date.now() + 15000) return true;
 
   try {
-    const response = await supabaseClient
-      .storage
-      .from("materials")
-      .createSignedUrl(storagePath, 3600);
-    const signedUrl = response.data?.signedUrl || null;
-
-    if (response.error || !signedUrl) return false;
-
-    player.src = signedUrl;
+    const accessUrl = await getAttachmentAccessUrl("material_attachments", attachment);
+    player.src = accessUrl;
     player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
     player.preload = "metadata";
     player.load();
@@ -1246,17 +1239,14 @@ function bindMaterialViewEvents(root = document) {
       }
 
       try {
-        const response = await supabaseClient
-          .storage
-          .from("materials")
-          .createSignedUrl(storagePath, 3600);
-
-        const signedUrl = response.data?.signedUrl || null;
-        if (response.error || !signedUrl) {
-          throw response.error || new Error("No se pudo obtener el audio.");
+        const attachment = getAllCurrentMaterialAttachments()
+          .find(item => String(item.id) === attachmentId);
+        if (!attachment) {
+          throw new Error("No se encontró el adjunto de audio.");
         }
 
-        player.src = signedUrl;
+        const audioUrl = await getAttachmentAccessUrl("material_attachments", attachment);
+        player.src = audioUrl;
         player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
         // Obtener duración al abrir los detalles, sin precargar el audio completo.
         player.preload = "metadata";
@@ -1676,39 +1666,11 @@ function bindMaterialViewEvents(root = document) {
 
             }
 
-            const {
-              data,
-              error
-            } =
-              await supabaseClient
-                .storage
-                .from("materials")
-                .createSignedUrl(
-                  attachment.storage_path,
-                  3600
-                );
-
-            if (error) {
-
-              showNotice(
-                error.message,
-                "error"
-              );
-
-              return;
-
-            }
-
-            if (
-              data?.signedUrl
-            ) {
-
-              window.open(
-                data.signedUrl,
-                "_blank",
-                "noopener,noreferrer"
-              );
-
+            try {
+              const accessUrl = await getAttachmentAccessUrl("material_attachments", attachment);
+              window.open(accessUrl, "_blank", "noopener,noreferrer");
+            } catch (error) {
+              showNotice(error?.message || "No se pudo abrir el archivo.", "error");
             }
 
           }
@@ -1742,20 +1704,12 @@ function bindMaterialViewEvents(root = document) {
       button.textContent = "…";
 
       try {
-        const { data, error } = await supabaseClient
-          .storage
-          .from("materials")
-          .createSignedUrl(
-            attachment.storage_path,
-            3600,
-            { download: attachment.name || attachment.file_name || true }
-          );
-
-        if (error || !data?.signedUrl) {
-          throw new Error(error?.message || "No se pudo preparar la descarga.");
-        }
-
-        downloadWindow.location.href = data.signedUrl;
+        const accessUrl = await getAttachmentAccessUrl(
+          "material_attachments",
+          attachment,
+          { download: true }
+        );
+        downloadWindow.location.href = accessUrl;
       } catch (error) {
         try { downloadWindow.close(); } catch {}
         showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
