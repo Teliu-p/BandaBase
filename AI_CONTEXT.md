@@ -2,7 +2,7 @@
 
 **Última inspección:** 2026-11-03 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró la resolución de adjuntos de audio mediante el servidor local con fallback a Supabase Storage; merge funcional `e96712ee41de5599e36a58b1d1dd72d2919946bd`. Tests de main (#41721358288) y Pages (#41721358287) pasaron. La prueba autenticada de los controles finales de UI y el acceso desde otras PCs vía Funnel siguen pendientes. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
+**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró la resolución de adjuntos de audio mediante el servidor local con fallback a Supabase Storage; merge funcional `e96712ee41de5599e36a58b1d1dd72d2919946bd`. Tests de main (#41721358288) y Pages (#41721358287) pasaron. La prueba manual desde el reproductor habitual de Materiales confirmó reproducción normal en el equipo anfitrión; el acceso autenticado desde otras PCs vía Funnel sigue pendiente. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -107,3 +107,14 @@ Se probó el servidor local en Windows con un FLAC de 11.441.359 bytes. La prueb
 
 
 Verificación de CI de la integración local (PR #136): commit `f6440040196e25553a5eb4ed73b6e11b300e028a`; workflow [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) pasó `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). La PR sigue en borrador, no fusionada ni desplegada. Falta la prueba de los controles finales de la interfaz con sesión real y, para otras computadoras, configurar y probar Tailscale Funnel.
+
+## Actualización de contexto (2026-11-03): Tailscale Funnel
+
+Esta actualización reemplaza los estados anteriores que indicaban que Funnel seguía pendiente o que la PR #136 no estaba integrada.
+
+- Estado de referencia al comenzar esta configuración: `main` en `08ff7b61550569c05c1a8ad0021df0312282abf7`; PR #136 ya integrada. La prueba manual del usuario confirmó que el reproductor habitual de Materiales reproduce normalmente en el equipo anfitrión.
+- Tailscale 1.104.5 está conectado en Windows como `laptop-2pepu3jl`. Funnel publica `https://laptop-2pepu3jl.tail831d95.ts.net/` y reenvía a `http://127.0.0.1:8788`.
+- Comprobaciones ejecutadas por el usuario: `/health` respondió bien por HTTPS; el preflight CORS desde `https://teliu-p.github.io` devolvió 204 con Authorization/Content-Type y POST permitidos; POST sin sesión dio 403 tanto local como público con el mismo mensaje «Falta la sesión autenticada de BandaBase.». Esto confirma el proxy y la barrera de sesión, no una prueba autenticada desde otro equipo.
+- Rama actual de configuración: `funnel-audio-config-20261103`. Incluye `src/audio-server-config.js` antes de `src/attachment-access.js`, con el hostname HTTPS de Funnel, y una regresión que comprueba el orden y el uso del endpoint. CI y Pages pendientes de ejecutar al abrir el PR.
+- Falta probar un audio real desde una segunda computadora con sesión de BandaBase. El equipo anfitrión debe estar encendido/despierto y mantener activos tanto `bandabase_audio_server.py` como el proceso `tailscale funnel 8788`. Si el host no responde, el cliente conservará el fallback a Supabase Storage.
+- No se modificaron Supabase, datos, RLS, Storage, esquema, migraciones ni el servidor Python.

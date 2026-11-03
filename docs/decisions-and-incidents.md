@@ -177,3 +177,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - PR #136 se fusionó en `main` como `e96712ee41de5599e36a58b1d1dd72d2919946bd`. CI de la rama pasó en `f6440040196e25553a5eb4ed73b6e11b300e028a` ([Tests #41720921806](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806)); Tests de main (#41721358288) y Pages (#41721358287) también pasaron. Sigue pendiente la verificación autenticada de los controles reales en la web desplegada.
 - Límite abierto: el endpoint por defecto usa loopback y por tanto solo sirve en la misma computadora. Para que otras PCs accedan al equipo anfitrión se requiere configurar la URL HTTPS de Tailscale Funnel y validarla desde un segundo dispositivo. Funnel todavía no está activado.
 - No se modificó Supabase: sin cambios en datos, esquema, políticas, RLS, Storage, migraciones o `storage_path`.
+
+## 2026-11-03 — Publicación del servidor de audio mediante Funnel
+
+- Se activó Tailscale Funnel en el host `laptop-2pepu3jl`, exponiendo HTTPS y reenviando al listener existente `127.0.0.1:8788`. El comando queda en primer plano: el proceso debe permanecer abierto junto con el servidor Python; no se configuró un servicio persistente.
+- `/health` respondió correctamente por HTTPS. El preflight OPTIONS con origen GitHub Pages devolvió 204 y admitió POST, Authorization y Content-Type.
+- El POST de prueba sin Authorization devolvió 403 tanto al endpoint loopback como al hostname HTTPS, con el mismo mensaje de sesión faltante. Se interpreta como rechazo intencional del servidor local; no se cambió a 401 ni se relajó la autorización.
+- Decisión de cliente: guardar el hostname de Funnel en `src/audio-server-config.js`, separado del resolutor, y cargarlo antes de `attachment-access.js`. El endpoint solo entrega URLs de ticket tras validar el JWT y consultar la fila con RLS. Si el Funnel o el servidor no están disponibles, se mantiene el fallback previo a Storage.
+- El usuario confirmó que Materiales reproduce normalmente en el reproductor habitual de la PC anfitriona. La prueba de otra PC aún está pendiente. No se modificó Supabase ni el servidor Python.

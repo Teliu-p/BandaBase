@@ -172,3 +172,10 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - El endpoint predeterminado es `http://127.0.0.1:8788`. Se puede sustituir en runtime con `window.BANDABASE_AUDIO_SERVER_URL`; para usuarios de otras computadoras hará falta configurar el hostname HTTPS de Tailscale Funnel. Ese paso no está realizado en esta rama.
 - El cambio no modifica `storage_path`, filas de adjuntos, esquema, políticas, RLS, Storage ni migraciones.
 - La verificación manual inicial del servidor local confirmó /health, ticket 200, HEAD 200, audio/flac, Range 206 y reproducción audible del FLAC de prueba. CI de la PR pasó en el commit `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). Tras el merge funcional `e96712ee41de5599e36a58b1d1dd72d2919946bd`, Tests de main (#41721358288) y Pages (#41721358287) también pasaron. Queda pendiente una prueba autenticada de los controles finales desde la aplicación; la reproducción manual previa usó un reproductor temporal, no la interfaz final de Materiales.
+
+## Actualización: configuración de Tailscale Funnel (2026-11-03)
+
+- Se agregó `src/audio-server-config.js`, cargado después de `app-state.js` y antes de `attachment-access.js`. Define `window.BANDABASE_AUDIO_SERVER_URL` con el hostname HTTPS de Funnel del equipo anfitrión.
+- El resolutor común sigue solicitando tickets con el JWT de Supabase; no se modificó su flujo de autorización ni el fallback a Storage. El hostname público no es una credencial.
+- Pruebas manuales del host: `/health` por HTTPS respondió correctamente; el preflight CORS desde `https://teliu-p.github.io` devolvió 204 y permitió POST con Authorization/Content-Type. Un POST sin token respondió 403 tanto directo como vía Funnel con el mismo mensaje del servidor («Falta la sesión autenticada de BandaBase.»), confirmando que el proxy transmite el control de autenticación.
+- El usuario confirmó que el reproductor habitual de Materiales reproduce normalmente en la PC anfitriona. Falta probar un audio con sesión real desde una segunda computadora; para ello el host, el servidor Python y Funnel deben permanecer activos.

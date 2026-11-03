@@ -203,9 +203,24 @@ assert.match(
   "Los adjuntos de archivos de Propuestas deben presentar un control para abrirlos bajo demanda."
 );
 
+const audioServerConfigSource = readFileSync(
+  join(srcDir, "audio-server-config.js"),
+  "utf8"
+);
 const attachmentAccessSource = readFileSync(
   join(srcDir, "attachment-access.js"),
   "utf8"
+);
+const audioServerConfigContext = { window: {} };
+vm.runInNewContext(
+  audioServerConfigSource,
+  audioServerConfigContext,
+  { filename: "src/audio-server-config.js#tests" }
+);
+assert.equal(
+  audioServerConfigContext.window.BANDABASE_AUDIO_SERVER_URL,
+  "https://laptop-2pepu3jl.tail831d95.ts.net",
+  "La configuración debe apuntar al hostname HTTPS vigente de Funnel."
 );
 assert.match(
   attachmentAccessSource,
@@ -216,6 +231,16 @@ assert.match(
   attachmentAccessSource,
   /Authorization.*Bearer/,
   "Las solicitudes locales deben llevar la sesión autenticada del usuario."
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/app-state.js",
+  "src/audio-server-config.js"
+);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/audio-server-config.js",
+  "src/attachment-access.js"
 );
 assertScriptBefore(
   readFileSync(indexPath, "utf8"),
@@ -242,9 +267,7 @@ async function runAttachmentAccessRegressionTests() {
     AbortController,
     setTimeout,
     clearTimeout,
-    window: {
-      BANDABASE_AUDIO_SERVER_URL: "http://127.0.0.1:8788"
-    },
+    window: audioServerConfigContext.window,
     supabaseClient: {
       auth: {
         getSession: async () => ({
@@ -292,11 +315,11 @@ async function runAttachmentAccessRegressionTests() {
   );
   assert.equal(
     localUrl,
-    "http://127.0.0.1:8788/api/media/local-ticket",
+    "https://laptop-2pepu3jl.tail831d95.ts.net/api/media/local-ticket",
     "Un audio presente en la biblioteca debe usar el ticket local."
   );
   assert.equal(fetchCalls.length, 1);
-  assert.equal(fetchCalls[0].url, "http://127.0.0.1:8788/api/ticket");
+  assert.equal(fetchCalls[0].url, "https://laptop-2pepu3jl.tail831d95.ts.net/api/ticket");
   assert.equal(fetchCalls[0].options.headers.Authorization, "Bearer test-access-token");
   assert.deepEqual(
     JSON.parse(fetchCalls[0].options.body),
