@@ -479,26 +479,11 @@ function renderProposals() {
               button.textContent = "Preparando archivo…";
 
               try {
-                const {
-                  data,
-                  error
-                } = await supabaseClient
-                  .storage
-                  .from("materials")
-                  .createSignedUrl(
-                    attachment.storage_path,
-                    3600
-                  );
-
-                if (error || !data?.signedUrl) {
-                  throw new Error(
-                    error?.message ||
-                    "No se pudo abrir el archivo."
-                  );
-                }
-
-                fileWindow.location.href =
-                  data.signedUrl;
+                const accessUrl = await getAttachmentAccessUrl(
+                  "proposal_attachments",
+                  attachment
+                );
+                fileWindow.location.href = accessUrl;
               } catch (error) {
                 try {
                   fileWindow.close();
@@ -547,20 +532,12 @@ function renderProposals() {
             button.textContent = "Preparando descarga…";
 
             try {
-              const { data, error } = await supabaseClient
-                .storage
-                .from("materials")
-                .createSignedUrl(
-                  attachment.storage_path,
-                  3600,
-                  { download: attachment.file_name || attachment.title || true }
-                );
-
-              if (error || !data?.signedUrl) {
-                throw new Error(error?.message || "No se pudo preparar la descarga.");
-              }
-
-              downloadWindow.location.href = data.signedUrl;
+              const accessUrl = await getAttachmentAccessUrl(
+                "proposal_attachments",
+                attachment,
+                { download: true }
+              );
+              downloadWindow.location.href = accessUrl;
             } catch (error) {
               try { downloadWindow.close(); } catch {}
               showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
