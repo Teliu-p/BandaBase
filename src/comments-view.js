@@ -204,7 +204,7 @@ function renderCommentBlocks(
           '<div class="comment-audio-lazy-controls">' +
           '<button type="button" class="btn btn-subtle comment-audio-load" data-comment-audio-load>▶ Reproducir audio</button>' +
           '<button type="button" class="btn btn-subtle" data-download-comment-attachment="' + escapeHtml(attachment.id) + '">Descargar</button>' +
-          '<audio class="comment-audio" controls preload="none" data-comment-audio="' +
+          '<audio class="comment-audio" controls preload="none" data-comment-audio-id="' + escapeHtml(attachment.id) + '" data-comment-audio="' +
           escapeHtml(
             attachment.storage_path ||
             ""
@@ -562,10 +562,15 @@ function bindCommentAttachmentEvents() {
                 "[data-comment-audio]"
               );
 
-            const storagePath =
-              player?.dataset.commentAudio;
+            const attachmentId = player?.dataset.commentAudioId;
+            const attachment = [
+              ...generalComments,
+              ...currentComments
+            ]
+              .flatMap(comment => comment.attachments || [])
+              .find(item => String(item.id) === String(attachmentId));
 
-            if (!player || !storagePath) {
+            if (!player || !attachment?.storage_path) {
               return;
             }
 
@@ -573,26 +578,16 @@ function bindCommentAttachmentEvents() {
             button.disabled = true;
             button.textContent = "Preparando audio…";
 
-            let signedUrl = null;
+            let audioUrl = null;
             let loadError = null;
 
             try {
-              const response =
-                await supabaseClient
-                  .storage
-                  .from("materials")
-                  .createSignedUrl(
-                    storagePath,
-                    3600
-                  );
-
-              signedUrl = response.data?.signedUrl || null;
-              loadError = response.error || null;
+              audioUrl = await getAttachmentAccessUrl("comment_attachments", attachment);
             } catch (error) {
               loadError = error;
             }
 
-            if (loadError || !signedUrl) {
+            if (loadError || !audioUrl) {
               button.dataset.loading = "false";
               button.disabled = false;
               button.textContent = "Reintentar audio";
@@ -605,7 +600,7 @@ function bindCommentAttachmentEvents() {
               return;
             }
 
-            player.src = signedUrl;
+            player.src = audioUrl;
             player.hidden = false;
             button.hidden = true;
 
@@ -680,35 +675,15 @@ function bindCommentAttachmentEvents() {
               return;
             }
 
-            const {
-              data,
-              error
-            } =
-              await supabaseClient
-                .storage
-                .from("materials")
-                .createSignedUrl(
-                  attachment.storage_path,
-                  3600
-                );
-
-            if (
-              error ||
-              !data?.signedUrl
-            ) {
+            try {
+              const accessUrl = await getAttachmentAccessUrl("comment_attachments", attachment);
+              window.open(accessUrl, "_blank", "noopener,noreferrer");
+            } catch (error) {
               showNotice(
-                error?.message ||
-                  "No se pudo abrir el archivo.",
+                error?.message || "No se pudo abrir el archivo.",
                 "error"
               );
-              return;
             }
-
-            window.open(
-              data.signedUrl,
-              "_blank",
-              "noopener,noreferrer"
-            );
           }
         );
       }
@@ -745,18 +720,12 @@ function bindCommentAttachmentEvents() {
         button.textContent = "Preparando descarga…";
 
         try {
-          const { data, error } = await supabaseClient
-            .storage
-            .from("materials")
-            .createSignedUrl(
-              attachment.storage_path,
-              3600,
-              { download: attachment.name || attachment.file_name || attachment.title || true }
-            );
-          if (error || !data?.signedUrl) {
-            throw new Error(error?.message || "No se pudo preparar la descarga.");
-          }
-          downloadWindow.location.href = data.signedUrl;
+          const accessUrl = await getAttachmentAccessUrl(
+            "comment_attachments",
+            attachment,
+            { download: true }
+          );
+          downloadWindow.location.href = accessUrl;
         } catch (error) {
           try { downloadWindow.close(); } catch {}
           showNotice(error?.message || "No se pudo descargar el archivo adjunto.", "error");
