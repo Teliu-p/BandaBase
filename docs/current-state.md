@@ -1,6 +1,6 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-10-26, Argentina.  
+**Última actualización:** 2026-11-03, Argentina.  
 **Último cambio funcional documentado antes de este apartado:** PR #134 (actualizaciones en tiempo real, iconos SVG propios y paridad del editor Materiales); la CI funcional pasó en el run #618. Este apartado documenta el trabajo siguiente en PR #135; comprobar su CI/estado y Pages antes de asumir integración. Los runs anteriores no sustituyen una prueba auditiva con pistas reales.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
@@ -193,13 +193,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 
 
 
-## 14. Integración de biblioteca local de audio (rama en revisión, 2026-11-03)
+## 14. Integración de biblioteca local de audio (PR #136 integrada, 2026-11-03)
 
-- Rama: `feat/local-audio-attachment-routing-20261103`, basada en `main` `f215f6222f8b0a4c590f0f60d0cd7742f0c2125e`. Esta integración todavía no está fusionada ni desplegada.
+- PR #136 se fusionó en `main` como `e96712ee41de5599e36a58b1d1dd72d2919946bd`, basada en el HEAD anterior `f215f6222f8b0a4c590f0f60d0cd7742f0c2125e`.
 - `src/attachment-access.js` centraliza la resolución de adjuntos. Para MIME `audio/*` pide un ticket al servidor local usando la tabla y el UUID del adjunto con el JWT del usuario; el servidor local verifica el registro con Supabase/RLS y entrega el archivo del manifiesto. Materiales (incluidos marcadores, reproducción y descarga), Comentarios (reproducción, apertura y descarga) y Propuestas (apertura y descarga) llaman al resolutor común.
 - Si el adjunto no está copiado en la biblioteca (HTTP 409), el servidor local no está disponible o no hay token local utilizable, se mantiene el acceso firmado actual de Supabase Storage. Los rechazos HTTP del servidor, especialmente 403, no se silencian mediante fallback. Los adjuntos no-audio permanecen en Storage.
 - El endpoint por defecto en la app es `http://127.0.0.1:8788`. `window.BANDABASE_AUDIO_SERVER_URL` permite configurarlo para un host HTTPS futuro. El valor de Funnel aún no se conoce/configura; mientras tanto, este modo solo apunta a un servidor en la misma computadora. El acceso desde dispositivos externos queda pendiente.
 - Prueba manual previa de extremo a extremo del servidor (desde la página desplegada con sesión real): ticket HTTP 200, HEAD 200, MIME `audio/flac`, Content-Length 11.441.359, Range 206 y 1024 bytes recibidos; el FLAC se reprodujo audiblemente en un reproductor temporal. Esto no valida todavía los controles finales de la interfaz.
 - No se cambiaron datos, tablas, `storage_path`, políticas, RLS, Storage ni migraciones.
-- **CI aprobada:** workflow [Tests #41720921806](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) en `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test` pasó; ESLint `no-undef` pasó; Playwright/Chromium pasó (14 pruebas). La revisión del diff completó sin cambios en Supabase.
-- Pendiente: prueba autenticada con los controles finales de Materiales/Comentarios/Propuestas después de desplegar la PR, y configuración de Funnel para probar el acceso desde una segunda computadora.
+- **CI de la PR aprobada:** workflow [Tests #41720921806](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) en `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas) pasaron. Tras el merge, [Tests de main #41721358288](https://github.com/Teliu-p/BandaBase/actions/runs/41721358288) y [Pages #41721358287](https://github.com/Teliu-p/BandaBase/actions/runs/41721358287) también pasaron.
+- Pendiente: prueba autenticada con los controles finales de Materiales/Comentarios/Propuestas en la web desplegada y configuración de Funnel para probar el acceso desde una segunda computadora.
