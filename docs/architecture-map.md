@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** revisión de PR #135, inspeccionada el 2026-10-26. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
+**Base funcional de observación:** PR #136 integrada el 2026-11-03 (merge `e96712ee41de5599e36a58b1d1dd72d2919946bd`). Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
 
 ## 1. Arquitectura a alto nivel
 
@@ -164,11 +164,11 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 
 
 
-## Actualización: acceso a la biblioteca local de audio (rama de integración, 2026-11-03)
+## Actualización: acceso a la biblioteca local de audio (PR #136 integrada, 2026-11-03)
 
 - `src/attachment-access.js` centraliza el acceso de Materiales, Comentarios y Propuestas. Para adjuntos con MIME `audio/*`, solicita `POST /api/ticket` con la tabla, el UUID del adjunto y el JWT de Supabase; el servidor local vuelve a consultar la fila con ese JWT, por lo que RLS sigue siendo la autoridad de permisos.
 - Cuando el servidor devuelve un ticket, el navegador usa la URL `/api/media/` del propio servidor. HTTP 409 (adjunto todavía no copiado) y un servidor local inaccesible conservan el fallback firmado de Supabase Storage. Los rechazos HTTP de autorización/servidor se muestran al usuario en lugar de ocultarse con un fallback.
 - Los adjuntos que no son audio no intentan usar el servidor local, porque el endpoint de medios local está diseñado para servir audio inline; sus aperturas y descargas siguen en Supabase Storage.
 - El endpoint predeterminado es `http://127.0.0.1:8788`. Se puede sustituir en runtime con `window.BANDABASE_AUDIO_SERVER_URL`; para usuarios de otras computadoras hará falta configurar el hostname HTTPS de Tailscale Funnel. Ese paso no está realizado en esta rama.
 - El cambio no modifica `storage_path`, filas de adjuntos, esquema, políticas, RLS, Storage ni migraciones.
-- La verificación manual inicial del servidor local confirmó /health, ticket 200, HEAD 200, audio/flac, Range 206 y reproducción audible del FLAC de prueba. CI de PR #136 pasó en el commit `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). Queda pendiente una prueba autenticada de los controles finales desde la aplicación; la reproducción manual previa usó un reproductor temporal, no la interfaz final de Materiales.
+- La verificación manual inicial del servidor local confirmó /health, ticket 200, HEAD 200, audio/flac, Range 206 y reproducción audible del FLAC de prueba. CI de la PR pasó en el commit `f6440040196e25553a5eb4ed73b6e11b300e028a`: `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). Tras el merge funcional `e96712ee41de5599e36a58b1d1dd72d2919946bd`, Tests de main (#41721358288) y Pages (#41721358287) también pasaron. Queda pendiente una prueba autenticada de los controles finales desde la aplicación; la reproducción manual previa usó un reproductor temporal, no la interfaz final de Materiales.
