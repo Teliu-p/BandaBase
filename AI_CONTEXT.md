@@ -104,3 +104,6 @@ Estoy trabajando en BandaBase. Leé primero AI_CONTEXT.md y los cuatro documento
 ## Actualización de contexto (2026-11-03): biblioteca local de audio
 
 Se probó el servidor local en Windows con un FLAC de 11.441.359 bytes. La prueba autenticada desde GitHub Pages obtuvo ticket HTTP 200, lectura HEAD 200, tipo audio/flac, descarga por rango HTTP 206 con 1024 bytes correctos y reproducción audible en un reproductor temporal. La nueva integración cliente está en la rama `feat/local-audio-attachment-routing-20261103`; no está fusionada ni desplegada. Mantiene fallback a Supabase Storage para audios no copiados o servidor local inaccesible, y no modifica datos ni `storage_path`. El endpoint está configurado por defecto a loopback; otras computadoras requieren el hostname de Tailscale Funnel, todavía pendiente. No activar Funnel hasta que la integración pase CI y la prueba final en la UI.
+
+
+Verificación de CI de la integración local (PR #136): commit `f6440040196e25553a5eb4ed73b6e11b300e028a`; workflow [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/41720921806) pasó `npm test`, ESLint `no-undef` y Playwright/Chromium (14 pruebas). La PR sigue en borrador, no fusionada ni desplegada. Falta la prueba de los controles finales de la interfaz con sesión real y, para otras computadoras, configurar y probar Tailscale Funnel.
