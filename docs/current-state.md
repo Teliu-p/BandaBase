@@ -221,3 +221,11 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - La aplicación carga `src/audio-server-config.js` antes de `src/attachment-access.js`, por lo que el resolutor utiliza el hostname HTTPS de Funnel. Se mantiene el envío del JWT de sesión y la consulta con RLS del servidor.
 - Pendiente exclusivamente la prueba autenticada de reproducción desde una segunda computadora. El usuario debe mantener encendidos/despiertos el equipo anfitrión, el servidor Python y Funnel.
 - No se modificó Supabase, RLS, Storage, esquema, datos ni migraciones.
+
+## 17. Fallback de Storage con Funnel/servidor local no disponible (2026-11-04)
+
+- Al probar desde una segunda computadora cuando el host estaba apagado, el usuario observó que los audios dejaron de reproducirse. No se obtuvo el código HTTP real del intento que falló, por lo que no se afirma que el proxy haya respondido necesariamente 502.
+- La inspección del resolver de main encontró que un fallo de red/timeout y HTTP 409 activaban el fallback a Supabase Storage, pero cualquier otro HTTP no exitoso (incluidos 5xx del proxy) se convertía en error explícito y cortaba el flujo.
+- En la rama `fix/audio-storage-fallback-server-errors-20261104` se añade fallback a Storage para HTTP 500/502/503/504. Los 4xx (incluido 403) siguen siendo errores explícitos. Se agregan pruebas para cada código 5xx.
+- La hipótesis de 5xx como causa concreta del incidente todavía requiere una prueba real con el host apagado. El cambio es una corrección defensiva del camino de fallback.
+- No se modificó Supabase, RLS, Storage, datos ni migraciones.
