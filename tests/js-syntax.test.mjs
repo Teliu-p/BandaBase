@@ -386,6 +386,28 @@ async function runAttachmentAccessRegressionTests() {
   );
   assert.equal(storageCalls.length, previousStorageCount);
 
+  for (const status of [500, 502, 503, 504]) {
+    fetchBehavior = async () => ({
+      ok: false,
+      status,
+      json: async () => ({ error: "El servidor local no está disponible." })
+    });
+    const serverErrorFallback = await getAttachmentAccessUrl(
+      "material_attachments",
+      audioAttachment
+    );
+    assert.equal(
+      serverErrorFallback,
+      "https://storage.example.test/signed",
+      "Un error HTTP " + status + " del servidor local debe activar el fallback a Supabase Storage."
+    );
+  }
+  assert.equal(
+    storageCalls.length,
+    previousStorageCount + 4,
+    "Los errores HTTP 5xx deben recurrir a Storage en lugar de bloquear la reproducción."
+  );
+
   fetchBehavior = async () => {
     throw new TypeError("Servidor local no disponible");
   };
