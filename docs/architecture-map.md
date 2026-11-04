@@ -186,3 +186,9 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - La configuración se integró mediante PR #137 en `678c218ac591f25d022d760280249158cfddefd8`: `src/audio-server-config.js` establece el origen HTTPS de Funnel y se carga antes de `attachment-access.js`.
 - Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron en main. El usuario confirmó reproducción del audio desde el reproductor habitual de Materiales en el host.
 - La validación desde una segunda computadora sigue pendiente; la configuración del cliente y el CORS están listos según las pruebas descritas arriba.
+
+## Ajuste de fallback ante errores HTTP del servidor local (2026-11-04)
+
+- `requestLocalAttachmentUrl` trata cualquier respuesta HTTP 5xx del servidor local o del proxy Funnel como indisponibilidad de la ruta local y devuelve `null`; el resolutor continúa con la URL firmada de Supabase Storage.
+- Se conservan como errores explícitos las respuestas 4xx distintas del 409 (en particular, 403 por autorización), para no ocultar rechazos de acceso.
+- La regresión cubre 500, 502, 503 y 504, además del rechazo 403 y la desconexión/timeout que ya se probaban.
