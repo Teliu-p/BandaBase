@@ -418,8 +418,8 @@ async function runAttachmentAccessRegressionTests() {
   assert.equal(offlineFallback, "https://storage.example.test/signed");
   assert.equal(
     storageCalls.length,
-    previousStorageCount + 1,
-    "Cuando el servidor local está apagado, el audio debe seguir funcionando desde Storage."
+    previousStorageCount + 5,
+    "Los errores HTTP 5xx y el servidor local apagado deben seguir usando Storage."
   );
 
   await assert.rejects(
