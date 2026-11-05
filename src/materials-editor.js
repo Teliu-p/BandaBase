@@ -489,33 +489,9 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
     }
   }
 
-  // En renglones vacíos o zonas sin glifos, conservar el posicionamiento nativo
-  // del navegador como alternativa.
-  let range = null;
-  if (typeof document.caretPositionFromPoint === "function") {
-    const point = document.caretPositionFromPoint(clientX, clientY);
-    if (point && editor.contains(point.offsetNode)) {
-      range = document.createRange();
-      range.setStart(point.offsetNode, point.offset);
-      range.collapse(true);
-    }
-  }
-  if (!range && typeof document.caretRangeFromPoint === "function") {
-    const point = document.caretRangeFromPoint(clientX, clientY);
-    if (point && editor.contains(point.startContainer)) {
-      range = point.cloneRange();
-      range.collapse(true);
-    }
-  }
-  if (!range) return null;
-
-  const caret = getMaterialRangeCaretPoint(range, editor, clientY);
-  return {
-    range,
-    x: caret?.x,
-    y: caret?.y,
-    height: caret?.height
-  };
+  // If the browser did not produce a valid text caret, keep the geometry
+  // fallback above as the only alternative; never insert into a non-editable chip.
+  return null;
 }
 
 
