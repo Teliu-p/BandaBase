@@ -192,3 +192,10 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - La regresión Chromium arrastra un PDF no-audio, verifica seguimiento del puntero, movimiento de la posición sombreada, texto a ambos lados y conservación de la identidad DOM. Se mantienen las pruebas de audio, orden y cancelación.
 - Tests de la PR [#42085812268](https://github.com/Teliu-p/BandaBase/actions/runs/42085812268), Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y GitHub Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) finalizaron correctamente en el commit integrado.
 - No hubo cambios en Supabase, esquema, migraciones, RLS, Storage, datos ni servidor Python.
+
+
+## Seguimiento urgente — posición del drop exactamente bajo el cursor (2026-11-05)
+
+- El usuario detectó que la primera implementación genérica (#144) aún podía insertar el audio al comienzo del renglón, aunque se soltara sobre un punto horizontal posterior. No debe requerir espacios manuales después de soltar.
+- La corrección en preparación hace hit-testing con las coordenadas finales del puntero usando primero el caret nativo del navegador (`caretPositionFromPoint` / `caretRangeFromPoint`), conserva la búsqueda geométrica como fallback y recalcula el destino al recibir `pointerup`.
+- Pruebas nuevas deben comprobar la coordenada horizontal exacta: borde izquierdo del sombreado dentro de 2 px del caret bajo el mouse, tanto para audio como para archivo no-audio, y verificar el texto antes/después luego del commit. No considerar suficientes los tests anteriores de movimiento entre renglones.
