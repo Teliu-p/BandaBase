@@ -47,6 +47,17 @@ function getSafeMaterialUrl(value) {
 }
 
 
+function isMaterialAudioAttachment(attachment) {
+  return Boolean(
+    String(attachment?.storage_path || "").startsWith("local:") ||
+    isMaterialAudioFile({
+      name: attachment?.name || attachment?.file_name || attachment?.title || "",
+      type: attachment?.mime_type || ""
+    })
+  );
+}
+
+
 function sanitizeStorageFileName(fileName) {
 
   return String(fileName || "archivo")
@@ -75,11 +86,7 @@ function getMaterialAttachmentIcon(
       attachment?.mime_type || ""
     ).toLowerCase();
 
-  if (
-    mime.startsWith(
-      "audio/"
-    )
-  ) {
+  if (isMaterialAudioAttachment(attachment)) {
     return "♫";
   }
 
@@ -577,7 +584,7 @@ function disposeMaterialAudioSeekEnginePool() {
 function getMaterialAudioAttachmentsForCurrentSong() {
   return getAllCurrentMaterialAttachments().filter(attachment =>
     attachment.kind === "file" &&
-    String(attachment.mime_type || "").toLowerCase().startsWith("audio/") &&
+    isMaterialAudioAttachment(attachment) &&
     attachment.storage_path
   );
 }
@@ -937,7 +944,7 @@ function renderMaterialViewBlock(block) {
 
   if (
     attachment.kind === "file" &&
-    String(attachment.mime_type || "").startsWith("audio/")
+    isMaterialAudioAttachment(attachment)
   ) {
     const label = escapeHtml(name);
     return (
