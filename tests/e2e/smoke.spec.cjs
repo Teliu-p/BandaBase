@@ -381,8 +381,8 @@ test("dragging a Material audio drops at the caret under the pointer instead of 
   const target = await page.evaluate(() => {
     const text = document.getElementById("pointer-drop-text").firstChild;
     const range = document.createRange();
-    range.setStart(text, 14);
-    range.setEnd(text, 15);
+    range.setStart(text, 13);
+    range.setEnd(text, 14);
     const rect = range.getBoundingClientRect();
     window.__pointerDropExpectedX = rect.right;
     return { x: rect.right, y: rect.top + rect.height / 2 };
