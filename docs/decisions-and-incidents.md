@@ -232,3 +232,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - El servidor actualizado v0.3 se entrega al usuario como archivo. El deploy web no cambia la copia Python instalada localmente: el usuario debe detener el proceso anterior y reemplazar solo \`bandabase_audio_server.py\`, preservando biblioteca, manifiesto, secreto de tickets y backups.
 - Prueba aislada final contra HTTP local con Supabase simulado pasó: upload 201; ticket 200; reproducción parcial 206; rechazo de sesión 403; rechazo de sobrescritura 400; delete 200.
 - Pendiente final, solo desde el equipo anfitrión: instalar v0.3, iniciar el servidor y guardar/reproducir un audio nuevo en Materiales con la sesión normal. No se exige una segunda PC.
+
+### 2026-11-05 — posición horizontal precisa al mover audios en Materiales
+
+- El usuario reportó que el audio cambiaba de renglón, pero se insertaba al extremo izquierdo o junto al primer texto, sin respetar el punto horizontal elegido; tampoco podía anticipar dónde quedaría.
+- La versión anterior resaltaba otro chip, pero no mostraba una posición de inserción sobre el texto y calculaba el destino al soltar con la API de caret del navegador. Eso no daba una referencia visible ni garantizaba la posición horizontal deseada.
+- El seguimiento calcula el destino usando los rectángulos visuales de caracteres y chips inline; muestra una guía vertical y un sombreado del ancho aproximado del audio. Al soltar reutiliza el rango de destino que estaba previsualizando. Se conserva el mismo nodo y los espacios de separación del chip.
+- La prueba de regresión arrastra un audio a mitad de un texto y comprueba que el rango queda entre dos caracteres concretos, que la guía coincide con ese punto y que el mismo nodo queda insertado allí.
+- El cambio no requiere migraciones, RLS, Storage ni escrituras a Supabase.
