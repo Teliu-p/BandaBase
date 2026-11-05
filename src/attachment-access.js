@@ -243,10 +243,8 @@ async function deleteLocalMaterialAttachment(attachmentId) {
     {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + accessToken,
-        "Content-Type": "application/json"
-      },
-      body: "{}"
+        "Authorization": "Bearer " + accessToken
+      }
     }
   );
 
@@ -278,7 +276,10 @@ async function getAttachmentAccessUrl(table, attachment, options = {}) {
   }
 
   const download = options.download === true;
-  const isAudio = String(attachment.mime_type || "").toLowerCase().startsWith("audio/");
+  const isAudio = isMaterialAudioFile({
+    name: attachment.name || attachment.file_name || attachment.title || "",
+    type: attachment.mime_type || ""
+  });
 
   if (isAudio) {
     const localUrl = await requestLocalAttachmentUrl(table, attachmentId, download);
