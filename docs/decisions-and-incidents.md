@@ -45,6 +45,12 @@ Estos son reportes históricos de iteraciones previas. No significan necesariame
 
 Regla: no revivir automáticamente estos problemas; comprobar el código y reproducir el error antes de editar. Después de editar, agregar una prueba que hubiera detectado el caso original cuando sea viable.
 
+### 2026-11-05 — selección múltiple y reordenamiento de audio en Materiales
+
+- Requisito: adjuntar más de un archivo por selección y poder mover un audio inline manteniendo pulsado y arrastrando, sin crear una referencia duplicada.
+- La primera prueba solo usaba el drag-and-drop HTML5; no simulaba el gesto de puntero habitual del usuario. Se sustituye por Pointer Events: prevenir selección nativa, mover el mismo nodo y comprobar identidad de nodo + orden serializado en Chromium.
+- La versión de main observada al reproducir el reporte era `7b48607925b638a5cf2f061bbf09bb71d4563cc8`; no contenía `multiple` ni el código nuevo porque PR #141 seguía abierta. No confundir pruebas de rama con despliegue en Pages.
+
 ## Registro operativo de hechos recientes
 
 ### 2026-10-12 — informe de reconciliación de migraciones
