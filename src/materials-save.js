@@ -15,7 +15,8 @@ async function cleanupFailedMaterialSave({
   wasNew,
   originalMaterial,
   createdAttachmentIds,
-  uploadedStoragePaths
+  uploadedStoragePaths,
+  localAudioAttachmentIds
 }) {
   const cleanupErrors = [];
   const storagePaths = [...new Set(uploadedStoragePaths || [])];
@@ -47,7 +48,46 @@ async function cleanupFailedMaterialSave({
     }
   }
 
+  const localAudioIds = new Set(localAudioAttachmentIds || []);
+
   for (const attachmentId of [...(createdAttachmentIds || [])].reverse()) {
+    if (localAudioIds.has(attachmentId)) {
+      try {
+        const result = await deleteLocalMaterialAttachment(attachmentId);
+        if (result?.local_file_deleted === false) {
+          recordCleanupError(
+            "El registro se quitó, pero no se confirmó la eliminación de su copia local",
+            null
+          );
+        }
+        continue;
+      } catch (localDeleteError) {
+        try {
+          const { error } = await deleteMaterialAttachment(
+            supabaseClient,
+            attachmentId
+          );
+          if (error) {
+            recordCleanupError(
+              "No se pudo eliminar el registro del audio local",
+              error
+            );
+          } else {
+            recordCleanupError(
+              "Se quitó el registro del audio, pero el servidor local no respondió; el archivo podría quedar en la biblioteca",
+              localDeleteError
+            );
+          }
+        } catch (error) {
+          recordCleanupError(
+            "No se pudo eliminar el registro del audio local",
+            error
+          );
+        }
+        continue;
+      }
+    }
+
     try {
       const { error } = await deleteMaterialAttachment(
         supabaseClient,
@@ -195,6 +235,7 @@ async function saveMaterialDraft() {
 
   const createdAttachmentIds = [];
   const uploadedStoragePaths = [];
+  const localAudioAttachmentIds = [];
 
   async function abortSaveWithError(
     message
@@ -206,7 +247,8 @@ async function saveMaterialDraft() {
         wasNew,
         originalMaterial,
         createdAttachmentIds,
-        uploadedStoragePaths
+        uploadedStoragePaths,
+        localAudioAttachmentIds
       });
 
     showNotice(
@@ -447,6 +489,93 @@ async function saveMaterialDraft() {
 
     }
 
+    const mimeType = getMaterialFileMimeType(file);
+    const isAudioFile = isMaterialAudioFile(file);
+
+    if (isAudioFile) {
+      const extension = String(file.name || "").match(/\.([a-z0-9]{1,10})$/i)?.[1]?.toLowerCase();
+      const localKey = crypto.randomUUID().replaceAll("-", "") +
+        (extension ? "." + extension : "");
+      const storagePath = "local:" + localKey;
+
+      setMaterialSaveProgress(
+        "Registrando audio local " + processedAttachmentCount + " de " + pendingAttachmentCount + "…"
+      );
+
+      const {
+        data: attachment,
+        error
+      } = await createMaterialAttachment(
+        supabaseClient,
+        {
+          material_id: materialId,
+          kind: "file",
+          name: file.name,
+          url: null,
+          storage_path: storagePath,
+          mime_type: mimeType,
+          created_by: currentUser.id
+        }
+      );
+
+      if (error) {
+        const cleanupErrors = await cleanupFailedMaterialSave({
+          materialId,
+          wasNew,
+          originalMaterial,
+          createdAttachmentIds,
+          uploadedStoragePaths,
+          localAudioAttachmentIds
+        });
+
+        showNotice(
+          getMaterialSaveFailureNotice(
+            "No se pudo registrar el audio local: " + error.message,
+            cleanupErrors
+          ),
+          "error"
+        );
+        return;
+      }
+
+      createdAttachmentIds.push(attachment.id);
+      localAudioAttachmentIds.push(attachment.id);
+
+      setMaterialSaveProgress(
+        "Guardando audio en la biblioteca local " + processedAttachmentCount + " de " + pendingAttachmentCount + "…"
+      );
+
+      try {
+        await uploadLocalMaterialAudio(attachment.id, file, mimeType);
+      } catch (uploadError) {
+        const cleanupErrors = await cleanupFailedMaterialSave({
+          materialId,
+          wasNew,
+          originalMaterial,
+          createdAttachmentIds,
+          uploadedStoragePaths,
+          localAudioAttachmentIds
+        });
+
+        showNotice(
+          getMaterialSaveFailureNotice(
+            "No se pudo guardar " + file.name + " en la biblioteca local: " +
+              (uploadError?.message || String(uploadError)),
+            cleanupErrors
+          ),
+          "error"
+        );
+        return;
+      }
+
+      persistedBlocks.push({
+        block_type: "attachment",
+        content: null,
+        attachment_id: attachment.id
+      });
+      continue;
+    }
+
     const storagePath =
       currentBand.id +
       "/" +
@@ -454,9 +583,7 @@ async function saveMaterialDraft() {
       "/" +
       crypto.randomUUID() +
       "-" +
-      sanitizeStorageFileName(
-        file.name
-      );
+      sanitizeStorageFileName(file.name);
 
     uploadedStoragePaths.push(storagePath);
 
@@ -466,21 +593,17 @@ async function saveMaterialDraft() {
 
     const {
       error: uploadError
-    } =
-      await supabaseClient
-        .storage
-        .from("materials")
-        .upload(
-          storagePath,
-          file,
-          {
-            upsert:
-              false,
-            contentType:
-              file.type ||
-              undefined
-          }
-        );
+    } = await supabaseClient
+      .storage
+      .from("materials")
+      .upload(
+        storagePath,
+        file,
+        {
+          upsert: false,
+          contentType: mimeType || undefined
+        }
+      );
 
     if (uploadError) {
       const cleanupErrors = await cleanupFailedMaterialSave({
@@ -488,7 +611,8 @@ async function saveMaterialDraft() {
         wasNew,
         originalMaterial,
         createdAttachmentIds,
-        uploadedStoragePaths
+        uploadedStoragePaths,
+        localAudioAttachmentIds
       });
 
       showNotice(
@@ -498,34 +622,24 @@ async function saveMaterialDraft() {
         ),
         "error"
       );
-
       return;
     }
 
     const {
       data: attachment,
       error
-    } =
-      await createMaterialAttachment(
-        supabaseClient,
-        {
-          material_id:
-            materialId,
-          kind:
-            "file",
-          name:
-            file.name,
-          url:
-            null,
-          storage_path:
-            storagePath,
-          mime_type:
-            file.type ||
-            null,
-          created_by:
-            currentUser.id
-        }
-      );
+    } = await createMaterialAttachment(
+      supabaseClient,
+      {
+        material_id: materialId,
+        kind: "file",
+        name: file.name,
+        url: null,
+        storage_path: storagePath,
+        mime_type: mimeType,
+        created_by: currentUser.id
+      }
+    );
 
     if (error) {
       const cleanupErrors = await cleanupFailedMaterialSave({
@@ -533,7 +647,8 @@ async function saveMaterialDraft() {
         wasNew,
         originalMaterial,
         createdAttachmentIds,
-        uploadedStoragePaths
+        uploadedStoragePaths,
+        localAudioAttachmentIds
       });
 
       showNotice(
@@ -543,7 +658,6 @@ async function saveMaterialDraft() {
         ),
         "error"
       );
-
       return;
     }
 
@@ -655,7 +769,13 @@ async function saveMaterialDraft() {
     const fileAttachments = removedAttachments.filter(
       attachment => attachment.kind === "file" && attachment.storage_path
     );
-    const storagePaths = fileAttachments.map(
+    const localAudioAttachments = fileAttachments.filter(attachment =>
+      String(attachment.mime_type || "").toLowerCase().startsWith("audio/")
+    );
+    const storageFileAttachments = fileAttachments.filter(attachment =>
+      !String(attachment.mime_type || "").toLowerCase().startsWith("audio/")
+    );
+    const storagePaths = storageFileAttachments.map(
       attachment => attachment.storage_path
     );
 
@@ -674,7 +794,7 @@ async function saveMaterialDraft() {
       }
 
       if (storageCleanupFailed) {
-        fileAttachments.forEach(
+        storageFileAttachments.forEach(
           attachment => retainedAttachmentIds.add(attachment.id)
         );
         cleanupWarnings.push(
@@ -683,8 +803,52 @@ async function saveMaterialDraft() {
       }
     }
 
+    const removedAttachmentById = new Map(
+      removedAttachments.map(attachment => [attachment.id, attachment])
+    );
+
     for (const attachmentId of removedIds) {
       if (retainedAttachmentIds.has(attachmentId)) {
+        continue;
+      }
+
+      const removedAttachment = removedAttachmentById.get(attachmentId);
+      const isLocalAudio = String(removedAttachment?.mime_type || "")
+        .toLowerCase()
+        .startsWith("audio/");
+
+      if (isLocalAudio) {
+        try {
+          const result = await deleteLocalMaterialAttachment(attachmentId);
+          if (
+            result?.local_file_deleted === false &&
+            String(removedAttachment?.storage_path || "").startsWith("local:")
+          ) {
+            cleanupWarnings.push(
+              "Se quitó el audio, pero no se confirmó que su archivo local haya sido eliminado."
+            );
+          }
+        } catch (localDeleteError) {
+          try {
+            const { error } = await deleteMaterialAttachment(
+              supabaseClient,
+              attachmentId
+            );
+            if (error) {
+              cleanupWarnings.push(
+                "No se pudo quitar el registro del audio; se conservará para reintentar la limpieza."
+              );
+            } else {
+              cleanupWarnings.push(
+                "Se quitó el registro del audio, pero el servidor local no respondió; el archivo podría seguir en la biblioteca."
+              );
+            }
+          } catch (error) {
+            cleanupWarnings.push(
+              "No se pudo quitar el registro del audio; se conservará para reintentar la limpieza."
+            );
+          }
+        }
         continue;
       }
 
