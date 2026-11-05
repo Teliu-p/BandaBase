@@ -3188,13 +3188,12 @@ document.addEventListener("pointermove", event => {
     event.clientY <= editorRect.bottom;
   if (!pointerInsideEditor) return;
 
-  moveMaterialComposerAttachmentPreviewToPoint(
+  state.hasValidDropTarget = moveMaterialComposerAttachmentPreviewToPoint(
     event.clientX,
     event.clientY,
     materialComposerEditor,
     state
   );
-  state.hasValidDropTarget = Boolean(state.dropPlaceholder?.parentNode);
 }, true);
 
 document.addEventListener("pointerup", event => {
