@@ -264,10 +264,11 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Verificación del script entregado: \`py_compile\`; prueba HTTP aislada con Supabase simulado (403 sin sesión, upload 201, ticket 200, Range 206, clave existente no sobrescrita 400 y delete 200). Aún falta ejecutarlo instalado en Windows con la sesión real de Supabase; esa será la prueba final desde la PC anfitriona, sin requerir otro dispositivo.
 - No se ejecutaron migraciones ni se modificaron esquema, RLS, filas ni objetos de Storage. Audios históricos subidos a Storage quedan intactos; si no tienen copia en biblioteca/manifest, hay que volver a adjuntarlos desde el host para usarlos en Materiales. No hacer borrado masivo del bucket.
 
-## Seguimiento en curso — posición precisa de arrastre de audio (2026-11-05)
+## Resultado — posición precisa de arrastre de audio en Materiales (2026-11-05)
 
-- Rama: `fix/material-audio-precise-drop-preview-20261105`.
-- El cambio calcula el punto de inserción con geometría de caracteres/chips inline y muestra una guía vertical con sombreado del espacio estimado del audio. El mismo rango previsualizado se reutiliza al soltar.
-- Se agregó una prueba Playwright que apunta a una posición concreta dentro de una palabra y valida el rango, la guía, la identidad del nodo y el texto a ambos lados.
-- Estado de CI, PR, merge y despliegue: pendiente de verificación; no afirmar que está publicado hasta confirmar Pages.
-- No hay cambios de esquema ni operaciones sobre datos de Supabase.
+- PR #142 quedó integrada en `main` mediante squash merge, commit `f902f0e8287fcb879ea1f582a3b85ade561c94ca`: [PR #142](https://github.com/Teliu-p/BandaBase/pull/142).
+- El destino de inserción se calcula con la geometría visual de caracteres y chips inline. Durante el movimiento se muestra una guía vertical y un sombreado del ancho aproximado del audio; al soltar se reutiliza el mismo rango que se estaba previsualizando.
+- Se conserva el mismo nodo DOM del adjunto y el serializador sigue determinando el orden guardado.
+- CI del HEAD de PR `3cba0dc69ed26a561762609779eae37eeb2730d4` pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium: [Tests #41982813856](https://github.com/Teliu-p/BandaBase/actions/runs/41982813856). La regresión nueva ubica el audio entre dos caracteres concretos, valida la guía, el texto a ambos lados, la identidad del nodo y la limpieza del indicador.
+- Tras el merge, los workflows de main para Tests y GitHub Pages se iniciaron en `f902f0e8287fcb879ea1f582a3b85ade561c94ca`; su resultado final debe comprobarse antes de afirmar que la versión pública está desplegada.
+- No hay cambios de esquema, migraciones, RLS, Storage ni operaciones sobre datos de Supabase.
