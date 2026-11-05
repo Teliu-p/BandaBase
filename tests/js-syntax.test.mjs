@@ -2215,8 +2215,14 @@ assert.match(
 );
 assert.match(
   materialViewSource,
-  /function getMaterialAudioAttachmentsForCurrentSong\([\s\S]*?currentMaterials[\s\S]*?material\.attachments[\s\S]*?mime_type/,
+  /function getMaterialAudioAttachmentsForCurrentSong\([\s\S]*?getAllCurrentMaterialAttachments\(\)[\s\S]*?isMaterialAudioAttachment/,
   "El destino de un marcador debe incluir también los audios adjuntos a Materiales que estén plegados."
+);
+
+assert.match(
+  materialViewSource,
+  /function isMaterialAudioAttachment([sS]*?storage_path[sS]*?local:/,
+  "La vista debe identificar como audio los adjuntos cuyo storage_path usa la clave local."
 );
 assert.match(
   materialViewSource,
