@@ -114,8 +114,8 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
       signal: controller.signal
     });
   } catch (error) {
-    // An unavailable local server must not prevent existing Storage files
-    // from continuing to work.
+    // Unavailable local access remains a Storage fallback only for the
+    // attachment tables that have not opted into local-only Materials audio.
     if (error?.name === "AbortError" || error?.name === "TypeError") {
       return null;
     }
@@ -142,7 +142,7 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
   }
 
   // A local server or Funnel 5xx response means the local route is unavailable.
-  // Do not let an infrastructure failure block the existing Storage fallback.
+  // Materials audio will stop locally; Comments/Proposals may still use Storage.
   // Client/permission errors (especially 403) remain explicit and are not hidden.
   if (response.status >= 500) return null;
 
@@ -164,10 +164,9 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
 
 
 /**
- * Resolve a private attachment through the local library when it is present.
- * Uncopied files and an unavailable local server retain the existing
- * Supabase Storage signed-URL behavior. The local server rechecks the
- * attachment row with the user's JWT and RLS before returning a ticket.
+ * Upload or remove audio belonging to Materials through the authenticated
+ * local library server. These helpers intentionally do not call Supabase
+ * Storage; the server rechecks the user session and the attachment row.
  */
 async function uploadLocalMaterialAudio(attachmentId, file, mimeType = getMaterialFileMimeType(file)) {
   if (typeof attachmentId !== "string" || !attachmentId) {
@@ -282,7 +281,7 @@ async function getAttachmentAccessUrl(table, attachment, options = {}) {
   }
 
   const download = options.download === true;
-  const isAudio = isMaterialAudioFile({
+  const isAudio = storagePath.startsWith("local:") || isMaterialAudioFile({
     name: attachment.name || attachment.file_name || attachment.title || "",
     type: attachment.mime_type || ""
   });
