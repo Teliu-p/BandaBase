@@ -540,6 +540,196 @@ test("native drag commits at the pointer position inside a Material text line", 
   expect(runtimeErrors, "JavaScript errors during native text-line drag").toEqual([]);
 });
 
+test("native drag keeps the preview aligned when the source audio is embedded in text", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-embedded-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-embedded-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Texto antes del audio "),
+      audio,
+      document.createTextNode(" texto después del audio")
+    );
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-embedded-destination";
+    destinationLine.textContent =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ texto de destino con más contenido";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeEmbeddedAudio = audio;
+    window.__nativeEmbeddedLine = destinationLine;
+    window.__nativeEmbeddedDiagnostics = [];
+    editor.addEventListener("dragover", event => {
+      const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
+      const rect = placeholder?.getBoundingClientRect();
+      window.__nativeEmbeddedDiagnostics.push({
+        x: event.clientX,
+        y: event.clientY,
+        previewLeft: rect?.left ?? null
+      });
+    });
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-embedded-destination");
+    const range = document.createRange();
+    range.selectNodeContents(line.firstChild);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.left + rect.width * 0.42, y: rect.top + rect.height / 2 };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  const preview = await page.evaluate(() => {
+    const placeholder = document.querySelector(".material-attachment-drop-placeholder");
+    const rect = placeholder?.getBoundingClientRect();
+    return {
+      rectLeft: rect?.left ?? null,
+      lastEvent: window.__nativeEmbeddedDiagnostics.at(-1) ?? null
+    };
+  });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const line = window.__nativeEmbeddedLine;
+    const audio = window.__nativeEmbeddedAudio;
+    const before = document.createRange();
+    before.selectNodeContents(line);
+    before.setEndBefore(audio);
+    const rect = audio.getBoundingClientRect();
+    return {
+      audioInDestination: line.contains(audio),
+      textBefore: before.toString(),
+      audioLeft: rect.left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_EMBEDDED_SOURCE_RESULT", JSON.stringify({ target, preview, committed }));
+  expect(committed.audioInDestination).toBe(true);
+  expect(committed.textBefore.length).toBeGreaterThan(5);
+  expect(committed.textBefore.length).toBeLessThan(50);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(preview.rectLeft - committed.audioLeft)).toBeLessThanOrEqual(2);
+  expect(runtimeErrors, "JavaScript errors when dragging an audio embedded in text").toEqual([]);
+});
+
+test("native drag preview and committed audio agree on an actual empty line", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-empty-line-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-empty-line-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Origen "),
+      audio,
+      document.createTextNode(" final")
+    );
+    const beforeLine = document.createElement("div");
+    beforeLine.textContent = "Texto de la línea anterior";
+    const emptyLine = document.createElement("div");
+    emptyLine.id = "native-empty-line-destination";
+    emptyLine.appendChild(document.createElement("br"));
+    editor.replaceChildren(sourceLine, beforeLine, emptyLine);
+    window.__nativeEmptyAudio = audio;
+    window.__nativeEmptyLine = emptyLine;
+    window.__nativeEmptyDiagnostics = [];
+    editor.addEventListener("dragover", event => {
+      const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
+      const rect = placeholder?.getBoundingClientRect();
+      window.__nativeEmptyDiagnostics.push({
+        x: event.clientX,
+        y: event.clientY,
+        previewLeft: rect?.left ?? null
+      });
+    });
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-empty-line-destination");
+    const rect = line.getBoundingClientRect();
+    return { x: rect.left + Math.min(220, rect.width * 0.55), y: rect.top + rect.height / 2 };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  const preview = await page.evaluate(() => {
+    const placeholder = document.querySelector(".material-attachment-drop-placeholder");
+    const rect = placeholder?.getBoundingClientRect();
+    return {
+      inEmptyLine: Boolean(placeholder && window.__nativeEmptyLine.contains(placeholder)),
+      rectLeft: rect?.left ?? null,
+      lastEvent: window.__nativeEmptyDiagnostics.at(-1) ?? null
+    };
+  });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const audio = window.__nativeEmptyAudio;
+    const rect = audio.getBoundingClientRect();
+    return {
+      inEmptyLine: window.__nativeEmptyLine.contains(audio),
+      audioLeft: rect.left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_EMPTY_LINE_RESULT", JSON.stringify({ target, preview, committed }));
+  expect(preview.inEmptyLine).toBe(true);
+  expect(committed.inEmptyLine).toBe(true);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(preview.rectLeft - committed.audioLeft)).toBeLessThanOrEqual(2);
+  expect(runtimeErrors, "JavaScript errors when dragging into an empty line").toEqual([]);
+});
+
 test("native Material drag cancelled outside the editor restores the original audio", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
