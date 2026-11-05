@@ -261,16 +261,17 @@ test("dragging a Material audio previews its real inline space and shifts text l
   const committed = await page.evaluate(() => {
     const audio = window.__livePreviewAudio;
     const editor = document.getElementById("materialComposerEditor");
-    const nextTextNode = (() => {
-      let node = audio.nextSibling;
+    const nearestNonWhitespaceText = (node, direction) => {
       while (node) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node;
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+          return node.nodeValue.trim();
+        }
         if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
-            node.textContent?.trim()) return node.firstChild;
-        node = node.nextSibling;
+            node.textContent?.trim()) return node.textContent.trim();
+        node = node[direction];
       }
-      return null;
-    })();
+      return "";
+    };
     return {
       sameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
         editor.querySelector("[data-material-draggable-audio='true']") === audio,
@@ -278,7 +279,8 @@ test("dragging a Material audio previews its real inline space and shifts text l
       originMarkerRemoved: !editor.querySelector(".material-audio-origin-placeholder"),
       previewRemoved: !editor.querySelector(".material-audio-drop-placeholder"),
       dragHighlightRemoved: !audio.classList.contains("is-dragging"),
-      textAfter: nextTextNode?.nodeValue?.trim() || ""
+      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
+      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling")
     };
   });
   expect(committed.sameNode).toBe(true);
@@ -286,7 +288,8 @@ test("dragging a Material audio previews its real inline space and shifts text l
   expect(committed.originMarkerRemoved).toBe(true);
   expect(committed.previewRemoved).toBe(true);
   expect(committed.dragHighlightRemoved).toBe(true);
-  expect(committed.textAfter.length).toBeGreaterThan(0);
+  expect(committed.textBefore).toBe("ABCDE");
+  expect(committed.textAfter).toBe("FGHIJKLMNOPQRSTUVWXYZ");
   expect(runtimeErrors, "JavaScript errors while previewing and committing a live Material audio move").toEqual([]);
 });
 
