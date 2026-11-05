@@ -608,6 +608,12 @@ function beginMaterialComposerAttachmentLivePreview(attachment, state, editor) {
   editorRange.selectNodeContents(editor);
   editorRange.collapse(true);
   const spaceWidth = getMaterialSpaceWidth(editorRange, editor);
+  const removablePrevious = previousSpacer?.nodeType === Node.TEXT_NODE &&
+    previousSpacer.nodeValue === " " ? previousSpacer : null;
+  const removableNext = nextSpacer?.nodeType === Node.TEXT_NODE &&
+    nextSpacer.nodeValue === " " ? nextSpacer : null;
+  const removedSpacerCount = Number(Boolean(removablePrevious)) +
+    Number(Boolean(removableNext));
 
   // Keep a hidden visual clone in the source flow while dragging. A
   // display:none marker collapses the original line, moving all following
@@ -627,15 +633,11 @@ function beginMaterialComposerAttachmentLivePreview(attachment, state, editor) {
     visibility: "hidden",
     pointerEvents: "none",
     boxSizing: "border-box",
-    width: String(attachmentRect.width + (spaceWidth * 2) + 2) + "px",
+    width: String(attachmentRect.width + (spaceWidth * removedSpacerCount) + 2) + "px",
     margin: "0"
   });
   attachment.replaceWith(sourceMarker);
 
-  const removablePrevious = previousSpacer?.nodeType === Node.TEXT_NODE &&
-    previousSpacer.nodeValue === " " ? previousSpacer : null;
-  const removableNext = nextSpacer?.nodeType === Node.TEXT_NODE &&
-    nextSpacer.nodeValue === " " ? nextSpacer : null;
   removablePrevious?.remove();
   removableNext?.remove();
 
