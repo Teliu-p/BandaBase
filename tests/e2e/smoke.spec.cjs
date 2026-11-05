@@ -128,18 +128,29 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
     .toEqual(["♫ 01-Bajo.flac", "♫ 02-Bateria.flac", "♫ 03-Teclas.flac"]);
   await expect(chips.nth(0)).toHaveAttribute("draggable", "true");
 
-  const targetBox = await chips.nth(1).boundingBox();
-  await chips.nth(0).dragTo(chips.nth(1), {
-    targetPosition: {
-      x: Math.max(1, targetBox.width - 2),
-      y: targetBox.height / 2
-    }
+  await page.evaluate(() => {
+    window.__materialOriginalAudioChip = document.querySelector(
+      '#materialComposerEditor [data-material-draggable-audio="true"]'
+    );
   });
+
+  const firstBox = await chips.nth(0).boundingBox();
+  const targetBox = await chips.nth(1).boundingBox();
+  await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width - 2, targetBox.y + targetBox.height / 2, { steps: 6 });
+  await page.mouse.up();
 
   const visibleOrder = await chips.evaluateAll(nodes =>
     nodes.map(node => node.querySelector(".material-inline-attachment-label")?.textContent.trim())
   );
   expect(visibleOrder).toEqual(["♫ 02-Bateria.flac", "♫ 01-Bajo.flac", "♫ 03-Teclas.flac"]);
+  const sameNodeWasMoved = await page.evaluate(() =>
+    document.querySelectorAll("#materialComposerEditor [data-material-draggable-audio]").length === 3 &&
+    document.querySelectorAll("#materialComposerEditor [data-material-draggable-audio]")[1] ===
+      window.__materialOriginalAudioChip
+  );
+  expect(sameNodeWasMoved).toBe(true);
 
   const savedOrder = await page.evaluate(() =>
     collectMaterialComposerBlocks()
