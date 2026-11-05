@@ -2750,7 +2750,10 @@ document
         return;
       }
 
-      const sizeError = getStorageUploadSizeError(file);
+      const localAudio = isMaterialAudioFile(file);
+      const sizeError = localAudio
+        ? getLocalMaterialAudioUploadSizeError(file)
+        : getStorageUploadSizeError(file);
       if (sizeError) {
         this.value = "";
         showNotice(sizeError, "error");

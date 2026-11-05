@@ -296,12 +296,19 @@ async function runAttachmentAccessRegressionTests() {
   };
 
   vm.runInNewContext(
-    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl };",
+    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl, getMaterialFileMimeType, isMaterialAudioFile, getLocalMaterialAudioUploadSizeError, uploadLocalMaterialAudio, deleteLocalMaterialAttachment };",
     testContext,
     { filename: "src/attachment-access.js#tests" }
   );
 
-  const getAttachmentAccessUrl = testContext.__testExports.getAttachmentAccessUrl;
+  const {
+    getAttachmentAccessUrl,
+    getMaterialFileMimeType,
+    isMaterialAudioFile,
+    getLocalMaterialAudioUploadSizeError,
+    uploadLocalMaterialAudio,
+    deleteLocalMaterialAttachment
+  } = testContext.__testExports;
   const audioAttachment = {
     id: "11111111-2222-4333-8444-555555555555",
     storage_path: "private/song.flac",
@@ -357,6 +364,22 @@ async function runAttachmentAccessRegressionTests() {
   assert.equal(JSON.parse(fetchCalls[1].options.body).download, true);
 
   const previousFetchCount = fetchCalls.length;
+  const materialNonAudioUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    {
+      id: audioAttachment.id,
+      storage_path: "private/material-document.pdf",
+      mime_type: "application/pdf",
+      name: "document.pdf"
+    }
+  );
+  assert.equal(materialNonAudioUrl, "https://storage.example.test/signed");
+  assert.equal(
+    fetchCalls.length,
+    previousFetchCount,
+    "Los archivos que no son audio de Materiales deben conservar Storage."
+  );
+
   const nonAudioUrl = await getAttachmentAccessUrl(
     "proposal_attachments",
     {
@@ -386,41 +409,102 @@ async function runAttachmentAccessRegressionTests() {
   );
   assert.equal(storageCalls.length, previousStorageCount);
 
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ error: "No está en la biblioteca local." })
+  });
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /todavía no está copiado a la biblioteca local/,
+    "Un audio antiguo sin copia local no debe recuperar el objeto de Storage."
+  );
+  assert.equal(
+    storageCalls.length,
+    previousStorageCount,
+    "HTTP 409 para Materiales tampoco debe consultar Storage."
+  );
+
   for (const status of [500, 502, 503, 504]) {
     fetchBehavior = async () => ({
       ok: false,
       status,
       json: async () => ({ error: "El servidor local no está disponible." })
     });
-    const serverErrorFallback = await getAttachmentAccessUrl(
-      "material_attachments",
-      audioAttachment
-    );
-    assert.equal(
-      serverErrorFallback,
-      "https://storage.example.test/signed",
-      "Un error HTTP " + status + " del servidor local debe activar el fallback a Supabase Storage."
+    await assert.rejects(
+      getAttachmentAccessUrl("material_attachments", audioAttachment),
+      /únicamente en la biblioteca local/,
+      "Un HTTP " + status + " no debe habilitar el fallback a Storage para Materiales."
     );
   }
   assert.equal(
     storageCalls.length,
-    previousStorageCount + 4,
-    "Los errores HTTP 5xx deben recurrir a Storage en lugar de bloquear la reproducción."
+    previousStorageCount,
+    "Los audios de Materiales no deben consultar Storage ante HTTP 5xx."
   );
 
   fetchBehavior = async () => {
     throw new TypeError("Servidor local no disponible");
   };
-  const offlineFallback = await getAttachmentAccessUrl(
-    "proposal_attachments",
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /únicamente en la biblioteca local/,
+    "La desconexión del host tampoco debe habilitar Storage para audios de Materiales."
+  );
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 503,
+    json: async () => ({ error: "Servidor local no disponible." })
+  });
+  const commentFallback = await getAttachmentAccessUrl(
+    "comment_attachments",
     audioAttachment
   );
-  assert.equal(offlineFallback, "https://storage.example.test/signed");
+  assert.equal(commentFallback, "https://storage.example.test/signed");
   assert.equal(
     storageCalls.length,
-    previousStorageCount + 5,
-    "Los errores HTTP 5xx y el servidor local apagado deben seguir usando Storage."
+    previousStorageCount + 1,
+    "Los audios de Comentarios deben conservar el fallback a Storage."
   );
+
+  assert.equal(
+    getMaterialFileMimeType({ name: "ensayo.FLAC", type: "application/octet-stream" }),
+    "audio/flac",
+    "La extensión FLAC debe recuperar el MIME de audio cuando el navegador no lo informa."
+  );
+  assert.equal(isMaterialAudioFile({ name: "prueba.wav", type: "" }), true);
+  assert.equal(
+    getLocalMaterialAudioUploadSizeError({ size: 1024 * 1024 * 1024 + 1 }),
+    "El audio supera el límite de 1 GiB por archivo de la biblioteca local."
+  );
+  assert.equal(getLocalMaterialAudioUploadSizeError({ size: 1024 }), null);
+
+  const uploadFile = { name: "prueba.flac", type: "audio/flac", size: 12 };
+  fetchBehavior = async (url, options) => ({
+    ok: true,
+    status: 201,
+    json: async () => ({ ok: true, attachment_id: "audio-1", bytes: uploadFile.size })
+  });
+  const uploadResult = await uploadLocalMaterialAudio("audio-1", uploadFile, "audio/flac");
+  assert.equal(uploadResult.ok, true);
+  const uploadCall = fetchCalls.at(-1);
+  assert.match(uploadCall.url, /\/api\/upload\/audio-1$/);
+  assert.equal(uploadCall.options.method, "POST");
+  assert.equal(uploadCall.options.headers.Authorization, "Bearer test-access-token");
+  assert.equal(uploadCall.options.headers["Content-Type"], "audio/flac");
+  assert.equal(uploadCall.options.body, uploadFile);
+
+  fetchBehavior = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ deleted: true, local_file_deleted: true })
+  });
+  const deletion = await deleteLocalMaterialAttachment("audio-1");
+  assert.equal(deletion.deleted, true);
+  assert.match(fetchCalls.at(-1).url, /\/api\/delete\/audio-1$/);
+  assert.equal(fetchCalls.at(-1).options.method, "POST");
 
   await assert.rejects(
     getAttachmentAccessUrl("unsupported_table", audioAttachment),
@@ -2131,8 +2215,14 @@ assert.match(
 );
 assert.match(
   materialViewSource,
-  /function getMaterialAudioAttachmentsForCurrentSong\([\s\S]*?currentMaterials[\s\S]*?material\.attachments[\s\S]*?mime_type/,
+  /function getMaterialAudioAttachmentsForCurrentSong\([\s\S]*?getAllCurrentMaterialAttachments\(\)[\s\S]*?isMaterialAudioAttachment/,
   "El destino de un marcador debe incluir también los audios adjuntos a Materiales que estén plegados."
+);
+
+assert.match(
+  materialViewSource,
+  /function isMaterialAudioAttachment\([\s\S]*?storage_path[\s\S]*?local:/,
+  "La vista debe identificar como audio los adjuntos cuyo storage_path usa la clave local."
 );
 assert.match(
   materialViewSource,
@@ -2595,7 +2685,7 @@ async function runMaterialSaveScenario(options = {}) {
     materialPendingAttachments: pendingAttachments,
     openMaterialIds: new Set(),
     supabaseClient: { storage },
-    crypto: { randomUUID: () => "test-uuid" },
+    crypto: { randomUUID: () => "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
     document: {
       getElementById(id) {
         if (id === "materialName") {
@@ -2652,6 +2742,22 @@ async function runMaterialSaveScenario(options = {}) {
         : { error: null };
     },
     sanitizeStorageFileName: name => name.replaceAll(" ", "_"),
+    getMaterialFileMimeType: file => file.type || null,
+    isMaterialAudioFile: file => String(file.type || "").startsWith("audio/"),
+    uploadLocalMaterialAudio: async (id, file, mimeType) => {
+      calls.push(["uploadLocalAudio", id, file.name, mimeType]);
+      if (options.localUploadError) {
+        throw new Error(options.localUploadError);
+      }
+      return { ok: true };
+    },
+    deleteLocalMaterialAttachment: async id => {
+      calls.push(["deleteLocalAudio", id]);
+      if (options.deleteLocalAudioError) {
+        throw new Error(options.deleteLocalAudioError);
+      }
+      return { deleted: true, local_file_deleted: true };
+    },
     showNotice: (message, type) => notices.push([message, type]),
     hideMaterialForm: () => calls.push(["hideForm"]),
     loadMaterials: async () => calls.push(["loadMaterials"]),
@@ -2709,6 +2815,21 @@ assert.equal(
   "El guardado normal debe registrar tanto el archivo como el enlace."
 );
 assert.equal(
+  successSave.calls.some(call => call[0] === "upload"),
+  false,
+  "Los audios nuevos de Materiales no deben subirse a Supabase Storage."
+);
+assert.equal(
+  successSave.calls.filter(call => call[0] === "uploadLocalAudio").length,
+  1,
+  "Cada audio nuevo de Materiales debe subirse a la biblioteca local."
+);
+assert.match(
+  successSave.calls.find(call => call[0] === "createAttachment")[1].storage_path,
+  /^local:[a-f0-9]{32}\.wav$/,
+  "El registro del audio debe apuntar a una clave local opaca."
+);
+assert.equal(
   successSave.calls.some(call => call[0] === "removeStorage" || call[0] === "deleteMaterial"),
   false,
   "Una operación exitosa no debe activar la compensación."
@@ -2762,10 +2883,15 @@ const newSaveRollback = await runMaterialSaveScenario({
   },
   blocksError: "WITH ORDINALITY cannot be used with a column definition list"
 });
-assert.ok(newSaveRollback.calls.some(call => call[0] === "removeStorage"));
+assert.equal(
+  newSaveRollback.calls.some(call => call[0] === "removeStorage"),
+  false,
+  "Un audio local no debe intentar borrarse de Supabase Storage."
+);
 assert.deepEqual(
-  newSaveRollback.calls.filter(call => call[0] === "deleteAttachment").map(call => call[1]),
-  ["attachment-1"]
+  newSaveRollback.calls.filter(call => call[0] === "deleteLocalAudio").map(call => call[1]),
+  ["attachment-1"],
+  "La compensación debe borrar la copia local del audio."
 );
 assert.deepEqual(
   newSaveRollback.calls.filter(call => call[0] === "deleteMaterial"),
@@ -2802,9 +2928,9 @@ assert.equal(editRestore[1], "existing-material");
 assert.equal(editRestore[2].name, "Título anterior");
 assert.equal(editRestore[2].content, "Contenido anterior");
 assert.equal(
-  editSaveRollback.calls.filter(call => call[0] === "deleteAttachment").length,
+  editSaveRollback.calls.filter(call => call[0] === "deleteLocalAudio").length,
   1,
-  "Solo se debe limpiar el adjunto creado por el intento fallido."
+  "Solo se debe limpiar la copia local del audio creado por el intento fallido."
 );
 
 const uploadFailureRollback = await runMaterialSaveScenario({
@@ -2814,7 +2940,7 @@ const uploadFailureRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "fallará.wav", type: "audio/wav" }
+      file: { name: "fallará.pdf", type: "application/pdf" }
     }
   },
   uploadError: "upload rejected"
@@ -2832,6 +2958,37 @@ assert.ok(
   "El material nuevo debe borrarse si la subida falla."
 );
 
+const localAudioUploadFailureRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "host-apagado.flac", type: "audio/flac" }
+    }
+  },
+  localUploadError: "No se pudo conectar con la biblioteca local."
+});
+assert.equal(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "upload"),
+  false,
+  "Un audio nuevo no debe intentar una subida alternativa a Storage."
+);
+assert.ok(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "uploadLocalAudio"),
+  "El guardado de audio debe intentar enviarlo al servidor local."
+);
+assert.ok(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "deleteLocalAudio"),
+  "Si falla la subida local, debe intentar limpiar el registro y el archivo local parcial."
+);
+assert.match(
+  localAudioUploadFailureRollback.notices[0][0],
+  /biblioteca local/,
+  "El fallo de la biblioteca local debe comunicarse de forma explícita."
+);
+
 const rejectedUploadRollback = await runMaterialSaveScenario({
   blocks: [
     { block_type: "attachment", pendingKey: "pending-file" }
@@ -2839,7 +2996,7 @@ const rejectedUploadRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "corte-red.wav", type: "audio/wav" }
+      file: { name: "corte-red.pdf", type: "application/pdf" }
     }
   },
   throwUploadError: "network request failed"
@@ -2946,7 +3103,7 @@ const partialLinkFailureRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "primero.wav", type: "audio/wav" }
+      file: { name: "primero.pdf", type: "application/pdf" }
     },
     "pending-link": {
       kind: "link",
