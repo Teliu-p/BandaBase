@@ -295,3 +295,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 
 
 - Validación automatizada final: la prueba de audio coloca el placeholder a no más de 2 px del caret elegido y verifica el texto exacto a ambos lados tras soltar; también se repite para un PDF no-audio. No se modificó Supabase, Storage, RLS, datos, migraciones ni el servidor Python. Falta únicamente la confirmación manual del usuario en la web ya publicada.
+
+
+## Investigación correctiva — posición horizontal del audio al arrastrar (2026-11-05, nueva PR en preparación)
+
+- El usuario confirmó que PR #145 no resolvió el caso real: el audio y el sombreado siguen yéndose al extremo izquierdo del renglón aunque el puntero esté más a la derecha.
+- Causa del defecto en el código inspeccionado: `getMaterialComposerDropTargetAtPoint` aceptaba como definitivo cualquier caret nativo cuyo nodo estuviera dentro del editor; no comparaba la coordenada X del resultado con la coordenada del puntero. Un caret nativo válido pero ubicado al inicio del texto podía imponerse sobre la posición de arrastre.
+- Corrección en rama `fix/material-drag-drop-geometric-hit-test-20261105`: se priorizan los rectángulos visibles de cada carácter y chip de la línea bajo el puntero; el Range se fija en el límite correspondiente y el X del sombreado sale directamente del borde de ese carácter/chip, sin depender del rectángulo de un Range colapsado. El caret nativo queda como respaldo cuando no hay texto visible cerca (por ejemplo, una línea vacía).
+- Regresión reforzada: el test de Chromium simula explícitamente que las APIs nativas devuelven el inicio del texto mientras el puntero apunta a otra posición, usa contenido con negrita/cursiva y ajuste de línea, y exige coincidencia del sombreado más texto exacto antes/después del audio.
+- Estado: cambios en rama; PR/CI/Pages pendientes. No se modificó Supabase, Storage, RLS, datos, migraciones ni el servidor local. La validación manual de la sesión real sigue pendiente.
