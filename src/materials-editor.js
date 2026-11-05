@@ -8,6 +8,8 @@ let materialIndentPointerHandled = false;
 let materialIndentPointerResetTimer = null;
 let materialNotationDotPending = false;
 let editingMaterialType = null;
+let materialDraggedAudioAttachment = null;
+let materialAudioPointerDragState = null;
 
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
@@ -307,6 +309,120 @@ function restoreMaterialSelection(
 }
 
 
+function isMaterialComposerDraggableAudio(attachment) {
+  if (attachment?.kind !== "file") return false;
+  return String(attachment.storage_path || "").startsWith("local:") ||
+    isMaterialAudioFile({
+      name: attachment.name || attachment.file_name || "",
+      type: attachment.mime_type || ""
+    });
+}
+
+
+function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor) {
+  let range = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(clientX, clientY);
+    if (point && editor.contains(point.offsetNode)) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
+      range.collapse(true);
+    }
+  }
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(clientX, clientY);
+    if (point && editor.contains(point.startContainer)) {
+      range = point.cloneRange();
+      range.collapse(true);
+    }
+  }
+  return range;
+}
+
+
+function moveMaterialComposerAudioAttachmentToPoint(attachment, clientX, clientY, editor) {
+  if (!attachment || !editor || !editor.contains(attachment) || !attachment.isConnected) {
+    return false;
+  }
+
+  const hit = document.elementFromPoint(clientX, clientY);
+  const targetAttachment = hit?.closest?.(".material-inline-attachment");
+  if (targetAttachment === attachment) return false;
+
+  let range = document.createRange();
+  if (targetAttachment && editor.contains(targetAttachment)) {
+    const rect = targetAttachment.getBoundingClientRect();
+    const placeAfter = clientX >= rect.left + rect.width / 2;
+    if (placeAfter) range.setStartAfter(targetAttachment);
+    else range.setStartBefore(targetAttachment);
+  } else {
+    range = getMaterialComposerDropRangeAtPoint(clientX, clientY, editor);
+    if (!range) return false;
+
+    const container = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentElement;
+    const containingAttachment = container?.closest?.(".material-inline-attachment");
+    if (containingAttachment === attachment) return false;
+
+    if (containingAttachment && editor.contains(containingAttachment)) {
+      const rect = containingAttachment.getBoundingClientRect();
+      const placeAfter = clientX >= rect.left + rect.width / 2;
+      range = document.createRange();
+      if (placeAfter) range.setStartAfter(containingAttachment);
+      else range.setStartBefore(containingAttachment);
+    }
+  }
+
+  // Do not detach any nodes until a valid destination has been found.
+  const destinationNode = range.startContainer;
+  if (destinationNode === attachment || attachment.contains(destinationNode)) return false;
+
+  const previousSpacer = attachment.previousSibling;
+  const nextSpacer = attachment.nextSibling;
+  if (
+    destinationNode === previousSpacer ||
+    destinationNode === nextSpacer
+  ) {
+    return false;
+  }
+
+  // Only remove the exact one-space text nodes inserted around an audio chip.
+  if (previousSpacer?.nodeType === Node.TEXT_NODE && previousSpacer.nodeValue === " ") {
+    previousSpacer.remove();
+  }
+  if (nextSpacer?.nodeType === Node.TEXT_NODE && nextSpacer.nodeValue === " ") {
+    nextSpacer.remove();
+  }
+
+  range.collapse(true);
+  const spacerBefore = document.createTextNode(" ");
+  const spacerAfter = document.createTextNode(" ");
+  range.insertNode(spacerAfter);
+  range.insertNode(attachment);
+  range.insertNode(spacerBefore);
+  range.setStartAfter(spacerAfter);
+  range.collapse(true);
+
+  const selection = window.getSelection();
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(range);
+    materialSelectionRange = range.cloneRange();
+    updateMaterialFormattingButtonStates();
+  }
+  return true;
+}
+
+
+function clearMaterialComposerAudioDragState(editor) {
+  editor?.querySelectorAll?.(".material-inline-attachment.is-drop-target")
+    .forEach(node => node.classList.remove("is-drop-target"));
+  materialDraggedAudioAttachment?.classList?.remove("is-dragging");
+  materialDraggedAudioAttachment = null;
+}
+
+
 function createMaterialInlineAttachment(
   attachment,
   pendingKey = null
@@ -320,6 +436,11 @@ function createMaterialInlineAttachment(
 
   wrapper.contentEditable =
     "false";
+
+  if (isMaterialComposerDraggableAudio(attachment)) {
+    wrapper.dataset.materialDraggableAudio = "true";
+    wrapper.title = "Mantené presionado y arrastrá este audio para cambiar su posición.";
+  }
 
   if (attachment?.id) {
 
@@ -2697,6 +2818,83 @@ document
     }
   );
 
+const materialComposerEditor = document.getElementById("materialComposerEditor");
+
+materialComposerEditor.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || event.target.closest?.(".inline-remove")) return;
+
+  const attachment = event.target.closest?.(
+    '.material-inline-attachment[data-material-draggable-audio="true"]'
+  );
+  if (!attachment || !materialComposerEditor.contains(attachment)) return;
+
+  // Stop text selection/native drag; the existing chip is moved on pointerup.
+  event.preventDefault();
+  materialDraggedAudioAttachment = attachment;
+  materialAudioPointerDragState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    dragging: false
+  };
+});
+
+document.addEventListener("pointermove", event => {
+  const state = materialAudioPointerDragState;
+  if (!state || event.pointerId !== state.pointerId || !materialDraggedAudioAttachment) return;
+
+  if (!state.dragging) {
+    const distance = Math.hypot(
+      event.clientX - state.startX,
+      event.clientY - state.startY
+    );
+    if (distance < 6) return;
+
+    state.dragging = true;
+    materialDraggedAudioAttachment.classList.add("is-dragging");
+    materialComposerEditor.classList.add("is-moving-material-audio");
+  }
+
+  event.preventDefault();
+  materialComposerEditor.querySelectorAll(".material-inline-attachment.is-drop-target")
+    .forEach(node => node.classList.remove("is-drop-target"));
+
+  const target = document.elementFromPoint(event.clientX, event.clientY)
+    ?.closest?.(".material-inline-attachment");
+  if (target && target !== materialDraggedAudioAttachment &&
+      materialComposerEditor.contains(target)) {
+    target.classList.add("is-drop-target");
+  }
+}, true);
+
+document.addEventListener("pointerup", event => {
+  const state = materialAudioPointerDragState;
+  if (!state || event.pointerId !== state.pointerId) return;
+
+  const dragged = materialDraggedAudioAttachment;
+  let moved = false;
+  if (state.dragging && dragged) {
+    event.preventDefault();
+    moved = moveMaterialComposerAudioAttachmentToPoint(
+      dragged, event.clientX, event.clientY, materialComposerEditor
+    );
+  }
+
+  materialAudioPointerDragState = null;
+  clearMaterialComposerAudioDragState(materialComposerEditor);
+  materialComposerEditor.classList.remove("is-moving-material-audio");
+  if (moved) rememberMaterialSelection();
+}, true);
+
+document.addEventListener("pointercancel", event => {
+  if (!materialAudioPointerDragState ||
+      event.pointerId !== materialAudioPointerDragState.pointerId) return;
+
+  materialAudioPointerDragState = null;
+  clearMaterialComposerAudioDragState(materialComposerEditor);
+  materialComposerEditor.classList.remove("is-moving-material-audio");
+}, true);
+
 
 document
   .getElementById(
@@ -2742,54 +2940,54 @@ document
     "change",
     function() {
 
-      const file =
-        this.files &&
-        this.files[0];
+      const files = Array.from(this.files || []);
+      if (!files.length) return;
 
-      if (!file) {
-        return;
-      }
+      // Validate the entire selection before inserting any chip.
+      const invalidFile = files
+        .map(file => {
+          const localAudio = isMaterialAudioFile(file);
+          const error = localAudio
+            ? getLocalMaterialAudioUploadSizeError(file)
+            : getStorageUploadSizeError(file);
+          return error ? { file, error } : null;
+        })
+        .find(Boolean);
 
-      const localAudio = isMaterialAudioFile(file);
-      const sizeError = localAudio
-        ? getLocalMaterialAudioUploadSizeError(file)
-        : getStorageUploadSizeError(file);
-      if (sizeError) {
+      if (invalidFile) {
         this.value = "";
-        showNotice(sizeError, "error");
+        showNotice(
+          invalidFile.file.name + ": " + invalidFile.error +
+            " No se agregó ningún archivo de esta selección.",
+          "error"
+        );
         return;
       }
 
-      const pendingKey =
-        crypto.randomUUID();
+      files.forEach(file => {
+        const pendingKey = crypto.randomUUID();
+        materialPendingAttachments[pendingKey] = {
+          kind: "file",
+          name: file.name,
+          mime_type: file.type || null,
+          file
+        };
 
-      materialPendingAttachments[
-        pendingKey
-      ] = {
-        kind:
-          "file",
-        name:
-          file.name,
-        mime_type:
-          file.type || null,
-        file
-      };
-
-      const node =
-        createMaterialInlineAttachment(
-          materialPendingAttachments[
-            pendingKey
-          ],
+        const node = createMaterialInlineAttachment(
+          materialPendingAttachments[pendingKey],
           pendingKey
         );
+        insertMaterialNodeAtSelection(node);
+      });
 
-      insertMaterialNodeAtSelection(
-        node
-      );
+      this.value = "";
 
-      this.value =
-        "";
-
+      if (files.length > 1) {
+        showNotice(
+          files.length + " archivos agregados al borrador. Guardá el material para conservarlos.",
+          "success"
+        );
+      }
     }
   );
 

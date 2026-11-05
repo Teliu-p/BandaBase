@@ -33,6 +33,13 @@ Actualización de Storage (2026-10-20): el bucket `materials` sigue privado y ah
 - Clic derecho sobre una pista de audio alterna la selección de grupo. Al pulsar Play en una pista seleccionada, se cargan todas las URLs/metadatos, se alinean al mismo tiempo (incluidos milisegundos) y se llama a `play()` para todas. Con el metrónomo sincronizado, la transición de grupo evita reaccionar de manera independiente a cada evento play/pause.
 - Las pruebas incluyen pegado HTML enriquecido con contenido activo descartado, comparación usando el renderizador/editor compartido y selección/alineación de pistas en Chromium. Hace falta todavía probar de oído la alineación con originales/splits reales y verificar el despliegue de GitHub Pages después de la integración.
 
+## Actualización 2026-11-05: adjuntos múltiples y movimiento de audio en Materiales
+
+- PR #141 (`feat/materials-multi-file-audio-reorder-20261105`) incorpora el atributo `multiple` y la inserción secuencial de archivos tras validar la selección completa.
+- Los chips de audio se mueven dentro de `materialComposerEditor` con Pointer Events, sin `draggable` HTML5; el objetivo es mover el mismo nodo y persistir su orden mediante `collectMaterialComposerBlocks`.
+- Al reportarse que ambas funciones no actuaban en la web, se comprobó que `main` seguía en `7b48607925b638a5cf2f061bbf09bb71d4563cc8` y PR #141 no estaba fusionada. La selección múltiple aún no había llegado a Pages. La prueba inicial de HTML5 drag no representaba el gesto real y fue reemplazada por una prueba mouse down/move/up que exige identidad del mismo nodo.
+- Verificar HEAD, CI y Pages después de integrar antes de pedir validación manual.
+
 ## Instrucciones de arranque para cada chat nuevo
 
 1. Leer este archivo completo.

@@ -53,6 +53,8 @@ BandaBase organiza el trabajo musical de una banda de iglesia: catálogo, prepar
 ## 7. Materiales y editor enriquecido
 
 - Texto, archivos y enlaces pueden coexistir en la misma secuencia de contenido y conservar su orden al guardar.
+- El selector de Materiales admite varios archivos por operación; los inserta consecutivamente en la posición del cursor y valida la selección completa antes de insertar.
+- Los chips de audio se pueden mover manteniendo pulsado y arrastrando el mismo adjunto a otra posición del editor; el orden nuevo se conserva al guardar. No deben convertirse en duplicados.
 - Reproducción de audio debe funcionar directamente en la interfaz, sin obligar a instalar una aplicación ni descargar manualmente el archivo. Al guardar un material, los adjuntos deben seguir en línea donde se insertaron y no convertirse en tarjetas grandes separadas.
 - Los audios adjuntos a Materiales se guardan exclusivamente en la biblioteca local del equipo anfitrión: el registro conserva un `storage_path` con clave opaca `local:`, y los bytes se envían al servidor local autenticado. No se suben a Supabase Storage ni se recurre a Storage para reproducirlos. Para guardar, reproducir o quitar una copia local, el host, el servidor Python y Funnel deben estar disponibles. Si el host no responde o el audio antiguo no está copiado a la biblioteca, la operación debe informar el problema sin usar la copia de Storage.
 - Los archivos de Materiales que no son audio continúan en Supabase Storage. Los adjuntos de audio de Comentarios y Propuestas mantienen el flujo de Storage existente. Los objetos antiguos de audio que ya existan en Storage no se migran ni eliminan automáticamente; volver a adjuntarlos desde el host crea una copia local nueva.

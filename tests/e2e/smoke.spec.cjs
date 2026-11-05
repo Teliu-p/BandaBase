@@ -98,6 +98,70 @@ test("musical notation toolbar renders portable SVG icons", async ({ page }) => 
 });
 
 
+test("Materials accepts multiple files and audio chips can be reordered by dragging", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+  });
+
+  const fileInput = page.locator("#materialPendingFile");
+  await expect(fileInput).toHaveAttribute("multiple", "");
+
+  await fileInput.setInputFiles([
+    { name: "01-Bajo.flac", mimeType: "audio/flac", buffer: Buffer.from("audio-one") },
+    { name: "02-Bateria.flac", mimeType: "audio/flac", buffer: Buffer.from("audio-two") },
+    { name: "03-Teclas.flac", mimeType: "audio/flac", buffer: Buffer.from("audio-three") }
+  ]);
+
+  const chips = page.locator("#materialComposerEditor .material-inline-attachment");
+  await expect(chips).toHaveCount(3);
+  expect(await chips.evaluateAll(nodes => nodes.map(node => node.querySelector(".material-inline-attachment-label")?.textContent.trim())))
+    .toEqual(["♫ 01-Bajo.flac", "♫ 02-Bateria.flac", "♫ 03-Teclas.flac"]);
+  await expect(chips.nth(0)).toHaveAttribute("data-material-draggable-audio", "true");
+  await expect(chips.nth(0)).not.toHaveAttribute("draggable", "true");
+
+  await page.evaluate(() => {
+    window.__materialOriginalAudioChip = document.querySelector(
+      '#materialComposerEditor [data-material-draggable-audio="true"]'
+    );
+  });
+
+  const firstBox = await chips.nth(0).boundingBox();
+  const targetBox = await chips.nth(1).boundingBox();
+  await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width - 2, targetBox.y + targetBox.height / 2, { steps: 6 });
+  await page.mouse.up();
+
+  const visibleOrder = await chips.evaluateAll(nodes =>
+    nodes.map(node => node.querySelector(".material-inline-attachment-label")?.textContent.trim())
+  );
+  expect(visibleOrder).toEqual(["♫ 02-Bateria.flac", "♫ 01-Bajo.flac", "♫ 03-Teclas.flac"]);
+  const sameNodeWasMoved = await page.evaluate(() =>
+    document.querySelectorAll("#materialComposerEditor [data-material-draggable-audio]").length === 3 &&
+    document.querySelectorAll("#materialComposerEditor [data-material-draggable-audio]")[1] ===
+      window.__materialOriginalAudioChip
+  );
+  expect(sameNodeWasMoved).toBe(true);
+
+  const savedOrder = await page.evaluate(() =>
+    collectMaterialComposerBlocks()
+      .filter(block => block.block_type === "attachment")
+      .map(block => materialPendingAttachments[block.pendingKey]?.name)
+  );
+  expect(savedOrder).toEqual(["02-Bateria.flac", "01-Bajo.flac", "03-Teclas.flac"]);
+  expect(runtimeErrors, "JavaScript errors while inserting and reordering Material attachments").toEqual([]);
+});
+
 test("outdent removes indentation from every selected material line after DOM text splits", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
