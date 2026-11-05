@@ -432,7 +432,18 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
     height: String(rect.height) + "px",
     margin: style.margin
   });
-  attachment.replaceWith(sourceMarker);
+  const originalStyle = attachment.getAttribute("style");
+  // Keep the actual draggable element connected for the browser's native
+  // drag lifecycle, but take it out of document flow at its reserved origin.
+  attachment.before(sourceMarker);
+  Object.assign(attachment.style, {
+    position: "fixed",
+    left: "-10000px",
+    top: "-10000px",
+    opacity: "0",
+    pointerEvents: "none",
+    margin: "0"
+  });
   previousSpacer?.remove();
   nextSpacer?.remove();
 
@@ -449,7 +460,7 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
 
   return {
     attachment, sourceMarker, previousSpacer, nextSpacer,
-    dropPlaceholder, dragImage, editor, dropped: false
+    dropPlaceholder, dragImage, editor, originalStyle, dropped: false
   };
 }
 
@@ -492,6 +503,8 @@ function restoreMaterialNativeAttachmentDrag(state) {
 
   state.dropPlaceholder?.remove();
   sourceMarker.replaceWith(attachment);
+  if (state.originalStyle === null) attachment.removeAttribute("style");
+  else attachment.setAttribute("style", state.originalStyle);
   const parent = attachment.parentNode;
   if (previousSpacer) parent.insertBefore(previousSpacer, attachment);
   if (nextSpacer) parent.insertBefore(nextSpacer, attachment.nextSibling);
@@ -509,6 +522,8 @@ function commitMaterialNativeAttachmentDrop(state) {
   parent.insertBefore(attachment, placeholder);
   placeholder.remove();
   sourceMarker?.remove();
+  if (state.originalStyle === null) attachment.removeAttribute("style");
+  else attachment.setAttribute("style", state.originalStyle);
 
   const previous = attachment.previousSibling;
   if (!(previous?.nodeType === Node.TEXT_NODE && /[\s\u00a0]$/.test(previous.nodeValue || ""))) {
