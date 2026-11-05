@@ -771,11 +771,15 @@ async function saveMaterialDraft() {
     const fileAttachments = removedAttachments.filter(
       attachment => attachment.kind === "file" && attachment.storage_path
     );
-    const localAudioAttachments = fileAttachments.filter(attachment =>
-      String(attachment.mime_type || "").toLowerCase().startsWith("audio/")
-    );
+    const isAudioAttachment = attachment =>
+      String(attachment.storage_path || "").startsWith("local:") ||
+      isMaterialAudioFile({
+        name: attachment.name || attachment.file_name || "",
+        type: attachment.mime_type || ""
+      });
+    const localAudioAttachments = fileAttachments.filter(isAudioAttachment);
     const storageFileAttachments = fileAttachments.filter(attachment =>
-      !String(attachment.mime_type || "").toLowerCase().startsWith("audio/")
+      !isAudioAttachment(attachment)
     );
     const storagePaths = storageFileAttachments.map(
       attachment => attachment.storage_path
@@ -815,9 +819,16 @@ async function saveMaterialDraft() {
       }
 
       const removedAttachment = removedAttachmentById.get(attachmentId);
-      const isLocalAudio = String(removedAttachment?.mime_type || "")
-        .toLowerCase()
-        .startsWith("audio/");
+      const isLocalAudio = Boolean(
+        removedAttachment &&
+        (
+          String(removedAttachment.storage_path || "").startsWith("local:") ||
+          isMaterialAudioFile({
+            name: removedAttachment.name || removedAttachment.file_name || "",
+            type: removedAttachment.mime_type || ""
+          })
+        )
+      );
 
       if (isLocalAudio) {
         try {
