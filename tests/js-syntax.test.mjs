@@ -3103,7 +3103,7 @@ const partialLinkFailureRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "primero.wav", type: "audio/wav" }
+      file: { name: "primero.pdf", type: "application/pdf" }
     },
     "pending-link": {
       kind: "link",
