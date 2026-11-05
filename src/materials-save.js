@@ -444,7 +444,8 @@ async function saveMaterialDraft() {
           wasNew,
           originalMaterial,
           createdAttachmentIds,
-          uploadedStoragePaths
+          uploadedStoragePaths,
+          localAudioAttachmentIds
         });
 
         showNotice(
@@ -718,7 +719,8 @@ async function saveMaterialDraft() {
       wasNew,
       originalMaterial,
       createdAttachmentIds,
-      uploadedStoragePaths
+      uploadedStoragePaths,
+      localAudioAttachmentIds
     });
 
     showNotice(
