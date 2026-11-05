@@ -1,10 +1,20 @@
 # Estado técnico actual de BandaBase
 
 **Última actualización:** 2026-11-05, Argentina.  
-**Último cambio funcional integrado en main:** PR #146 (intento de corregir el arrastre), commit `5c8922eead8cffad63a0097b4d30c35c4d3ff0be`. El usuario confirmó que el gesto seguía sin funcionar; PR #147 reconstruye el motor nativo y permanece abierta. Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y GitHub Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. Este documento registra además el historial previo; distinguir pruebas automatizadas de validación manual.  
-**Supabase:** evuwcikuxptrgzdzejov.  
-Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
+**HEAD actual de main:** `2d0af16f527fc29d4b840ff9a2f2d884b8af55fb` (PR #147 fusionada). Tests [#42098668867](https://github.com/Teliu-p/BandaBase/actions/runs/42098668867) y Pages [#42098667320](https://github.com/Teliu-p/BandaBase/actions/runs/42098667320) pasaron. El arrastre de adjuntos requiere validación manual del usuario; PR #148 está abierta y su ejecución de Tests observada falló: [#42101112706](https://github.com/Teliu-p/BandaBase/actions/runs/42101112706).  
+**Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
+**Auditoría integral vigente:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md). La auditoría fue de solo lectura; no se tocaron datos, esquema, permisos ni lógica funcional.
 
+## 0. Fotografía integral del 2026-11-05
+
+- 28 tablas públicas observadas; todas con RLS habilitada. 20 tablas publicadas en Realtime.
+- Storage: bucket `materials` privado, límite 50 MiB. Audio de Materiales usa la biblioteca local del host, servidor Python y Tailscale Funnel; no confundir disponibilidad del host con disponibilidad de Supabase.
+- Migraciones: 60 archivos locales vs 48 registros remotos; 12 timestamps locales sin fila remota y 0 filas remotas sin archivo local. No ejecutar `db push`, `migration repair` masivo ni SQL antiguo sin reconciliación por versión.
+- Asesores Supabase: 2 funciones SECURITY DEFINER ejecutables por authenticated (`get_proposal_vote_stats`, `is_band_member`); ambas parecen responder a necesidades funcionales/RLS y no deben revocarse sin revisar sus usos. Protección de contraseñas filtradas desactivada. Rendimiento: 33 índices sin uso observado y 11 combinaciones de políticas permisivas múltiples; medir antes de modificar.
+- PR #147 está fusionada. CI y Pages pasaron. PR #148 sigue abierta; el run observado de Tests falló. Validación manual multiusuario y del gesto de arrastre sigue pendiente.
+- Ver el informe integral para matriz de riesgos, límites de esta inspección y plan de validación.
+
+---
 ## 0. PR #141 — adjuntos múltiples y reordenamiento de audio (2026-11-05)
 
 - PR #141 quedó fusionada en `main` como `f65735cdf3d5f1a92b4e9d68363d57284df484c1`: https://github.com/Teliu-p/BandaBase/pull/141.
