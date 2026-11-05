@@ -126,7 +126,8 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   await expect(chips).toHaveCount(3);
   expect(await chips.evaluateAll(nodes => nodes.map(node => node.querySelector(".material-inline-attachment-label")?.textContent.trim())))
     .toEqual(["♫ 01-Bajo.flac", "♫ 02-Bateria.flac", "♫ 03-Teclas.flac"]);
-  await expect(chips.nth(0)).toHaveAttribute("draggable", "true");
+  await expect(chips.nth(0)).toHaveAttribute("data-material-draggable-audio", "true");
+  await expect(chips.nth(0)).not.toHaveAttribute("draggable", "true");
 
   await page.evaluate(() => {
     window.__materialOriginalAudioChip = document.querySelector(
