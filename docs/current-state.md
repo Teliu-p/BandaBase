@@ -272,3 +272,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - CI de la PR pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium: [Tests #42072480690](https://github.com/Teliu-p/BandaBase/actions/runs/42072480690). Se verificaron selección múltiple, reordenamiento entre chips después de reacomodar el renglón de origen, desplazamiento progresivo del sombreado en el renglón destino, ubicación final entre caracteres, identidad del adjunto y restauración al cancelar.
 - Los workflows del merge en main también pasaron: [Tests #42072659164](https://github.com/Teliu-p/BandaBase/actions/runs/42072659164) y [GitHub Pages #42072657702](https://github.com/Teliu-p/BandaBase/actions/runs/42072657702).
 - No hay cambios de esquema, migraciones, RLS, Storage ni operaciones sobre datos de Supabase.
+
+
+## 20. Movimiento directo de cualquier archivo en Materiales (2026-11-05, PR en preparación)
+
+- La aclaración del usuario corrigió el alcance anterior: no se trata de mover únicamente audio ni de simular pulsaciones de Espacio/Backspace. El gesto esperado es arrastrar un chip de archivo con el botón izquierdo a cualquier posición del texto y ver sombreado el lugar preciso que ocupará.
+- La implementación generaliza el gesto a todo adjunto cuyo tipo sea `file`. La copia visual sigue al puntero; el placeholder sombreado se inserta en el punto de destino dentro del flujo editable y muestra cómo se redistribuye el texto.
+- Al confirmar se inserta el mismo nodo DOM del archivo; no se crea un segundo adjunto. Al cancelar o soltar fuera del editor, se restaura el nodo y los separadores en el lugar de origen.
+- Se agrega regresión Chromium con un archivo PDF no-audio, además de conservar las pruebas de movimiento de audio, restauración al cancelar y orden serializado.
+- Pendiente al abrir esta PR: comprobar `npm test`, ESLint/no-undef, smoke tests Chromium, Tests de main y deploy de Pages. No hay cambios previstos en Supabase, Storage, RLS ni servidor local.
