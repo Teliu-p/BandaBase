@@ -1,8 +1,8 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección:** 2026-11-04 (zona horaria de Argentina)  
+**Última inspección:** 2026-11-05 (zona horaria de Argentina)  
 **Rama de referencia:** main  
-**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró el acceso local a adjuntos de audio con fallback a Supabase Storage. PR #137 configuró el hostname HTTPS de Tailscale Funnel y se fusionó en `main` como `678c218ac591f25d022d760280249158cfddefd8`. PR #138 corrigió el fallback ante HTTP 5xx de Funnel/servidor local y se fusionó como `28cbe3141ea6924d7c2562b65c33f6edd7325d5e`; Tests [#41955423709](https://github.com/Teliu-p/BandaBase/actions/runs/41955423709) y Pages [#41955423316](https://github.com/Teliu-p/BandaBase/actions/runs/41955423316) pasaron. El usuario confirmó reproducción desde el reproductor habitual de Materiales en el host; el acceso autenticado desde una segunda PC sigue pendiente. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
+**Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró el acceso local a adjuntos de audio con fallback a Supabase Storage. PR #137 configuró el hostname HTTPS de Tailscale Funnel y se fusionó en `main` como `678c218ac591f25d022d760280249158cfddefd8`. PR #138 corrigió el fallback ante HTTP 5xx de Funnel/servidor local y se fusionó como `28cbe3141ea6924d7c2562b65c33f6edd7325d5e`; Tests [#41955423709](https://github.com/Teliu-p/BandaBase/actions/runs/41955423709) y Pages [#41955423316](https://github.com/Teliu-p/BandaBase/actions/runs/41955423316) pasaron. El usuario confirmó reproducción desde el reproductor habitual de Materiales en el host; el acceso autenticado desde una segunda PC sigue pendiente. PR #140 integró el audio de Materiales local-only como `55ebb0ebc141f32c7276820617c74567d922650e`; PR #141 incorporó selector múltiple y movimiento inicial de chips de audio como `f65735cdf3d5f1a92b4e9d68363d57284df484c1`; PR #142 corrigió la inserción horizontal precisa y agregó guía/sombreado de destino, integrada como `f902f0e8287fcb879ea1f582a3b85ade561c94ca`. Tests de PR #142 pasaron en [#41982813856](https://github.com/Teliu-p/BandaBase/actions/runs/41982813856). Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Repositorio:** https://github.com/Teliu-p/BandaBase  
 **Proyecto Supabase:** evuwcikuxptrgzdzejov
@@ -160,3 +160,12 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - Servidor local v0.3 actualizado: \`POST /api/upload/<attachment_id>\` y \`POST /api/delete/<attachment_id>\`, JWT/RLS y comprobación creador/admin para upload, escritura por streaming a temporal local, no sobrescritura de claves, serialización por ID y eliminación local. Archivo entregado en esta conversación como \`bandabase_audio_server.py\`; aún debe instalarse manualmente en \`C:\\BandaBaseAudio\\bandabase_audio_server.py\`.
 - Validaciones: py_compile y prueba HTTP aislada con Supabase simulado: no-session 403, upload 201, ticket 200, Range 206, no-sobrescritura 400 y delete 200. CI de la rama y CI/Pages de main pasaron. La verificación autenticada final contra el proyecto real queda para cuando el usuario instale el .py y guarde un audio de prueba desde el host.
 - Supabase: no hubo cambios de esquema, migraciones, RLS ni datos. \`material_attachments.storage_path\` ya era text y acepta claves \`local:\`. No es necesario usar otra computadora para validar el objetivo solicitado.
+
+## Actualización funcional (2026-11-05): posición precisa al mover audios en Materiales
+
+- PR #142 quedó integrada en `main` como `f902f0e8287fcb879ea1f582a3b85ade561c94ca`: https://github.com/Teliu-p/BandaBase/pull/142.
+- El compositor calcula el destino entre caracteres/chips inline a partir de sus rectángulos visuales y muestra una guía vertical con una zona sombreada del ancho aproximado del audio. El mismo Range previsualizado se reutiliza al soltar.
+- El movimiento conserva el mismo nodo del adjunto; el serializador existente registra el nuevo orden. No se cambió el flujo de carga/guardado.
+- CI del commit de PR `3cba0dc69ed26a561762609779eae37eeb2730d4` pasó `npm test`, ESLint/no-undef y smoke tests de Chromium: https://github.com/Teliu-p/BandaBase/actions/runs/41982813856.
+- No hubo cambios de Supabase (esquema, migraciones, RLS, Storage ni filas).
+- Los workflows de Tests y Pages de main se dispararon luego del merge; revisar su resultado y el marker `bandabase-build` antes de declarar desplegada la versión pública.
