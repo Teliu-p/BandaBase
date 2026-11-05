@@ -285,10 +285,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - No se modificaron Supabase, esquema, migraciones, RLS, Storage, datos ni servidor Python. La validación de interacción automatizada pasó; falta únicamente la comprobación manual del usuario en la interfaz publicada.
 
 
-## Seguimiento — alinear el sombreado con el cursor real (2026-11-05, corrección en preparación)
+## Resultado — alinear el sombreado con el cursor real (2026-11-05, PR #145 integrada)
 
 - El usuario reportó que, pese a la generalización de PR #144, al arrastrar el audio el destino aparecía al comienzo del renglón, no en la coordenada horizontal del puntero; eso obligaba a insertar espacios después del drop. La validación anterior no había exigido coincidencia geométrica entre cursor y placeholder, por lo que esa regresión pudo pasar.
 - Causa técnica abordada: el destino usaba primero una aproximación propia a partir de rectángulos de caracteres; la función puede elegir una posición distinta del caret real cuando el contenido está formado por spans/bloques o el renglón cambia durante el arrastre.
 - Corrección propuesta: pedir primero al navegador el caret en `clientX/clientY` mediante `caretPositionFromPoint` o `caretRangeFromPoint`; usar la geometría antigua solo cuando no haya un caret nativo válido. Volver a calcular el destino en `pointerup` con las coordenadas finales.
 - Pruebas reforzadas: se exige que el borde izquierdo del sombreado quede a no más de 2 px del caret objetivo, tanto al mover un PDF como al mover un audio FLAC; también se verifica que al soltar la separación real del texto coincide con ese caret.
-- PR/CI/Pages pendientes de verificar antes de declarar publicada esta corrección. No se cambian Supabase, Storage, datos, RLS, migraciones ni servidor local.
+- PR #145 integrada mediante squash en `main` como `7a736fde56c84d2c945e6d0bfac24a87312d1ddd`: https://github.com/Teliu-p/BandaBase/pull/145. Tests de la PR [#42088181209](https://github.com/Teliu-p/BandaBase/actions/runs/42088181209) y Tests de main [#42088380247](https://github.com/Teliu-p/BandaBase/actions/runs/42088380247) pasaron; Pages [#42088379801](https://github.com/Teliu-p/BandaBase/actions/runs/42088379801) completó el deploy sobre el mismo SHA.
+
+
+- Validación automatizada final: la prueba de audio coloca el placeholder a no más de 2 px del caret elegido y verifica el texto exacto a ambos lados tras soltar; también se repite para un PDF no-audio. No se modificó Supabase, Storage, RLS, datos, migraciones ni el servidor Python. Falta únicamente la confirmación manual del usuario en la web ya publicada.
