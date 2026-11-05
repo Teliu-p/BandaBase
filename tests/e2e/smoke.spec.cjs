@@ -179,7 +179,7 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   expect(runtimeErrors, "JavaScript errors while inserting and reordering Material attachments").toEqual([]);
 });
 
-test("dragging a Material audio previews its real inline space and shifts text live", async ({ page }) => {
+test("dragging any Material file follows the pointer and previews its exact inline position", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -194,30 +194,36 @@ test("dragging a Material audio previews its real inline space and shifts text l
     }
 
     const editor = document.getElementById("materialComposerEditor");
-    const audio = createMaterialInlineAttachment({
-      id: "live-preview-audio",
+    const attachment = createMaterialInlineAttachment({
+      id: "live-preview-file",
       kind: "file",
-      name: "Pista.flac",
-      mime_type: "audio/flac",
-      storage_path: "local:live-preview"
+      name: "Partitura.pdf",
+      mime_type: "application/pdf",
+      storage_path: "materials/live-preview.pdf"
     });
     const destination = document.createElement("span");
     destination.id = "live-preview-destination";
     destination.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     editor.replaceChildren(
-      audio,
+      attachment,
       document.createElement("br"),
       destination
     );
-    window.__livePreviewAudio = audio;
+    window.__livePreviewFile = attachment;
     window.__livePreviewSamples = [];
-    document.addEventListener("pointermove", () => {
-      const preview = document.querySelector(".material-audio-drop-placeholder");
-      if (preview?.isConnected) {
-        const rect = preview.getBoundingClientRect();
+    document.addEventListener("pointermove", event => {
+      const preview = document.querySelector(".material-attachment-drop-placeholder");
+      const ghost = document.querySelector(".material-attachment-drag-ghost");
+      if (preview?.isConnected && ghost?.isConnected) {
+        const previewRect = preview.getBoundingClientRect();
+        const ghostRect = ghost.getBoundingClientRect();
         window.__livePreviewSamples.push({
-          left: Math.round(rect.left),
-          top: Math.round(rect.top)
+          left: Math.round(previewRect.left),
+          top: Math.round(previewRect.top),
+          ghostCenterX: ghostRect.left + ghostRect.width / 2,
+          ghostCenterY: ghostRect.top + ghostRect.height / 2,
+          pointerX: event.clientX,
+          pointerY: event.clientY
         });
       }
     });
@@ -232,12 +238,12 @@ test("dragging a Material audio previews its real inline space and shifts text l
     const rect = range.getBoundingClientRect();
     return { x: rect.right, y: rect.top + rect.height / 2 };
   });
-  const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-attachment='true']"
+  ).boundingBox();
   const destinationLine = await page.locator("#live-preview-destination").boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  // First enter the target line, then move horizontally through it. The
-  // recorded positions must prove the shaded slot advances along the line.
   await page.mouse.move(
     destinationLine.x + 2,
     destinationLine.y + destinationLine.height / 2,
@@ -246,9 +252,10 @@ test("dragging a Material audio previews its real inline space and shifts text l
   await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
 
   const livePreview = await page.evaluate(() => {
-    const audio = window.__livePreviewAudio;
+    const file = window.__livePreviewFile;
     const editor = document.getElementById("materialComposerEditor");
-    const placeholder = editor.querySelector(".material-audio-drop-placeholder");
+    const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
+    const ghost = document.querySelector(".material-attachment-drag-ghost");
     const nextText = (() => {
       let node = placeholder?.nextSibling;
       while (node) {
@@ -260,7 +267,7 @@ test("dragging a Material audio previews its real inline space and shifts text l
       return null;
     })();
     const nextChar = nextText?.nodeType === Node.TEXT_NODE
-      ? [...(nextText.nodeValue || "")].findIndex(char => !/\s/.test(char))
+      ? [...(nextText.nodeValue || "")].findIndex(char => !/\\s/.test(char))
       : -1;
     let nextCharLeft = null;
     if (nextText?.nodeType === Node.TEXT_NODE && nextChar >= 0) {
@@ -270,40 +277,44 @@ test("dragging a Material audio previews its real inline space and shifts text l
       nextCharLeft = range.getBoundingClientRect().left;
     }
     const rect = placeholder?.getBoundingClientRect();
+    const ghostRect = ghost?.getBoundingClientRect();
     const positions = [...new Set(window.__livePreviewSamples.map(
       point => point.left + ":" + point.top
     ))];
+    const lastSample = window.__livePreviewSamples.at(-1);
     return {
       previewIsInEditor: Boolean(placeholder && editor.contains(placeholder)),
-      realAudioIsHeldOutsideEditor: !audio.isConnected,
-      highlighted: placeholder?.classList.contains("material-audio-drop-placeholder"),
+      realFileIsHeldOutsideEditor: !file.isConnected,
+      highlighted: placeholder?.classList.contains("material-attachment-drop-placeholder"),
       width: rect?.width || 0,
       right: rect?.right ?? null,
       nextCharLeft,
       positions,
-      originMarkerPresent: Boolean(editor.querySelector(".material-audio-origin-placeholder"))
+      ghostFollowsPointer: Boolean(lastSample && ghostRect &&
+        Math.abs((ghostRect.left + ghostRect.width / 2) - lastSample.pointerX) < 2 &&
+        Math.abs((ghostRect.top + ghostRect.height / 2) - lastSample.pointerY) < 2),
+      originMarkerPresent: Boolean(editor.querySelector(".material-attachment-origin-placeholder"))
     };
   });
 
   expect(livePreview.previewIsInEditor).toBe(true);
-  expect(livePreview.realAudioIsHeldOutsideEditor).toBe(true);
+  expect(livePreview.realFileIsHeldOutsideEditor).toBe(true);
   expect(livePreview.highlighted).toBe(true);
   expect(livePreview.width).toBeGreaterThan(20);
   expect(livePreview.nextCharLeft).not.toBeNull();
   expect(livePreview.nextCharLeft).toBeGreaterThanOrEqual(livePreview.right);
   expect(livePreview.positions.length).toBeGreaterThan(1);
+  expect(livePreview.ghostFollowsPointer).toBe(true);
   expect(livePreview.originMarkerPresent).toBe(true);
 
   await page.mouse.up();
 
   const committed = await page.evaluate(() => {
-    const audio = window.__livePreviewAudio;
+    const file = window.__livePreviewFile;
     const editor = document.getElementById("materialComposerEditor");
     const nearestNonWhitespaceText = (node, direction) => {
       while (node) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
-          return node.nodeValue.trim();
-        }
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node.nodeValue.trim();
         if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
             node.textContent?.trim()) return node.textContent.trim();
         node = node[direction];
@@ -311,24 +322,24 @@ test("dragging a Material audio previews its real inline space and shifts text l
       return "";
     };
     return {
-      sameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
-        editor.querySelector("[data-material-draggable-audio='true']") === audio,
-      connected: audio.isConnected,
-      originMarkerRemoved: !editor.querySelector(".material-audio-origin-placeholder"),
-      previewRemoved: !editor.querySelector(".material-audio-drop-placeholder"),
-      dragHighlightRemoved: !audio.classList.contains("is-dragging"),
-      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
-      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling")
+      sameNode: editor.querySelectorAll("[data-material-draggable-attachment='true']").length === 1 &&
+        editor.querySelector("[data-material-draggable-attachment='true']") === file,
+      connected: file.isConnected,
+      originMarkerRemoved: !editor.querySelector(".material-attachment-origin-placeholder"),
+      previewRemoved: !editor.querySelector(".material-attachment-drop-placeholder"),
+      ghostRemoved: !document.querySelector(".material-attachment-drag-ghost"),
+      textBefore: nearestNonWhitespaceText(file.previousSibling, "previousSibling"),
+      textAfter: nearestNonWhitespaceText(file.nextSibling, "nextSibling")
     };
   });
   expect(committed.sameNode).toBe(true);
   expect(committed.connected).toBe(true);
   expect(committed.originMarkerRemoved).toBe(true);
   expect(committed.previewRemoved).toBe(true);
-  expect(committed.dragHighlightRemoved).toBe(true);
+  expect(committed.ghostRemoved).toBe(true);
   expect(committed.textBefore).toBe("ABCDEFGHIJKLMNOP");
   expect(committed.textAfter).toBe("QRSTUVWXYZ");
-  expect(runtimeErrors, "JavaScript errors while previewing and committing a live Material audio move").toEqual([]);
+  expect(runtimeErrors, "JavaScript errors while dragging and committing a non-audio Material file").toEqual([]);
 });
 
 test("cancelling a live Material audio drag restores the original inline position", async ({ page }) => {
@@ -361,13 +372,13 @@ test("cancelling a live Material audio drag restores the original inline positio
     editor.focus();
   });
 
-  const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  const source = await page.locator("#materialComposerEditor [data-material-draggable-attachment='true']").boundingBox();
   const destination = await page.locator("#materialComposerEditor").boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
   await page.mouse.move(destination.x + destination.width - 20, destination.y + 8, { steps: 5 });
   await page.evaluate(() => {
-    const pointerId = materialAudioPointerDragState?.pointerId;
+    const pointerId = materialAttachmentPointerDragState?.pointerId;
     document.dispatchEvent(new PointerEvent("pointercancel", {
       pointerId,
       bubbles: true,
@@ -388,12 +399,12 @@ test("cancelling a live Material audio drag restores the original inline positio
       return null;
     };
     return {
-      sameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
-        editor.querySelector("[data-material-draggable-audio='true']") === audio,
+      sameNode: editor.querySelectorAll("[data-material-draggable-attachment='true']").length === 1 &&
+        editor.querySelector("[data-material-draggable-attachment='true']") === audio,
       before: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
       after: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
-      markerRemoved: !editor.querySelector(".material-audio-origin-placeholder"),
-      previewRemoved: !editor.querySelector(".material-audio-drop-placeholder"),
+      markerRemoved: !editor.querySelector(".material-attachment-origin-placeholder"),
+      previewRemoved: !editor.querySelector(".material-attachment-drop-placeholder"),
       highlightRemoved: !audio.classList.contains("is-dragging")
     };
   });
