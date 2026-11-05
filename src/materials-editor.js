@@ -3174,9 +3174,9 @@ document.addEventListener("pointerup", event => {
   let moved = false;
 
   if (state.dragging && attachment) {
-    // The final position is already shown in-flow. Commit by removing the
-    // invisible origin marker; if no valid destination was reached, restore it.
-    moved = attachment.isConnected
+    // The real audio is detached while its shaded placeholder occupies the
+    // live inline position. Commit whenever that placeholder has a valid parent.
+    moved = state.dropPlaceholder?.parentNode
       ? commitMaterialComposerAudioLivePreview(attachment, state)
       : restoreMaterialComposerAudioDragSource(attachment, state, materialComposerEditor);
   }
