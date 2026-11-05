@@ -3609,6 +3609,23 @@
   overflow: hidden;
 }
 
+.material-inline-attachment[data-material-draggable-audio="true"] {
+  cursor: grab;
+}
+
+.material-inline-attachment[data-material-draggable-audio="true"]:active {
+  cursor: grabbing;
+}
+
+.material-inline-attachment.is-dragging {
+  opacity: .45;
+}
+
+.material-inline-attachment.is-drop-target {
+  outline: 2px solid var(--bb-accent);
+  outline-offset: 2px;
+}
+
 .material-inline-attachment-label {
   display: inline-block;
   min-width: 0;
