@@ -296,12 +296,19 @@ async function runAttachmentAccessRegressionTests() {
   };
 
   vm.runInNewContext(
-    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl };",
+    attachmentAccessSource + "\nglobalThis.__testExports = { getAttachmentAccessUrl, getMaterialFileMimeType, isMaterialAudioFile, getLocalMaterialAudioUploadSizeError, uploadLocalMaterialAudio, deleteLocalMaterialAttachment };",
     testContext,
     { filename: "src/attachment-access.js#tests" }
   );
 
-  const getAttachmentAccessUrl = testContext.__testExports.getAttachmentAccessUrl;
+  const {
+    getAttachmentAccessUrl,
+    getMaterialFileMimeType,
+    isMaterialAudioFile,
+    getLocalMaterialAudioUploadSizeError,
+    uploadLocalMaterialAudio,
+    deleteLocalMaterialAttachment
+  } = testContext.__testExports;
   const audioAttachment = {
     id: "11111111-2222-4333-8444-555555555555",
     storage_path: "private/song.flac",
@@ -392,35 +399,80 @@ async function runAttachmentAccessRegressionTests() {
       status,
       json: async () => ({ error: "El servidor local no está disponible." })
     });
-    const serverErrorFallback = await getAttachmentAccessUrl(
-      "material_attachments",
-      audioAttachment
-    );
-    assert.equal(
-      serverErrorFallback,
-      "https://storage.example.test/signed",
-      "Un error HTTP " + status + " del servidor local debe activar el fallback a Supabase Storage."
+    await assert.rejects(
+      getAttachmentAccessUrl("material_attachments", audioAttachment),
+      /únicamente en la biblioteca local/,
+      "Un HTTP " + status + " no debe habilitar el fallback a Storage para Materiales."
     );
   }
   assert.equal(
     storageCalls.length,
-    previousStorageCount + 4,
-    "Los errores HTTP 5xx deben recurrir a Storage en lugar de bloquear la reproducción."
+    previousStorageCount,
+    "Los audios de Materiales no deben consultar Storage ante HTTP 5xx."
   );
 
   fetchBehavior = async () => {
     throw new TypeError("Servidor local no disponible");
   };
-  const offlineFallback = await getAttachmentAccessUrl(
-    "proposal_attachments",
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /únicamente en la biblioteca local/,
+    "La desconexión del host tampoco debe habilitar Storage para audios de Materiales."
+  );
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 503,
+    json: async () => ({ error: "Servidor local no disponible." })
+  });
+  const commentFallback = await getAttachmentAccessUrl(
+    "comment_attachments",
     audioAttachment
   );
-  assert.equal(offlineFallback, "https://storage.example.test/signed");
+  assert.equal(commentFallback, "https://storage.example.test/signed");
   assert.equal(
     storageCalls.length,
-    previousStorageCount + 5,
-    "Los errores HTTP 5xx y el servidor local apagado deben seguir usando Storage."
+    previousStorageCount + 1,
+    "Los audios de Comentarios deben conservar el fallback a Storage."
   );
+
+  assert.equal(
+    getMaterialFileMimeType({ name: "ensayo.FLAC", type: "application/octet-stream" }),
+    "audio/flac",
+    "La extensión FLAC debe recuperar el MIME de audio cuando el navegador no lo informa."
+  );
+  assert.equal(isMaterialAudioFile({ name: "prueba.wav", type: "" }), true);
+  assert.equal(
+    getLocalMaterialAudioUploadSizeError({ size: 1024 * 1024 * 1024 + 1 }),
+    "El audio supera el límite de 1 GiB por archivo de la biblioteca local."
+  );
+  assert.equal(getLocalMaterialAudioUploadSizeError({ size: 1024 }), null);
+
+  const uploadFile = { name: "prueba.flac", type: "audio/flac", size: 12 };
+  fetchBehavior = async (url, options) => ({
+    ok: true,
+    status: 201,
+    json: async () => ({ ok: true, attachment_id: "audio-1", bytes: uploadFile.size })
+  });
+  const uploadResult = await uploadLocalMaterialAudio("audio-1", uploadFile, "audio/flac");
+  assert.equal(uploadResult.ok, true);
+  const uploadCall = fetchCalls.at(-1);
+  assert.match(uploadCall.url, /\\/api\\/upload\\/audio-1$/);
+  assert.equal(uploadCall.options.method, "POST");
+  assert.equal(uploadCall.options.headers.Authorization, "Bearer test-access-token");
+  assert.equal(uploadCall.options.headers["Content-Type"], "audio/flac");
+  assert.equal(uploadCall.options.body, uploadFile);
+
+  fetchBehavior = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ deleted: true, local_file_deleted: true })
+  });
+  const deletion = await deleteLocalMaterialAttachment("audio-1");
+  assert.equal(deletion.deleted, true);
+  assert.match(fetchCalls.at(-1).url, /\\/api\\/delete\\/audio-1$/);
+  assert.equal(fetchCalls.at(-1).options.method, "POST");
 
   await assert.rejects(
     getAttachmentAccessUrl("unsupported_table", audioAttachment),
