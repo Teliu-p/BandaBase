@@ -3609,15 +3609,15 @@
   overflow: hidden;
 }
 
-.material-inline-attachment[data-material-draggable-audio="true"] {
+.material-inline-attachment[data-material-draggable-attachment="true"] {
   cursor: grab;
+  touch-action: none;
 }
 
-.material-inline-attachment[data-material-draggable-audio="true"]:active {
+.material-inline-attachment[data-material-draggable-attachment="true"]:active {
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
 }
 
 .material-inline-attachment.is-dragging {
@@ -3631,13 +3631,13 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--bb-accent) 14%, transparent);
 }
 
-.material-composer-editor.is-moving-material-audio {
+.material-composer-editor.is-moving-material-attachment {
   cursor: grabbing;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.material-audio-drop-placeholder {
+.material-attachment-drop-placeholder {
   display: inline-block;
   box-sizing: border-box;
   vertical-align: baseline;
@@ -3646,6 +3646,23 @@
   background: color-mix(in srgb, var(--bb-accent) 18%, var(--bb-surface-raised));
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--bb-accent) 14%, transparent);
   pointer-events: none;
+}
+
+.material-inline-attachment.material-attachment-drag-ghost {
+  position: fixed;
+  z-index: 10050;
+  display: inline-flex;
+  margin: 0;
+  opacity: .96;
+  pointer-events: none;
+  outline: 2px dashed var(--bb-accent);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--bb-accent) 18%, var(--bb-surface-raised));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .24);
+}
+
+.material-attachment-drag-ghost .inline-remove {
+  display: none;
 }
 
 .material-inline-attachment-label {
