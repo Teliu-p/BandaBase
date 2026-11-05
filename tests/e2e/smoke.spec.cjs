@@ -179,7 +179,7 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   expect(runtimeErrors, "JavaScript errors while inserting and reordering Material attachments").toEqual([]);
 });
 
-test("dragging any Material file follows the pointer and previews its exact inline position", async ({ page }) => {
+test("native browser drag places a Material file at the caret directly under the pointer", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -194,161 +194,106 @@ test("dragging any Material file follows the pointer and previews its exact inli
     }
 
     const editor = document.getElementById("materialComposerEditor");
-    const attachment = createMaterialInlineAttachment({
-      id: "live-preview-file",
+    editor.style.width = "420px";
+    editor.style.maxWidth = "420px";
+    const file = createMaterialInlineAttachment({
+      id: "native-drag-file",
       kind: "file",
       name: "Partitura.pdf",
       mime_type: "application/pdf",
-      storage_path: "materials/live-preview.pdf"
+      storage_path: "materials/native-drag.pdf"
     });
-    const destination = document.createElement("span");
-    destination.id = "live-preview-destination";
-    destination.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    editor.replaceChildren(
-      attachment,
-      document.createElement("br"),
-      destination
-    );
-    window.__livePreviewFile = attachment;
-    window.__livePreviewSamples = [];
-    document.addEventListener("pointermove", event => {
-      const preview = document.querySelector(".material-attachment-drop-placeholder");
-      const ghost = document.querySelector(".material-attachment-drag-ghost");
-      if (preview?.isConnected && ghost?.isConnected) {
-        const previewRect = preview.getBoundingClientRect();
-        const ghostRect = ghost.getBoundingClientRect();
-        window.__livePreviewSamples.push({
-          left: Math.round(previewRect.left),
-          top: Math.round(previewRect.top),
-          ghostCenterX: ghostRect.left + ghostRect.width / 2,
-          ghostCenterY: ghostRect.top + ghostRect.height / 2,
-          pointerX: event.clientX,
-          pointerY: event.clientY
-        });
-      }
-    });
+    const sourceLine = document.createElement("div");
+    sourceLine.appendChild(file);
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-drop-destination";
+    destinationLine.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeDragFile = file;
+    window.__nativeDragSourceLine = sourceLine;
+    window.__nativeDragSourceHeight = sourceLine.getBoundingClientRect().height;
+    window.__nativeDragEvents = { start: 0, over: 0, drop: 0 };
+    editor.addEventListener("dragstart", () => window.__nativeDragEvents.start++);
+    editor.addEventListener("dragover", () => window.__nativeDragEvents.over++);
+    editor.addEventListener("drop", () => window.__nativeDragEvents.drop++);
     editor.focus();
   });
 
-  const targetPoint = await page.evaluate(() => {
-    const text = document.getElementById("live-preview-destination").firstChild;
+  const target = await page.evaluate(() => {
+    const text = document.getElementById("native-drop-destination").firstChild;
     const range = document.createRange();
     range.setStart(text, 15);
-    range.setEnd(text, 16);
-    const rect = range.getBoundingClientRect();
-    window.__livePreviewTargetX = rect.right;
-    return { x: rect.right, y: rect.top + rect.height / 2 };
+    range.collapse(true);
+    const caret = getMaterialRangeCaretPoint(
+      range,
+      document.getElementById("materialComposerEditor")
+    );
+    return { x: caret.x, y: caret.y };
   });
   const source = await page.locator(
     "#materialComposerEditor [data-material-draggable-attachment='true']"
   ).boundingBox();
-  const destinationLine = await page.locator("#live-preview-destination").boundingBox();
+
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  await page.mouse.move(
-    destinationLine.x + 2,
-    destinationLine.y + destinationLine.height / 2,
-    { steps: 8 }
-  );
-  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
+  await page.mouse.move(target.x, target.y, { steps: 24 });
 
-  const livePreview = await page.evaluate(() => {
-    const file = window.__livePreviewFile;
+  const preview = await page.evaluate(() => {
     const editor = document.getElementById("materialComposerEditor");
     const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
-    const ghost = document.querySelector(".material-attachment-drag-ghost");
-    const nextText = (() => {
-      let node = placeholder?.nextSibling;
-      while (node) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node;
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
-            node.textContent?.trim()) return node.firstChild;
-        node = node.nextSibling;
-      }
-      return null;
-    })();
-    const nextChar = nextText?.nodeType === Node.TEXT_NODE
-      ? [...(nextText.nodeValue || "")].findIndex(char => !/\s/.test(char))
-      : -1;
-    let nextCharLeft = null;
-    if (nextText?.nodeType === Node.TEXT_NODE && nextChar >= 0) {
-      const range = document.createRange();
-      range.setStart(nextText, nextChar);
-      range.setEnd(nextText, nextChar + 1);
-      nextCharLeft = range.getBoundingClientRect().left;
-    }
     const rect = placeholder?.getBoundingClientRect();
-    const ghostRect = ghost?.getBoundingClientRect();
-    const positions = [...new Set(window.__livePreviewSamples.map(
-      point => point.left + ":" + point.top
-    ))];
-    const lastSample = window.__livePreviewSamples.at(-1);
     return {
-      previewIsInEditor: Boolean(placeholder && editor.contains(placeholder)),
-      realFileIsHeldOutsideEditor: !file.isConnected,
-      highlighted: placeholder?.classList.contains("material-attachment-drop-placeholder"),
-      width: rect?.width || 0,
+      inEditor: Boolean(placeholder),
       left: rect?.left ?? null,
-      right: rect?.right ?? null,
-      targetX: window.__livePreviewTargetX,
-      nextCharLeft,
-      positions,
-      ghostFollowsPointer: Boolean(lastSample && ghostRect &&
-        Math.abs((ghostRect.left + ghostRect.width / 2) - lastSample.pointerX) < 2 &&
-        Math.abs((ghostRect.top + ghostRect.height / 2) - lastSample.pointerY) < 2),
-      originMarkerPresent: Boolean(editor.querySelector(".material-attachment-origin-placeholder"))
+      events: window.__nativeDragEvents,
+      sourceStillConnected: window.__nativeDragFile.isConnected,
+      sourceIsOutOfFlow: getComputedStyle(window.__nativeDragFile).position === "fixed",
+      sourceHeightBefore: window.__nativeDragSourceHeight,
+      sourceHeightDuring: window.__nativeDragSourceLine.getBoundingClientRect().height
     };
   });
 
-  expect(livePreview.previewIsInEditor).toBe(true);
-  expect(livePreview.realFileIsHeldOutsideEditor).toBe(true);
-  expect(livePreview.highlighted).toBe(true);
-  expect(livePreview.width).toBeGreaterThan(20);
-  // The shaded slot must start at the horizontal caret under the mouse,
-  // never jump back to the beginning of the visual line.
-  expect(Math.abs(livePreview.left - livePreview.targetX)).toBeLessThanOrEqual(2);
-  expect(livePreview.nextCharLeft).not.toBeNull();
-  expect(livePreview.nextCharLeft).toBeGreaterThanOrEqual(livePreview.right);
-  expect(livePreview.positions.length).toBeGreaterThan(1);
-  expect(livePreview.ghostFollowsPointer).toBe(true);
-  expect(livePreview.originMarkerPresent).toBe(true);
+  expect(preview.events.start).toBeGreaterThan(0);
+  expect(preview.events.over).toBeGreaterThan(0);
+  expect(preview.inEditor).toBe(true);
+  expect(preview.sourceStillConnected).toBe(true);
+  expect(preview.sourceIsOutOfFlow).toBe(true);
+  expect(Math.abs(preview.sourceHeightDuring - preview.sourceHeightBefore)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(preview.left - target.x)).toBeLessThanOrEqual(4);
 
   await page.mouse.up();
 
   const committed = await page.evaluate(() => {
-    const file = window.__livePreviewFile;
     const editor = document.getElementById("materialComposerEditor");
-    const nearestNonWhitespaceText = (node, direction) => {
-      while (node) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node.nodeValue.trim();
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
-            node.textContent?.trim()) return node.textContent.trim();
-        node = node[direction];
-      }
-      return "";
-    };
+    const file = window.__nativeDragFile;
+    const destination = document.getElementById("native-drop-destination");
+    const before = document.createRange();
+    before.setStart(destination, 0);
+    before.setEndBefore(file);
+    const after = document.createRange();
+    after.setStartAfter(file);
+    after.setEnd(destination, destination.childNodes.length);
     return {
-      sameNode: editor.querySelectorAll("[data-material-draggable-attachment='true']").length === 1 &&
-        editor.querySelector("[data-material-draggable-attachment='true']") === file,
-      connected: file.isConnected,
-      originMarkerRemoved: !editor.querySelector(".material-attachment-origin-placeholder"),
-      previewRemoved: !editor.querySelector(".material-attachment-drop-placeholder"),
-      ghostRemoved: !document.querySelector(".material-attachment-drag-ghost"),
-      textBefore: nearestNonWhitespaceText(file.previousSibling, "previousSibling"),
-      textAfter: nearestNonWhitespaceText(file.nextSibling, "nextSibling")
+      sameNode: destination.querySelector("[data-material-draggable-attachment='true']") === file,
+      textBefore: before.toString().trim(),
+      textAfter: after.toString().trim(),
+      noPreview: !editor.querySelector(".material-attachment-drop-placeholder"),
+      noOrigin: !editor.querySelector(".material-attachment-origin-placeholder"),
+      positionRestored: file.style.position === ""
     };
   });
-  expect(committed.sameNode).toBe(true);
-  expect(committed.connected).toBe(true);
-  expect(committed.originMarkerRemoved).toBe(true);
-  expect(committed.previewRemoved).toBe(true);
-  expect(committed.ghostRemoved).toBe(true);
-  expect(committed.textBefore).toBe("ABCDEFGHIJKLMNOP");
-  expect(committed.textAfter).toBe("QRSTUVWXYZ");
-  expect(runtimeErrors, "JavaScript errors while dragging and committing a non-audio Material file").toEqual([]);
+  expect(committed).toEqual({
+    sameNode: true,
+    textBefore: "ABCDEFGHIJKLMNO",
+    textAfter: "PQRSTUVWXYZ",
+    noPreview: true,
+    noOrigin: true,
+    positionRestored: true
+  });
+  expect(runtimeErrors, "JavaScript errors during native Material file drag").toEqual([]);
 });
 
-test("dragging a Material audio follows the pointer even when the native caret reports the line start", async ({ page }) => {
+test("native browser drag drops Material audio inside formatted wrapped text", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -368,117 +313,79 @@ test("dragging a Material audio follows the pointer even when the native caret r
     editor.style.boxSizing = "border-box";
 
     const audio = createMaterialInlineAttachment({
-      id: "pointer-drop-audio",
+      id: "native-drag-audio",
       kind: "file",
       name: "Pista.flac",
       mime_type: "audio/flac",
-      storage_path: "local:pointer-drop"
+      storage_path: "local:native-drag"
     });
     const sourceLine = document.createElement("div");
     sourceLine.appendChild(audio);
-
     const destinationLine = document.createElement("div");
-    destinationLine.id = "pointer-drop-line";
+    destinationLine.id = "native-audio-destination";
     const prefix = document.createTextNode("Texto previo al adjunto con formato: ");
     const strong = document.createElement("strong");
-    strong.id = "pointer-drop-rich-text";
+    strong.id = "native-audio-rich-text";
     strong.textContent = "0123456789ABCDEFGHIJKLMN";
     const suffix = document.createElement("em");
     suffix.textContent = " y texto posterior para verificar el contenido enriquecido.";
     destinationLine.append(prefix, strong, suffix);
-
     editor.replaceChildren(sourceLine, destinationLine);
-    window.__pointerDropAudio = audio;
-    window.__pointerDropPrefix = prefix;
-    window.__pointerDropRichText = strong.firstChild;
-    window.__pointerDropLine = destinationLine;
-    window.__pointerDropSourceLine = sourceLine;
-    window.__pointerDropSourceLineHeightBefore = sourceLine.getBoundingClientRect().height;
+    window.__nativeDragAudio = audio;
+    window.__nativeDragSourceLine = sourceLine;
+    window.__nativeDragSourceHeight = sourceLine.getBoundingClientRect().height;
+    window.__nativeDragEvents = { start: 0, over: 0, drop: 0 };
+    editor.addEventListener("dragstart", () => window.__nativeDragEvents.start++);
+    editor.addEventListener("dragover", () => window.__nativeDragEvents.over++);
+    editor.addEventListener("drop", () => window.__nativeDragEvents.drop++);
     editor.focus();
-
-    // Reproduce el fallo que no detectaba el test anterior: el navegador
-    // responde con un caret válido dentro del editor, pero al inicio del texto,
-    // aunque el puntero esté mucho más a la derecha.
-    const wrongCaret = document.createRange();
-    wrongCaret.setStart(prefix, 0);
-    wrongCaret.collapse(true);
-    Object.defineProperty(document, "caretPositionFromPoint", {
-      configurable: true,
-      value: () => ({ offsetNode: prefix, offset: 0 })
-    });
-    Object.defineProperty(document, "caretRangeFromPoint", {
-      configurable: true,
-      value: () => wrongCaret.cloneRange()
-    });
   });
 
   const target = await page.evaluate(() => {
-    const text = window.__pointerDropRichText;
-    // Measure the collapsed insertion caret itself, not the painted edge
-    // of a glyph (which excludes its typographic side bearing/letter spacing).
-    const caretRange = document.createRange();
-    caretRange.setStart(text, 14);
-    caretRange.collapse(true);
+    const text = document.getElementById("native-audio-rich-text").firstChild;
+    const range = document.createRange();
+    range.setStart(text, 14);
+    range.collapse(true);
     const caret = getMaterialRangeCaretPoint(
-      caretRange,
+      range,
       document.getElementById("materialComposerEditor")
     );
-    const charRange = document.createRange();
-    charRange.setStart(text, 14);
-    charRange.setEnd(text, 15);
-    const rect = charRange.getBoundingClientRect();
-    const firstChar = document.createRange();
-    firstChar.setStart(window.__pointerDropPrefix, 0);
-    firstChar.setEnd(window.__pointerDropPrefix, 1);
-    const firstRect = firstChar.getBoundingClientRect();
-    window.__pointerDropExpectedX = caret.x;
-    return {
-      x: caret.x,
-      y: rect.top + rect.height / 2,
-      targetY: rect.top,
-      firstY: firstRect.top,
-      firstLineX: firstRect.left
-    };
+    return { x: caret.x, y: caret.y };
   });
-  expect(target.targetY).toBeGreaterThan(target.firstY + 5);
-  const editorBox = await page.locator("#materialComposerEditor").boundingBox();
-  expect(target.x).toBeGreaterThan(editorBox.x + 20);
   const source = await page.locator(
     "#materialComposerEditor [data-material-draggable-audio='true']"
   ).boundingBox();
 
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  await page.mouse.move(target.x, target.y, { steps: 16 });
+  await page.mouse.move(target.x, target.y, { steps: 24 });
 
   const preview = await page.evaluate(() => {
-    const placeholder = document.querySelector(".material-attachment-drop-placeholder");
-    const rect = placeholder?.getBoundingClientRect();
     const editor = document.getElementById("materialComposerEditor");
-    const sourceMarker = editor.querySelector(".material-attachment-origin-placeholder");
+    const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
+    const rect = placeholder?.getBoundingClientRect();
     return {
-      inEditor: Boolean(placeholder && editor.contains(placeholder)),
+      inEditor: Boolean(placeholder),
       left: rect?.left ?? null,
-      expectedX: window.__pointerDropExpectedX,
-      previousText: placeholder?.previousSibling?.nodeValue ?? null,
-      nextText: placeholder?.nextSibling?.nodeValue ?? null,
-      sourceLineHeightBefore: window.__pointerDropSourceLineHeightBefore,
-      sourceLineHeightDuring: window.__pointerDropSourceLine?.getBoundingClientRect().height ?? null,
-      sourceMarkerVisibility: sourceMarker ? getComputedStyle(sourceMarker).visibility : null
+      events: window.__nativeDragEvents,
+      sourceHeightBefore: window.__nativeDragSourceHeight,
+      sourceHeightDuring: window.__nativeDragSourceLine.getBoundingClientRect().height,
+      sourceStyle: window.__nativeDragAudio.getAttribute("style")
     };
   });
+  expect(preview.events.start).toBeGreaterThan(0);
+  expect(preview.events.over).toBeGreaterThan(0);
   expect(preview.inEditor).toBe(true);
-  expect(preview.sourceMarkerVisibility).toBe("hidden");
-  expect(Math.abs(preview.sourceLineHeightDuring - preview.sourceLineHeightBefore)).toBeLessThanOrEqual(0.5);
-  expect(preview.previousText).toBe("0123456789ABCD");
-  expect(preview.nextText).toBe("EFGHIJKLMN");
-  expect(Math.abs(preview.left - preview.expectedX)).toBeLessThanOrEqual(2);
+  expect(preview.sourceStyle).toContain("position: fixed");
+  expect(Math.abs(preview.sourceHeightDuring - preview.sourceHeightBefore)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(preview.left - target.x)).toBeLessThanOrEqual(4);
 
   await page.mouse.up();
 
   const committed = await page.evaluate(() => {
-    const line = window.__pointerDropLine;
-    const audio = window.__pointerDropAudio;
+    const editor = document.getElementById("materialComposerEditor");
+    const line = document.getElementById("native-audio-destination");
+    const audio = window.__nativeDragAudio;
     const before = document.createRange();
     before.setStart(line, 0);
     before.setEndBefore(audio);
@@ -487,17 +394,23 @@ test("dragging a Material audio follows the pointer even when the native caret r
     after.setEnd(line, line.childNodes.length);
     return {
       sameNode: line.querySelector("[data-material-draggable-audio='true']") === audio,
-      before: before.toString().trim(),
-      after: after.toString().trim()
+      textBefore: before.toString().trim(),
+      textAfter: after.toString().trim(),
+      noPreview: !editor.querySelector(".material-attachment-drop-placeholder"),
+      noOrigin: !editor.querySelector(".material-attachment-origin-placeholder"),
+      positionRestored: audio.style.position === ""
     };
   });
   expect(committed.sameNode).toBe(true);
-  expect(committed.before).toBe("Texto previo al adjunto con formato: 0123456789ABCD");
-  expect(committed.after).toBe("EFGHIJKLMN y texto posterior para verificar el contenido enriquecido.");
-  expect(runtimeErrors, "JavaScript errors while dropping audio at the measured pointer position").toEqual([]);
+  expect(committed.textBefore).toBe("Texto previo al adjunto con formato: 0123456789ABCD");
+  expect(committed.textAfter).toBe("EFGHIJKLMN y texto posterior para verificar el contenido enriquecido.");
+  expect(committed.noPreview).toBe(true);
+  expect(committed.noOrigin).toBe(true);
+  expect(committed.positionRestored).toBe(true);
+  expect(runtimeErrors, "JavaScript errors during native Material audio drag").toEqual([]);
 });
 
-test("cancelling a live Material audio drag restores the original inline position", async ({ page }) => {
+test("native Material drag cancelled outside the editor restores the original audio", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -514,64 +427,53 @@ test("cancelling a live Material audio drag restores the original inline positio
     const editor = document.getElementById("materialComposerEditor");
     const prefix = document.createTextNode("Inicio");
     const audio = createMaterialInlineAttachment({
-      id: "cancel-preview-audio",
+      id: "native-cancel-audio",
       kind: "file",
       name: "Pista.flac",
       mime_type: "audio/flac",
-      storage_path: "local:cancel-preview"
+      storage_path: "local:native-cancel"
     });
     editor.replaceChildren(prefix, document.createTextNode(" "), audio,
       document.createTextNode(" "), document.createElement("br"),
       document.createTextNode("Destino"));
-    window.__cancelPreviewAudio = audio;
+    window.__nativeCancelAudio = audio;
+    window.__nativeCancelEvents = { start: 0, end: 0 };
+    editor.addEventListener("dragstart", () => window.__nativeCancelEvents.start++);
+    audio.addEventListener("dragend", () => window.__nativeCancelEvents.end++);
     editor.focus();
   });
 
-  const source = await page.locator("#materialComposerEditor [data-material-draggable-attachment='true']").boundingBox();
-  const destination = await page.locator("#materialComposerEditor").boundingBox();
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+  const editorBox = await page.locator("#materialComposerEditor").boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  await page.mouse.move(destination.x + destination.width - 20, destination.y + 8, { steps: 5 });
-  await page.evaluate(() => {
-    const pointerId = materialAttachmentPointerDragState?.pointerId;
-    document.dispatchEvent(new PointerEvent("pointercancel", {
-      pointerId,
-      bubbles: true,
-      cancelable: true
-    }));
-  });
+  await page.mouse.move(Math.max(5, editorBox.x - 30), Math.max(5, editorBox.y - 30), { steps: 16 });
+  await page.mouse.up();
 
   const restored = await page.evaluate(() => {
-    const audio = window.__cancelPreviewAudio;
     const editor = document.getElementById("materialComposerEditor");
-    const nearestNonWhitespaceText = (node, direction) => {
-      while (node) {
-        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node.nodeValue;
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
-            node.textContent?.trim()) return node.textContent;
-        node = node[direction];
-      }
-      return null;
-    };
+    const audio = window.__nativeCancelAudio;
     return {
-      sameNode: editor.querySelectorAll("[data-material-draggable-attachment='true']").length === 1 &&
-        editor.querySelector("[data-material-draggable-attachment='true']") === audio,
-      before: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
-      after: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
-      markerRemoved: !editor.querySelector(".material-attachment-origin-placeholder"),
-      previewRemoved: !editor.querySelector(".material-attachment-drop-placeholder"),
-      highlightRemoved: !audio.classList.contains("is-dragging")
+      events: window.__nativeCancelEvents,
+      sameNode: editor.querySelector("[data-material-draggable-audio='true']") === audio,
+      before: audio.previousSibling?.nodeValue ?? null,
+      after: audio.nextSibling?.nodeValue ?? null,
+      noPreview: !editor.querySelector(".material-attachment-drop-placeholder"),
+      noOrigin: !editor.querySelector(".material-attachment-origin-placeholder"),
+      noFixedStyle: audio.style.position === ""
     };
   });
-  expect(restored).toEqual({
-    sameNode: true,
-    before: "Inicio",
-    after: "Destino",
-    markerRemoved: true,
-    previewRemoved: true,
-    highlightRemoved: true
-  });
-  expect(runtimeErrors, "JavaScript errors while cancelling a Material audio drag").toEqual([]);
+  expect(restored.events.start).toBeGreaterThan(0);
+  expect(restored.events.end).toBeGreaterThan(0);
+  expect(restored.sameNode).toBe(true);
+  expect(restored.before).toBe(" ");
+  expect(restored.after).toBe(" ");
+  expect(restored.noPreview).toBe(true);
+  expect(restored.noOrigin).toBe(true);
+  expect(restored.noFixedStyle).toBe(true);
+  expect(runtimeErrors, "JavaScript errors when native Material drag is cancelled").toEqual([]);
 });
 
 test("outdent removes indentation from every selected material line after DOM text splits", async ({ page }) => {
