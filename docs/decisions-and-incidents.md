@@ -261,9 +261,9 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Resultado final: PR #144 fusionada como `858271ba90576ba3211305c17f06ec7285eeb29d`. CI de PR [#42085812268](https://github.com/Teliu-p/BandaBase/actions/runs/42085812268), Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. La implementación está publicada; la verificación manual en la sesión del usuario queda pendiente.
 
 
-### 2026-11-05 — corregir destino al comienzo del renglón al arrastrar un archivo
+### 2026-11-05 — corregir destino al comienzo del renglón al arrastrar un archivo (PR #145 integrada)
 
 - Reporte posterior a PR #144: el audio podía terminar al comienzo del renglón aunque el cursor estuviera en el medio, obligando a agregar espacios manualmente. El usuario especificó que el sombreado debe estar inmediatamente debajo del cursor y el archivo quedar en ese lugar.
 - La versión anterior priorizaba una aproximación por geometría de caracteres. La corrección prioriza el caret nativo del navegador en las coordenadas exactas del puntero y recalcula también en `pointerup`; conserva la geometría como alternativa si no hay caret nativo válido.
 - La regresión comprueba que el borde del placeholder coincide horizontalmente (tolerancia máxima 2 px) con el caret objetivo, con un archivo PDF y con un audio FLAC; al soltar se comprueba el texto a izquierda/derecha. No alcanza con confirmar solo que el placeholder se mueve o que el archivo cambia de renglón.
-- PR/CI/Pages de esta corrección se registrarán al verificarse. No se cambia Supabase, Storage, RLS, datos, migraciones ni el servidor Python.
+- PR #145 fue fusionada en `main` como `7a736fde56c84d2c945e6d0bfac24a87312d1ddd`. Tests de PR [#42088181209](https://github.com/Teliu-p/BandaBase/actions/runs/42088181209), Tests de main [#42088380247](https://github.com/Teliu-p/BandaBase/actions/runs/42088380247) y Pages [#42088379801](https://github.com/Teliu-p/BandaBase/actions/runs/42088379801) pasaron. La prueba exige correspondencia de hasta 2 px entre placeholder y caret y verifica texto antes/después al mover audio y PDF. No se cambió Supabase, Storage, RLS, datos, migraciones ni el servidor Python.
