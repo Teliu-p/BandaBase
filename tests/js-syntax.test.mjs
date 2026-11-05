@@ -2647,7 +2647,7 @@ async function runMaterialSaveScenario(options = {}) {
     materialPendingAttachments: pendingAttachments,
     openMaterialIds: new Set(),
     supabaseClient: { storage },
-    crypto: { randomUUID: () => "test-uuid" },
+    crypto: { randomUUID: () => "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
     document: {
       getElementById(id) {
         if (id === "materialName") {
@@ -2704,6 +2704,22 @@ async function runMaterialSaveScenario(options = {}) {
         : { error: null };
     },
     sanitizeStorageFileName: name => name.replaceAll(" ", "_"),
+    getMaterialFileMimeType: file => file.type || null,
+    isMaterialAudioFile: file => String(file.type || "").startsWith("audio/"),
+    uploadLocalMaterialAudio: async (id, file, mimeType) => {
+      calls.push(["uploadLocalAudio", id, file.name, mimeType]);
+      if (options.localUploadError) {
+        throw new Error(options.localUploadError);
+      }
+      return { ok: true };
+    },
+    deleteLocalMaterialAttachment: async id => {
+      calls.push(["deleteLocalAudio", id]);
+      if (options.deleteLocalAudioError) {
+        throw new Error(options.deleteLocalAudioError);
+      }
+      return { deleted: true, local_file_deleted: true };
+    },
     showNotice: (message, type) => notices.push([message, type]),
     hideMaterialForm: () => calls.push(["hideForm"]),
     loadMaterials: async () => calls.push(["loadMaterials"]),
@@ -2761,6 +2777,21 @@ assert.equal(
   "El guardado normal debe registrar tanto el archivo como el enlace."
 );
 assert.equal(
+  successSave.calls.some(call => call[0] === "upload"),
+  false,
+  "Los audios nuevos de Materiales no deben subirse a Supabase Storage."
+);
+assert.equal(
+  successSave.calls.filter(call => call[0] === "uploadLocalAudio").length,
+  1,
+  "Cada audio nuevo de Materiales debe subirse a la biblioteca local."
+);
+assert.match(
+  successSave.calls.find(call => call[0] === "createAttachment")[1].storage_path,
+  /^local:[a-f0-9]{32}\\.wav$/,
+  "El registro del audio debe apuntar a una clave local opaca."
+);
+assert.equal(
   successSave.calls.some(call => call[0] === "removeStorage" || call[0] === "deleteMaterial"),
   false,
   "Una operación exitosa no debe activar la compensación."
@@ -2814,10 +2845,15 @@ const newSaveRollback = await runMaterialSaveScenario({
   },
   blocksError: "WITH ORDINALITY cannot be used with a column definition list"
 });
-assert.ok(newSaveRollback.calls.some(call => call[0] === "removeStorage"));
+assert.equal(
+  newSaveRollback.calls.some(call => call[0] === "removeStorage"),
+  false,
+  "Un audio local no debe intentar borrarse de Supabase Storage."
+);
 assert.deepEqual(
-  newSaveRollback.calls.filter(call => call[0] === "deleteAttachment").map(call => call[1]),
-  ["attachment-1"]
+  newSaveRollback.calls.filter(call => call[0] === "deleteLocalAudio").map(call => call[1]),
+  ["attachment-1"],
+  "La compensación debe borrar la copia local del audio."
 );
 assert.deepEqual(
   newSaveRollback.calls.filter(call => call[0] === "deleteMaterial"),
@@ -2854,9 +2890,9 @@ assert.equal(editRestore[1], "existing-material");
 assert.equal(editRestore[2].name, "Título anterior");
 assert.equal(editRestore[2].content, "Contenido anterior");
 assert.equal(
-  editSaveRollback.calls.filter(call => call[0] === "deleteAttachment").length,
+  editSaveRollback.calls.filter(call => call[0] === "deleteLocalAudio").length,
   1,
-  "Solo se debe limpiar el adjunto creado por el intento fallido."
+  "Solo se debe limpiar la copia local del audio creado por el intento fallido."
 );
 
 const uploadFailureRollback = await runMaterialSaveScenario({
@@ -2866,7 +2902,7 @@ const uploadFailureRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "fallará.wav", type: "audio/wav" }
+      file: { name: "fallará.pdf", type: "application/pdf" }
     }
   },
   uploadError: "upload rejected"
@@ -2884,6 +2920,37 @@ assert.ok(
   "El material nuevo debe borrarse si la subida falla."
 );
 
+const localAudioUploadFailureRollback = await runMaterialSaveScenario({
+  blocks: [
+    { block_type: "attachment", pendingKey: "pending-file" }
+  ],
+  pendingAttachments: {
+    "pending-file": {
+      kind: "file",
+      file: { name: "host-apagado.flac", type: "audio/flac" }
+    }
+  },
+  localUploadError: "No se pudo conectar con la biblioteca local."
+});
+assert.equal(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "upload"),
+  false,
+  "Un audio nuevo no debe intentar una subida alternativa a Storage."
+);
+assert.ok(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "uploadLocalAudio"),
+  "El guardado de audio debe intentar enviarlo al servidor local."
+);
+assert.ok(
+  localAudioUploadFailureRollback.calls.some(call => call[0] === "deleteLocalAudio"),
+  "Si falla la subida local, debe intentar limpiar el registro y el archivo local parcial."
+);
+assert.match(
+  localAudioUploadFailureRollback.notices[0][0],
+  /biblioteca local/,
+  "El fallo de la biblioteca local debe comunicarse de forma explícita."
+);
+
 const rejectedUploadRollback = await runMaterialSaveScenario({
   blocks: [
     { block_type: "attachment", pendingKey: "pending-file" }
@@ -2891,7 +2958,7 @@ const rejectedUploadRollback = await runMaterialSaveScenario({
   pendingAttachments: {
     "pending-file": {
       kind: "file",
-      file: { name: "corte-red.wav", type: "audio/wav" }
+      file: { name: "corte-red.pdf", type: "application/pdf" }
     }
   },
   throwUploadError: "network request failed"
