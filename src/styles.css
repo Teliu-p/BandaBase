@@ -3614,11 +3614,21 @@
 }
 
 .material-inline-attachment[data-material-draggable-audio="true"]:active {
-  cursor: grabbing;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 .material-inline-attachment.is-dragging {
   opacity: .45;
+  cursor: grabbing;
+}
+
+.material-composer-editor.is-moving-material-audio {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .material-inline-attachment.is-drop-target {
