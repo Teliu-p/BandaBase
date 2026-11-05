@@ -392,6 +392,8 @@ test("dragging a Material audio follows the pointer even when the native caret r
     window.__pointerDropPrefix = prefix;
     window.__pointerDropRichText = strong.firstChild;
     window.__pointerDropLine = destinationLine;
+    window.__pointerDropSourceLine = sourceLine;
+    window.__pointerDropSourceLineHeightBefore = sourceLine.getBoundingClientRect().height;
     editor.focus();
 
     // Reproduce el fallo que no detectaba el test anterior: el navegador
@@ -482,15 +484,16 @@ test("dragging a Material audio follows the pointer even when the native caret r
       previousCharRight: prevRect?.right ?? null,
       nextCharLeft: nextRect?.left ?? null,
       collapsedRangeLeft: collapsedRect?.left ?? null,
-      computedCaretX: getMaterialRangeCaretPoint(collapsed, editor)?.x ?? null,
-      letterSpacing: placeholder ? getComputedStyle(placeholder.parentElement).letterSpacing : null,
-      placeholderMarginLeft: placeholder ? getComputedStyle(placeholder).marginLeft : null,
-      placeholderPaddingLeft: placeholder ? getComputedStyle(placeholder).paddingLeft : null,
-      placeholderBorderLeft: placeholder ? getComputedStyle(placeholder).borderLeftWidth : null
+      sourceLineHeightBefore: window.__pointerDropSourceLineHeightBefore,
+      sourceLineHeightDuring: window.__pointerDropSourceLine?.getBoundingClientRect().height ?? null,
+      sourceMarkerVisibility: editor.querySelector(".material-attachment-origin-placeholder") ?
+        getComputedStyle(editor.querySelector(".material-attachment-origin-placeholder")).visibility : null
     };
   });
   console.log("MATERIAL DROP GEOMETRY", JSON.stringify(preview));
   expect(preview.inEditor).toBe(true);
+  expect(preview.sourceMarkerVisibility).toBe("hidden");
+  expect(Math.abs(preview.sourceLineHeightDuring - preview.sourceLineHeightBefore)).toBeLessThanOrEqual(0.5);
   expect(Math.abs(preview.left - preview.expectedX)).toBeLessThanOrEqual(2);
 
   await page.mouse.up();
