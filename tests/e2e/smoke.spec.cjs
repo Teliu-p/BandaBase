@@ -267,7 +267,7 @@ test("dragging any Material file follows the pointer and previews its exact inli
       return null;
     })();
     const nextChar = nextText?.nodeType === Node.TEXT_NODE
-      ? [...(nextText.nodeValue || "")].findIndex(char => !/\\s/.test(char))
+      ? [...(nextText.nodeValue || "")].findIndex(char => !/\s/.test(char))
       : -1;
     let nextCharLeft = null;
     if (nextText?.nodeType === Node.TEXT_NODE && nextChar >= 0) {
