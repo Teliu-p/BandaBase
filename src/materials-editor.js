@@ -8,6 +8,7 @@ let materialIndentPointerHandled = false;
 let materialIndentPointerResetTimer = null;
 let materialNotationDotPending = false;
 let editingMaterialType = null;
+let materialDraggedAudioAttachment = null;
 
 /*
  * Doble clic: fija el punto de escritura en espacios vacíos.
@@ -307,6 +308,95 @@ function restoreMaterialSelection(
 }
 
 
+function isMaterialComposerDraggableAudio(attachment) {
+  if (attachment?.kind !== "file") return false;
+  return String(attachment.storage_path || "").startsWith("local:") ||
+    isMaterialAudioFile({
+      name: attachment.name || attachment.file_name || "",
+      type: attachment.mime_type || ""
+    });
+}
+
+
+function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor) {
+  let range = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(clientX, clientY);
+    if (point && editor.contains(point.offsetNode)) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
+      range.collapse(true);
+    }
+  }
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(clientX, clientY);
+    if (point && editor.contains(point.startContainer)) {
+      range = point.cloneRange();
+      range.collapse(true);
+    }
+  }
+  return range;
+}
+
+
+function moveMaterialComposerAudioAttachmentToPoint(attachment, clientX, clientY, editor) {
+  if (!attachment || !editor || !editor.contains(attachment) || !attachment.isConnected) {
+    return false;
+  }
+
+  const hit = document.elementFromPoint(clientX, clientY);
+  const targetAttachment = hit?.closest?.(".material-inline-attachment");
+  let range = document.createRange();
+
+  if (targetAttachment && editor.contains(targetAttachment)) {
+    if (targetAttachment === attachment) return false;
+    const rect = targetAttachment.getBoundingClientRect();
+    const placeAfter = clientX >= rect.left + rect.width / 2;
+    if (placeAfter) range.setStartAfter(targetAttachment);
+    else range.setStartBefore(targetAttachment);
+  } else {
+    range = getMaterialComposerDropRangeAtPoint(clientX, clientY, editor);
+    if (!range) return false;
+
+    const container = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentElement;
+    const containingAttachment = container?.closest?.(".material-inline-attachment");
+    if (containingAttachment === attachment) return false;
+
+    if (containingAttachment && editor.contains(containingAttachment)) {
+      const rect = containingAttachment.getBoundingClientRect();
+      const placeAfter = clientX >= rect.left + rect.width / 2;
+      range = document.createRange();
+      if (placeAfter) range.setStartAfter(containingAttachment);
+      else range.setStartBefore(containingAttachment);
+    }
+  }
+
+  range.collapse(true);
+  range.insertNode(attachment);
+  range.setStartAfter(attachment);
+  range.collapse(true);
+
+  const selection = window.getSelection();
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(range);
+    materialSelectionRange = range.cloneRange();
+    updateMaterialFormattingButtonStates();
+  }
+  return true;
+}
+
+
+function clearMaterialComposerAudioDragState(editor) {
+  editor?.querySelectorAll?.(".material-inline-attachment.is-drop-target")
+    .forEach(node => node.classList.remove("is-drop-target"));
+  materialDraggedAudioAttachment?.classList?.remove("is-dragging");
+  materialDraggedAudioAttachment = null;
+}
+
+
 function createMaterialInlineAttachment(
   attachment,
   pendingKey = null
@@ -320,6 +410,12 @@ function createMaterialInlineAttachment(
 
   wrapper.contentEditable =
     "false";
+
+  if (isMaterialComposerDraggableAudio(attachment)) {
+    wrapper.draggable = true;
+    wrapper.dataset.materialDraggableAudio = "true";
+    wrapper.title = "Arrastrá este audio para cambiar su posición.";
+  }
 
   if (attachment?.id) {
 
@@ -2697,6 +2793,57 @@ document
     }
   );
 
+const materialComposerEditor = document.getElementById("materialComposerEditor");
+
+materialComposerEditor.addEventListener("dragstart", event => {
+  const attachment = event.target.closest?.(
+    '.material-inline-attachment[data-material-draggable-audio="true"]'
+  );
+  if (!attachment || !materialComposerEditor.contains(attachment)) return;
+
+  materialDraggedAudioAttachment = attachment;
+  attachment.classList.add("is-dragging");
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(
+      "text/plain",
+      attachment.dataset.attachmentId || attachment.dataset.pendingKey || "material-audio"
+    );
+  }
+});
+
+materialComposerEditor.addEventListener("dragover", event => {
+  if (!materialDraggedAudioAttachment) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+
+  materialComposerEditor.querySelectorAll(".material-inline-attachment.is-drop-target")
+    .forEach(node => node.classList.remove("is-drop-target"));
+
+  const target = document.elementFromPoint(event.clientX, event.clientY)
+    ?.closest?.(".material-inline-attachment");
+  if (target && target !== materialDraggedAudioAttachment &&
+      materialComposerEditor.contains(target)) {
+    target.classList.add("is-drop-target");
+  }
+});
+
+materialComposerEditor.addEventListener("drop", event => {
+  if (!materialDraggedAudioAttachment) return;
+  event.preventDefault();
+
+  const dragged = materialDraggedAudioAttachment;
+  moveMaterialComposerAudioAttachmentToPoint(
+    dragged, event.clientX, event.clientY, materialComposerEditor
+  );
+  clearMaterialComposerAudioDragState(materialComposerEditor);
+  rememberMaterialSelection();
+});
+
+materialComposerEditor.addEventListener("dragend", () => {
+  clearMaterialComposerAudioDragState(materialComposerEditor);
+});
+
 
 document
   .getElementById(
@@ -2742,54 +2889,54 @@ document
     "change",
     function() {
 
-      const file =
-        this.files &&
-        this.files[0];
+      const files = Array.from(this.files || []);
+      if (!files.length) return;
 
-      if (!file) {
-        return;
-      }
+      // Validate the entire selection before inserting any chip.
+      const invalidFile = files
+        .map(file => {
+          const localAudio = isMaterialAudioFile(file);
+          const error = localAudio
+            ? getLocalMaterialAudioUploadSizeError(file)
+            : getStorageUploadSizeError(file);
+          return error ? { file, error } : null;
+        })
+        .find(Boolean);
 
-      const localAudio = isMaterialAudioFile(file);
-      const sizeError = localAudio
-        ? getLocalMaterialAudioUploadSizeError(file)
-        : getStorageUploadSizeError(file);
-      if (sizeError) {
+      if (invalidFile) {
         this.value = "";
-        showNotice(sizeError, "error");
+        showNotice(
+          invalidFile.file.name + ": " + invalidFile.error +
+            " No se agregó ningún archivo de esta selección.",
+          "error"
+        );
         return;
       }
 
-      const pendingKey =
-        crypto.randomUUID();
+      files.forEach(file => {
+        const pendingKey = crypto.randomUUID();
+        materialPendingAttachments[pendingKey] = {
+          kind: "file",
+          name: file.name,
+          mime_type: file.type || null,
+          file
+        };
 
-      materialPendingAttachments[
-        pendingKey
-      ] = {
-        kind:
-          "file",
-        name:
-          file.name,
-        mime_type:
-          file.type || null,
-        file
-      };
-
-      const node =
-        createMaterialInlineAttachment(
-          materialPendingAttachments[
-            pendingKey
-          ],
+        const node = createMaterialInlineAttachment(
+          materialPendingAttachments[pendingKey],
           pendingKey
         );
+        insertMaterialNodeAtSelection(node);
+      });
 
-      insertMaterialNodeAtSelection(
-        node
-      );
+      this.value = "";
 
-      this.value =
-        "";
-
+      if (files.length > 1) {
+        showNotice(
+          files.length + " archivos agregados al borrador. Guardá el material para conservarlos.",
+          "success"
+        );
+      }
     }
   );
 
