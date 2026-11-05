@@ -168,11 +168,7 @@ function getAttachmentLabel(
       attachment?.mime_type || ""
     ).toLowerCase();
 
-  if (
-    mime.startsWith(
-      "audio/"
-    )
-  ) {
+  if (isMaterialAudioAttachment(attachment)) {
     return "Audio";
   }
 
