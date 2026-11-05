@@ -452,12 +452,44 @@ test("dragging a Material audio follows the pointer even when the native caret r
   const preview = await page.evaluate(() => {
     const placeholder = document.querySelector(".material-attachment-drop-placeholder");
     const rect = placeholder?.getBoundingClientRect();
+    const previousText = placeholder?.previousSibling;
+    const nextText = placeholder?.nextSibling;
+    const editor = document.getElementById("materialComposerEditor");
+    const collapsed = document.createRange();
+    if (previousText?.nodeType === Node.TEXT_NODE) {
+      collapsed.setStart(previousText, previousText.nodeValue.length);
+      collapsed.collapse(true);
+    }
+    const previousChar = document.createRange();
+    if (previousText?.nodeType === Node.TEXT_NODE && previousText.nodeValue.length) {
+      previousChar.setStart(previousText, previousText.nodeValue.length - 1);
+      previousChar.setEnd(previousText, previousText.nodeValue.length);
+    }
+    const nextChar = document.createRange();
+    if (nextText?.nodeType === Node.TEXT_NODE && nextText.nodeValue.length) {
+      nextChar.setStart(nextText, 0);
+      nextChar.setEnd(nextText, 1);
+    }
+    const prevRect = previousChar.getBoundingClientRect();
+    const nextRect = nextChar.getBoundingClientRect();
+    const collapsedRect = collapsed.getBoundingClientRect();
     return {
-      inEditor: Boolean(placeholder && document.getElementById("materialComposerEditor").contains(placeholder)),
+      inEditor: Boolean(placeholder && editor.contains(placeholder)),
       left: rect?.left ?? null,
-      expectedX: window.__pointerDropExpectedX
+      expectedX: window.__pointerDropExpectedX,
+      previousText: previousText?.nodeValue ?? null,
+      nextText: nextText?.nodeValue ?? null,
+      previousCharRight: prevRect?.right ?? null,
+      nextCharLeft: nextRect?.left ?? null,
+      collapsedRangeLeft: collapsedRect?.left ?? null,
+      computedCaretX: getMaterialRangeCaretPoint(collapsed, editor)?.x ?? null,
+      letterSpacing: placeholder ? getComputedStyle(placeholder.parentElement).letterSpacing : null,
+      placeholderMarginLeft: placeholder ? getComputedStyle(placeholder).marginLeft : null,
+      placeholderPaddingLeft: placeholder ? getComputedStyle(placeholder).paddingLeft : null,
+      placeholderBorderLeft: placeholder ? getComputedStyle(placeholder).borderLeftWidth : null
     };
   });
+  console.log("MATERIAL DROP GEOMETRY", JSON.stringify(preview));
   expect(preview.inEditor).toBe(true);
   expect(Math.abs(preview.left - preview.expectedX)).toBeLessThanOrEqual(2);
 
