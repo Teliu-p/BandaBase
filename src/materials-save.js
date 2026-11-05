@@ -925,7 +925,8 @@ async function saveMaterialDraft() {
       wasNew: wasNew && Boolean(materialId),
       originalMaterial,
       createdAttachmentIds,
-      uploadedStoragePaths
+      uploadedStoragePaths,
+      localAudioAttachmentIds
     });
 
     showNotice(
