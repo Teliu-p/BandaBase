@@ -263,3 +263,11 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - El servidor actualizado v0.3 se entregó como archivo \`bandabase_audio_server.py\` en la conversación; requiere reemplazo manual en \`C:\\BandaBaseAudio\\bandabase_audio_server.py\`. Se debe conservar \`library/\`, \`library-manifest.json\`, \`server-config.json\` y \`backup/\`.
 - Verificación del script entregado: \`py_compile\`; prueba HTTP aislada con Supabase simulado (403 sin sesión, upload 201, ticket 200, Range 206, clave existente no sobrescrita 400 y delete 200). Aún falta ejecutarlo instalado en Windows con la sesión real de Supabase; esa será la prueba final desde la PC anfitriona, sin requerir otro dispositivo.
 - No se ejecutaron migraciones ni se modificaron esquema, RLS, filas ni objetos de Storage. Audios históricos subidos a Storage quedan intactos; si no tienen copia en biblioteca/manifest, hay que volver a adjuntarlos desde el host para usarlos en Materiales. No hacer borrado masivo del bucket.
+
+## Seguimiento en curso — posición precisa de arrastre de audio (2026-11-05)
+
+- Rama: `fix/material-audio-precise-drop-preview-20261105`.
+- El cambio calcula el punto de inserción con geometría de caracteres/chips inline y muestra una guía vertical con sombreado del espacio estimado del audio. El mismo rango previsualizado se reutiliza al soltar.
+- Se agregó una prueba Playwright que apunta a una posición concreta dentro de una palabra y valida el rango, la guía, la identidad del nodo y el texto a ambos lados.
+- Estado de CI, PR, merge y despliegue: pendiente de verificación; no afirmar que está publicado hasta confirmar Pages.
+- No hay cambios de esquema ni operaciones sobre datos de Supabase.
