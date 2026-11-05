@@ -3620,21 +3620,17 @@
   -webkit-user-select: none;
 }
 
-.material-inline-attachment.is-dragging {
-  opacity: .88;
-  cursor: grabbing;
-  position: relative;
-  z-index: 2;
-  outline: 2px dashed var(--bb-accent);
-  outline-offset: 2px;
-  background: color-mix(in srgb, var(--bb-accent) 18%, var(--bb-surface-raised));
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bb-accent) 14%, transparent);
+.material-inline-attachment[data-material-draggable-attachment="true"] {
+  cursor: grab;
 }
 
-.material-composer-editor.is-moving-material-attachment {
+.material-inline-attachment[data-material-draggable-attachment="true"]:active {
   cursor: grabbing;
-  user-select: none;
-  -webkit-user-select: none;
+}
+
+.material-attachment-origin-placeholder {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .material-attachment-drop-placeholder {
@@ -3648,11 +3644,8 @@
   pointer-events: none;
 }
 
-.material-inline-attachment.material-attachment-drag-ghost {
-  position: fixed;
+.material-attachment-drag-image {
   z-index: 10050;
-  display: inline-flex;
-  margin: 0;
   opacity: .96;
   pointer-events: none;
   outline: 2px dashed var(--bb-accent);
@@ -3661,7 +3654,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, .24);
 }
 
-.material-attachment-drag-ghost .inline-remove {
+.material-attachment-drag-image .inline-remove {
   display: none;
 }
 
