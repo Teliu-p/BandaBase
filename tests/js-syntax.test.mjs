@@ -458,7 +458,7 @@ async function runAttachmentAccessRegressionTests() {
   const uploadResult = await uploadLocalMaterialAudio("audio-1", uploadFile, "audio/flac");
   assert.equal(uploadResult.ok, true);
   const uploadCall = fetchCalls.at(-1);
-  assert.match(uploadCall.url, /\\/api\\/upload\\/audio-1$/);
+  assert.match(uploadCall.url, /\/api\/upload\/audio-1$/);
   assert.equal(uploadCall.options.method, "POST");
   assert.equal(uploadCall.options.headers.Authorization, "Bearer test-access-token");
   assert.equal(uploadCall.options.headers["Content-Type"], "audio/flac");
@@ -471,7 +471,7 @@ async function runAttachmentAccessRegressionTests() {
   });
   const deletion = await deleteLocalMaterialAttachment("audio-1");
   assert.equal(deletion.deleted, true);
-  assert.match(fetchCalls.at(-1).url, /\\/api\\/delete\\/audio-1$/);
+  assert.match(fetchCalls.at(-1).url, /\/api\/delete\/audio-1$/);
   assert.equal(fetchCalls.at(-1).options.method, "POST");
 
   await assert.rejects(
@@ -2788,7 +2788,7 @@ assert.equal(
 );
 assert.match(
   successSave.calls.find(call => call[0] === "createAttachment")[1].storage_path,
-  /^local:[a-f0-9]{32}\\.wav$/,
+  /^local:[a-f0-9]{32}\.wav$/,
   "El registro del audio debe apuntar a una clave local opaca."
 );
 assert.equal(
