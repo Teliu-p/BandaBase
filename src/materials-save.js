@@ -821,6 +821,7 @@ async function saveMaterialDraft() {
         continue;
       }
 
+      const removedAttachment = removedAttachmentById.get(attachmentId);
       const isLocalAudio = removedLocalAudioIds.has(attachmentId);
 
       if (isLocalAudio) {
