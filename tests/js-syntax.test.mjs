@@ -2221,7 +2221,7 @@ assert.match(
 
 assert.match(
   materialViewSource,
-  /function isMaterialAudioAttachment([sS]*?storage_path[sS]*?local:/,
+  /function isMaterialAudioAttachment\([\s\S]*?storage_path[\s\S]*?local:/,
   "La vista debe identificar como audio los adjuntos cuyo storage_path usa la clave local."
 );
 assert.match(
