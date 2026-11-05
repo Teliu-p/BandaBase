@@ -778,6 +778,9 @@ async function saveMaterialDraft() {
         type: attachment.mime_type || ""
       });
     const localAudioAttachments = fileAttachments.filter(isAudioAttachment);
+    const removedLocalAudioIds = new Set(
+      localAudioAttachments.map(attachment => attachment.id)
+    );
     const storageFileAttachments = fileAttachments.filter(attachment =>
       !isAudioAttachment(attachment)
     );
@@ -818,17 +821,7 @@ async function saveMaterialDraft() {
         continue;
       }
 
-      const removedAttachment = removedAttachmentById.get(attachmentId);
-      const isLocalAudio = Boolean(
-        removedAttachment &&
-        (
-          String(removedAttachment.storage_path || "").startsWith("local:") ||
-          isMaterialAudioFile({
-            name: removedAttachment.name || removedAttachment.file_name || "",
-            type: removedAttachment.mime_type || ""
-          })
-        )
-      );
+      const isLocalAudio = removedLocalAudioIds.has(attachmentId);
 
       if (isLocalAudio) {
         try {
