@@ -132,8 +132,14 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
   }
 
   // HTTP 409 means this attachment is not in the local library yet.
-  // Keep using the existing private Supabase Storage object in that case.
-  if (response.status === 409) return null;
+  // Comments and proposals retain their previous Storage behavior; Materials
+  // audio is local-only and must never fall back to a cloud object.
+  if (response.status === 409) {
+    if (table === "material_attachments") {
+      throw new Error("Este audio todavía no está copiado a la biblioteca local. Volvé a adjuntarlo desde la computadora anfitriona.");
+    }
+    return null;
+  }
 
   // A local server or Funnel 5xx response means the local route is unavailable.
   // Do not let an infrastructure failure block the existing Storage fallback.
