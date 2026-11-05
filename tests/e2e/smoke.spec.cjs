@@ -412,19 +412,26 @@ test("dragging a Material audio follows the pointer even when the native caret r
 
   const target = await page.evaluate(() => {
     const text = window.__pointerDropRichText;
-    // The insertion caret after "D" is at the left edge of "E".
-    // The painted right edge of "D" excludes the CSS letter-spacing gap.
-    const range = document.createRange();
-    range.setStart(text, 14);
-    range.setEnd(text, 15);
-    const rect = range.getBoundingClientRect();
+    // Measure the collapsed insertion caret itself, not the painted edge
+    // of a glyph (which excludes its typographic side bearing/letter spacing).
+    const caretRange = document.createRange();
+    caretRange.setStart(text, 14);
+    caretRange.collapse(true);
+    const caret = getMaterialRangeCaretPoint(
+      caretRange,
+      document.getElementById("materialComposerEditor")
+    );
+    const charRange = document.createRange();
+    charRange.setStart(text, 14);
+    charRange.setEnd(text, 15);
+    const rect = charRange.getBoundingClientRect();
     const firstChar = document.createRange();
     firstChar.setStart(window.__pointerDropPrefix, 0);
     firstChar.setEnd(window.__pointerDropPrefix, 1);
     const firstRect = firstChar.getBoundingClientRect();
-    window.__pointerDropExpectedX = rect.left;
+    window.__pointerDropExpectedX = caret.x;
     return {
-      x: rect.left,
+      x: caret.x,
       y: rect.top + rect.height / 2,
       targetY: rect.top,
       firstY: firstRect.top,
