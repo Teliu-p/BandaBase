@@ -412,6 +412,90 @@ test("native browser drag drops Material audio inside formatted wrapped text", a
   expect(runtimeErrors, "JavaScript errors during native Material audio drag").toEqual([]);
 });
 
+test("diagnose native caret candidates at pointer positions across Material text", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const audio = createMaterialInlineAttachment({
+      id: "native-caret-diagnostic",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-caret-diagnostic"
+    });
+    const sourceLine = document.createElement("div");
+    sourceLine.appendChild(audio);
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-caret-diagnostic-line";
+    destinationLine.textContent =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeCaretDiagnostic = [];
+    editor.addEventListener("dragover", event => {
+      const selection = window.getSelection();
+      const selectedRange = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      const modern = document.caretPositionFromPoint?.(event.clientX, event.clientY);
+      const legacy = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+      const describe = (node, offset) => ({
+        node: node?.nodeName ?? null,
+        text: node?.nodeType === Node.TEXT_NODE ? node.nodeValue : null,
+        offset: offset ?? null
+      });
+      window.__nativeCaretDiagnostic.push({
+        x: event.clientX,
+        y: event.clientY,
+        modern: describe(modern?.offsetNode, modern?.offset),
+        legacy: describe(legacy?.startContainer, legacy?.startOffset),
+        selection: describe(selectedRange?.startContainer, selectedRange?.startOffset)
+      });
+    });
+    editor.focus();
+    window.__nativeCaretAudio = audio;
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-caret-diagnostic-line");
+    const text = line.firstChild;
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.left + rect.width * 0.32, y: rect.top + rect.height / 2 };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+
+  const observations = await page.evaluate(() => window.__nativeCaretDiagnostic);
+  console.log("NATIVE_CARET_DIAGNOSTIC", JSON.stringify({
+    target,
+    count: observations.length,
+    first: observations[0] ?? null,
+    middle: observations[Math.floor(observations.length / 2)] ?? null,
+    last: observations[observations.length - 1] ?? null
+  }));
+
+  await page.mouse.up();
+  expect(observations.length).toBeGreaterThan(0);
+  expect(runtimeErrors, "JavaScript errors during native caret diagnostic").toEqual([]);
+});
+
 test("native Material drag cancelled outside the editor restores the original audio", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
