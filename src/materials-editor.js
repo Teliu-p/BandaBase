@@ -502,7 +502,7 @@ function moveMaterialComposerAudioAttachmentToPoint(
   editor,
   knownDropTarget = null
 ) {
-  if (!attachment || !editor || !editor.contains(attachment) || !attachment.isConnected) {
+  if (!attachment || !editor || !editor.isConnected) {
     return false;
   }
 
@@ -515,11 +515,25 @@ function moveMaterialComposerAudioAttachmentToPoint(
   const destinationNode = range.startContainer;
   if (destinationNode === attachment || attachment.contains(destinationNode)) return false;
 
-  const previousSpacer = attachment.previousSibling;
-  const nextSpacer = attachment.nextSibling;
+  const previousSpacer = attachment.parentNode ? attachment.previousSibling : null;
+  const nextSpacer = attachment.parentNode ? attachment.nextSibling : null;
   if (
     destinationNode === previousSpacer ||
-    destinationNode === nextSpacer
+    destinationNode === nextSpacer ||
+    (
+      destinationNode.nodeType === Node.TEXT_NODE &&
+      range.startOffset === (destinationNode.nodeValue || "").length &&
+      destinationNode.nextSibling === previousSpacer &&
+      previousSpacer?.nodeType === Node.TEXT_NODE &&
+      previousSpacer.nodeValue === " "
+    ) ||
+    (
+      destinationNode.nodeType === Node.TEXT_NODE &&
+      range.startOffset === 0 &&
+      destinationNode.previousSibling === nextSpacer &&
+      nextSpacer?.nodeType === Node.TEXT_NODE &&
+      nextSpacer.nodeValue === " "
+    )
   ) {
     return false;
   }
@@ -552,43 +566,80 @@ function moveMaterialComposerAudioAttachmentToPoint(
 }
 
 
-function showMaterialComposerAudioDropIndicator(dropTarget, attachment, state) {
-  if (!dropTarget || !Number.isFinite(dropTarget.x) || !Number.isFinite(dropTarget.y)) {
-    state?.dropIndicator?.remove();
-    if (state) state.dropIndicator = null;
-    return;
-  }
-
-  let indicator = state.dropIndicator;
-  if (!indicator || !indicator.isConnected) {
-    indicator = document.createElement("span");
-    indicator.className = "material-audio-drop-indicator";
-    indicator.setAttribute("aria-hidden", "true");
-    document.body.appendChild(indicator);
-    state.dropIndicator = indicator;
-  }
-
-  const attachmentRect = attachment.getBoundingClientRect();
-  const height = Math.max(14, dropTarget.height || attachmentRect.height || 20);
-  const width = Math.max(36, Math.min(attachmentRect.width || 96, 240));
-  indicator.style.left = String(dropTarget.x) + "px";
-  indicator.style.top = String(dropTarget.y) + "px";
-  indicator.style.height = String(height) + "px";
-  indicator.style.setProperty("--material-audio-drop-preview-width", String(width) + "px");
-}
-
-
-function clearMaterialComposerAudioDropIndicator(state = materialAudioPointerDragState) {
-  state?.dropIndicator?.remove();
-  if (state) state.dropIndicator = null;
-}
-
 function clearMaterialComposerAudioDragState(editor) {
   editor?.querySelectorAll?.(".material-inline-attachment.is-drop-target")
     .forEach(node => node.classList.remove("is-drop-target"));
   materialDraggedAudioAttachment?.classList?.remove("is-dragging");
-  clearMaterialComposerAudioDropIndicator();
   materialDraggedAudioAttachment = null;
+}
+
+
+function beginMaterialComposerAudioLivePreview(attachment, state) {
+  if (!attachment?.parentNode || state.sourceMarker) return false;
+
+  const previousSpacer = attachment.previousSibling;
+  const nextSpacer = attachment.nextSibling;
+  const sourceMarker = document.createElement("span");
+  sourceMarker.className = "material-audio-origin-placeholder";
+  sourceMarker.contentEditable = "false";
+  sourceMarker.style.display = "none";
+  attachment.replaceWith(sourceMarker);
+
+  const removablePrevious = previousSpacer?.nodeType === Node.TEXT_NODE &&
+    previousSpacer.nodeValue === " " ? previousSpacer : null;
+  const removableNext = nextSpacer?.nodeType === Node.TEXT_NODE &&
+    nextSpacer.nodeValue === " " ? nextSpacer : null;
+  removablePrevious?.remove();
+  removableNext?.remove();
+
+  state.sourceMarker = sourceMarker;
+  state.sourcePreviousSpacer = removablePrevious;
+  state.sourceNextSpacer = removableNext;
+  attachment.classList.add("is-dragging");
+  return true;
+}
+
+
+function restoreMaterialComposerAudioDragSource(attachment, state, editor) {
+  if (!attachment || !state?.sourceMarker?.parentNode) return false;
+
+  if (attachment.parentNode) {
+    const previousSpacer = attachment.previousSibling;
+    const nextSpacer = attachment.nextSibling;
+    if (previousSpacer?.nodeType === Node.TEXT_NODE && previousSpacer.nodeValue === " ") {
+      previousSpacer.remove();
+    }
+    if (nextSpacer?.nodeType === Node.TEXT_NODE && nextSpacer.nodeValue === " ") {
+      nextSpacer.remove();
+    }
+    attachment.remove();
+  }
+
+  const marker = state.sourceMarker;
+  const parent = marker.parentNode;
+  parent.insertBefore(attachment, marker);
+  marker.remove();
+
+  if (state.sourcePreviousSpacer) {
+    parent.insertBefore(state.sourcePreviousSpacer, attachment);
+  }
+  if (state.sourceNextSpacer) {
+    parent.insertBefore(state.sourceNextSpacer, attachment.nextSibling);
+  }
+
+  attachment.classList.remove("is-dragging");
+  state.sourceMarker = null;
+  if (editor && !editor.contains(attachment)) editor.appendChild(attachment);
+  return true;
+}
+
+
+function commitMaterialComposerAudioLivePreview(attachment, state) {
+  if (!attachment?.isConnected) return false;
+  state?.sourceMarker?.remove();
+  if (state) state.sourceMarker = null;
+  attachment.classList.remove("is-dragging");
+  return true;
 }
 
 
@@ -2997,7 +3048,7 @@ materialComposerEditor.addEventListener("pointerdown", event => {
   );
   if (!attachment || !materialComposerEditor.contains(attachment)) return;
 
-  // Stop text selection/native drag; the existing chip is moved on pointerup.
+  // Keep the existing audio node; while dragging, move it live inside the text flow.
   event.preventDefault();
   materialDraggedAudioAttachment = attachment;
   materialAudioPointerDragState = {
@@ -3005,14 +3056,17 @@ materialComposerEditor.addEventListener("pointerdown", event => {
     startX: event.clientX,
     startY: event.clientY,
     dragging: false,
-    dropTarget: null,
-    dropIndicator: null
+    sourceMarker: null,
+    sourcePreviousSpacer: null,
+    sourceNextSpacer: null,
+    hasMoved: false
   };
 });
 
 document.addEventListener("pointermove", event => {
   const state = materialAudioPointerDragState;
-  if (!state || event.pointerId !== state.pointerId || !materialDraggedAudioAttachment) return;
+  const attachment = materialDraggedAudioAttachment;
+  if (!state || event.pointerId !== state.pointerId || !attachment) return;
 
   if (!state.dragging) {
     const distance = Math.hypot(
@@ -3022,40 +3076,58 @@ document.addEventListener("pointermove", event => {
     if (distance < 6) return;
 
     state.dragging = true;
-    materialDraggedAudioAttachment.classList.add("is-dragging");
     materialComposerEditor.classList.add("is-moving-material-audio");
+    beginMaterialComposerAudioLivePreview(attachment, state);
   }
 
   event.preventDefault();
+
+  // If the pointer is over the moving chip itself, leave it in place.
+  if (attachment.isConnected) {
+    const rect = attachment.getBoundingClientRect();
+    if (
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    ) {
+      return;
+    }
+  }
+
   const dropTarget = getMaterialComposerDropTargetAtPoint(
     event.clientX,
     event.clientY,
     materialComposerEditor,
-    materialDraggedAudioAttachment
+    attachment
   );
-  state.dropTarget = dropTarget;
-  showMaterialComposerAudioDropIndicator(
-    dropTarget,
-    materialDraggedAudioAttachment,
-    state
+  if (!dropTarget) return;
+
+  // This moves the real node during the gesture. Its inline width pushes the
+  // surrounding text away, so the preview matches the eventual saved layout.
+  const moved = moveMaterialComposerAudioAttachmentToPoint(
+    attachment,
+    event.clientX,
+    event.clientY,
+    materialComposerEditor,
+    dropTarget
   );
+  if (moved) state.hasMoved = true;
 }, true);
 
 document.addEventListener("pointerup", event => {
   const state = materialAudioPointerDragState;
   if (!state || event.pointerId !== state.pointerId) return;
 
-  const dragged = materialDraggedAudioAttachment;
+  const attachment = materialDraggedAudioAttachment;
   let moved = false;
-  if (state.dragging && dragged) {
-    event.preventDefault();
-    moved = moveMaterialComposerAudioAttachmentToPoint(
-      dragged,
-      event.clientX,
-      event.clientY,
-      materialComposerEditor,
-      state.dropTarget
-    );
+
+  if (state.dragging && attachment) {
+    // The final position is already shown in-flow. Commit by removing the
+    // invisible origin marker; if no valid destination was reached, restore it.
+    moved = attachment.isConnected
+      ? commitMaterialComposerAudioLivePreview(attachment, state)
+      : restoreMaterialComposerAudioDragSource(attachment, state, materialComposerEditor);
   }
 
   clearMaterialComposerAudioDragState(materialComposerEditor);
@@ -3065,8 +3137,13 @@ document.addEventListener("pointerup", event => {
 }, true);
 
 document.addEventListener("pointercancel", event => {
-  if (!materialAudioPointerDragState ||
-      event.pointerId !== materialAudioPointerDragState.pointerId) return;
+  const state = materialAudioPointerDragState;
+  if (!state || event.pointerId !== state.pointerId) return;
+
+  const attachment = materialDraggedAudioAttachment;
+  if (state.dragging && attachment) {
+    restoreMaterialComposerAudioDragSource(attachment, state, materialComposerEditor);
+  }
 
   clearMaterialComposerAudioDragState(materialComposerEditor);
   materialAudioPointerDragState = null;
