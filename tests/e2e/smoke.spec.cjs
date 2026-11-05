@@ -162,6 +162,102 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   expect(runtimeErrors, "JavaScript errors while inserting and reordering Material attachments").toEqual([]);
 });
 
+test("dragging a Material audio shows the exact character insertion point before dropping", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    const sourceText = document.createTextNode("Origen");
+    const audio = createMaterialInlineAttachment({
+      id: "precise-drop-audio",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:precise-drop"
+    });
+    const destinationText = document.createTextNode("ABCDEFGHIJ");
+    editor.replaceChildren(
+      sourceText,
+      document.createTextNode(" "),
+      audio,
+      document.createTextNode(" "),
+      document.createElement("br"),
+      destinationText
+    );
+    window.__preciseDropAudio = audio;
+    window.__preciseDropText = destinationText;
+    editor.focus();
+  });
+
+  const targetPoint = await page.evaluate(() => {
+    const text = window.__preciseDropText;
+    const range = document.createRange();
+    range.setStart(text, 3);
+    range.setEnd(text, 4);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.right - 0.2, y: rect.top + rect.height / 2 };
+  });
+  const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 8 });
+
+  await expect(page.locator(".material-audio-drop-indicator")).toBeVisible();
+  const preview = await page.evaluate(() => ({
+    sameTextNode: materialAudioPointerDragState.dropTarget.range.startContainer ===
+      window.__preciseDropText,
+    offset: materialAudioPointerDragState.dropTarget.range.startOffset,
+    indicatorWidth: document.querySelector(".material-audio-drop-indicator")
+      .getBoundingClientRect().width,
+    indicatorLeft: document.querySelector(".material-audio-drop-indicator")
+      .getBoundingClientRect().left
+  }));
+  expect(preview.sameTextNode).toBe(true);
+  expect(preview.offset).toBe(4);
+  expect(preview.indicatorWidth).toBeGreaterThan(0);
+  expect(Math.abs(preview.indicatorLeft - targetPoint.x)).toBeLessThanOrEqual(2);
+
+  await page.mouse.up();
+
+  const finalPosition = await page.evaluate(() => {
+    const audio = window.__preciseDropAudio;
+    const editor = document.getElementById("materialComposerEditor");
+    const nearestNonWhitespaceText = (node, direction) => {
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+          return node.nodeValue;
+        }
+        node = node[direction];
+      }
+      return null;
+    };
+    return {
+      isSameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
+        editor.querySelector("[data-material-draggable-audio='true']") === audio,
+      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
+      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
+      indicatorRemoved: !document.querySelector(".material-audio-drop-indicator")
+    };
+  });
+  expect(finalPosition).toEqual({
+    isSameNode: true,
+    textBefore: "ABCD",
+    textAfter: "EFGHIJ",
+    indicatorRemoved: true
+  });
+  expect(runtimeErrors, "JavaScript errors while placing Material audio between characters").toEqual([]);
+});
+
 test("outdent removes indentation from every selected material line after DOM text splits", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
