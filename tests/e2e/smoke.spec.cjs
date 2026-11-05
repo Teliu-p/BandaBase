@@ -201,10 +201,13 @@ test("dragging a Material audio previews its real inline space and shifts text l
       mime_type: "audio/flac",
       storage_path: "local:live-preview"
     });
+    const destination = document.createElement("span");
+    destination.id = "live-preview-destination";
+    destination.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     editor.replaceChildren(
       audio,
       document.createElement("br"),
-      document.createTextNode("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+      destination
     );
     window.__livePreviewAudio = audio;
     window.__livePreviewSamples = [];
@@ -222,17 +225,25 @@ test("dragging a Material audio previews its real inline space and shifts text l
   });
 
   const targetPoint = await page.evaluate(() => {
-    const text = document.getElementById("materialComposerEditor").lastChild;
+    const text = document.getElementById("live-preview-destination").firstChild;
     const range = document.createRange();
-    range.setStart(text, 4);
-    range.setEnd(text, 5);
+    range.setStart(text, 15);
+    range.setEnd(text, 16);
     const rect = range.getBoundingClientRect();
     return { x: rect.right, y: rect.top + rect.height / 2 };
   });
   const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  const destinationLine = await page.locator("#live-preview-destination").boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 16 });
+  // First enter the target line, then move horizontally through it. The
+  // recorded positions must prove the shaded slot advances along the line.
+  await page.mouse.move(
+    destinationLine.x + 2,
+    destinationLine.y + destinationLine.height / 2,
+    { steps: 8 }
+  );
+  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
 
   const livePreview = await page.evaluate(() => {
     const audio = window.__livePreviewAudio;
@@ -315,8 +326,8 @@ test("dragging a Material audio previews its real inline space and shifts text l
   expect(committed.originMarkerRemoved).toBe(true);
   expect(committed.previewRemoved).toBe(true);
   expect(committed.dragHighlightRemoved).toBe(true);
-  expect(committed.textBefore).toBe("ABCDE");
-  expect(committed.textAfter).toBe("FGHIJKLMNOPQRSTUVWXYZ");
+  expect(committed.textBefore).toBe("ABCDEFGHIJKLMNOP");
+  expect(committed.textAfter).toBe("QRSTUVWXYZ");
   expect(runtimeErrors, "JavaScript errors while previewing and committing a live Material audio move").toEqual([]);
 });
 
