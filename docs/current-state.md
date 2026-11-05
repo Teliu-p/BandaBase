@@ -272,3 +272,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - CI del HEAD de PR `3cba0dc69ed26a561762609779eae37eeb2730d4` pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium: [Tests #41982813856](https://github.com/Teliu-p/BandaBase/actions/runs/41982813856). La regresión nueva ubica el audio entre dos caracteres concretos, valida la guía, el texto a ambos lados, la identidad del nodo y la limpieza del indicador.
 - Tras el merge, los workflows de main para Tests y GitHub Pages se iniciaron en `f902f0e8287fcb879ea1f582a3b85ade561c94ca`; su resultado final debe comprobarse antes de afirmar que la versión pública está desplegada.
 - No hay cambios de esquema, migraciones, RLS, Storage ni operaciones sobre datos de Supabase.
+
+## Seguimiento en curso — vista previa en flujo al arrastrar audios (2026-11-05)
+
+- Rama: `fix/material-audio-live-drag-preview-20261105`.
+- Reemplaza la guía flotante por movimiento provisional del mismo nodo de audio dentro del flujo de texto en cada Pointer Event. Su ancho real desplaza las letras durante el gesto.
+- Se guarda un marcador invisible en el origen con sus espacios originales; al soltar se elimina el marcador y al cancelar se restaura el chip y los espacios.
+- Las pruebas E2E cubren movimiento visible previo a soltar, desplazamiento del texto, identidad del nodo y rollback ante `pointercancel`.
+- Estado de CI, PR, merge y Pages: pendiente de verificación.
+- No hay cambios de Supabase ni operaciones sobre datos.

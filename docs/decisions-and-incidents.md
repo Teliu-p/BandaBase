@@ -240,3 +240,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - El seguimiento calcula el destino usando los rectángulos visuales de caracteres y chips inline; muestra una guía vertical y un sombreado del ancho aproximado del audio. Al soltar reutiliza el rango de destino que estaba previsualizando. Se conserva el mismo nodo y los espacios de separación del chip.
 - La prueba de regresión arrastra un audio a mitad de un texto y comprueba que el rango queda entre dos caracteres concretos, que la guía coincide con ese punto y que el mismo nodo queda insertado allí.
 - El cambio no requiere migraciones, RLS, Storage ni escrituras a Supabase.
+
+### 2026-11-05 — vista previa real en el flujo al arrastrar audios
+
+- El usuario aclaró que una guía/rectángulo flotante no sirve: necesita ver cómo se redistribuye el renglón mientras mueve el audio, como si el chip se insertara realmente y empujara el texto a partir de su posición.
+- Se cambia el enfoque: al superar el umbral de arrastre se guarda un marcador invisible en el origen, se retiran los espacios laterales propios del chip y se mueve el mismo nodo DOM a la posición calculada en cada evento Pointer. El chip queda resaltado y ocupa su ancho real, de modo que el texto se desplaza durante el gesto.
+- Al soltar se elimina el marcador de origen y se conserva la posición visible. Ante `pointercancel`, se quita el chip de su ubicación provisional y se restaura junto con los espacios originales.
+- La prueba Playwright debe verificar que el nodo original se encuentre en el editor antes de soltar, que su posición cambie durante el gesto, que el texto siguiente comience después del ancho del chip, que el commit preserve ese lugar y que la cancelación restaure el origen.
+- No requiere cambios de esquema, migraciones, RLS, Storage ni escrituras a Supabase.

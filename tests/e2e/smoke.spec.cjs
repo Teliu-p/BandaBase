@@ -130,16 +130,33 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   await expect(chips.nth(0)).not.toHaveAttribute("draggable", "true");
 
   await page.evaluate(() => {
-    window.__materialOriginalAudioChip = document.querySelector(
-      '#materialComposerEditor [data-material-draggable-audio="true"]'
+    const editor = document.getElementById("materialComposerEditor");
+    window.__materialOriginalAudioChip = editor.querySelector(
+      '[data-material-draggable-audio="true"]'
     );
+    editor.appendChild(document.createElement("br"));
+    const destination = document.createElement("span");
+    destination.id = "dragTestDestination";
+    destination.textContent = "Destino";
+    editor.appendChild(destination);
   });
 
   const firstBox = await chips.nth(0).boundingBox();
-  const targetBox = await chips.nth(1).boundingBox();
+  const destinationTextBox = await page.locator("#dragTestDestination").boundingBox();
   await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(targetBox.x + targetBox.width - 2, targetBox.y + targetBox.height / 2, { steps: 6 });
+  // First move the preview to a separate line so the remaining chips settle
+  // into their real positions after the source chip leaves the original row.
+  await page.mouse.move(destinationTextBox.x + 2, destinationTextBox.y + destinationTextBox.height / 2, { steps: 5 });
+
+  const secondBox = await page.locator(
+    '#materialComposerEditor [data-material-draggable-audio="true"]'
+  ).nth(0).boundingBox();
+  const thirdBox = await page.locator(
+    '#materialComposerEditor [data-material-draggable-audio="true"]'
+  ).nth(1).boundingBox();
+  const betweenChipsX = (secondBox.x + secondBox.width + thirdBox.x) / 2;
+  await page.mouse.move(betweenChipsX, secondBox.y + secondBox.height / 2, { steps: 8 });
   await page.mouse.up();
 
   const visibleOrder = await chips.evaluateAll(nodes =>
@@ -162,7 +179,7 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   expect(runtimeErrors, "JavaScript errors while inserting and reordering Material attachments").toEqual([]);
 });
 
-test("dragging a Material audio shows the exact character insertion point before dropping", async ({ page }) => {
+test("dragging a Material audio previews its real inline space and shifts text live", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -177,85 +194,218 @@ test("dragging a Material audio shows the exact character insertion point before
     }
 
     const editor = document.getElementById("materialComposerEditor");
-    const sourceText = document.createTextNode("Origen");
     const audio = createMaterialInlineAttachment({
-      id: "precise-drop-audio",
+      id: "live-preview-audio",
       kind: "file",
       name: "Pista.flac",
       mime_type: "audio/flac",
-      storage_path: "local:precise-drop"
+      storage_path: "local:live-preview"
     });
-    const destinationText = document.createTextNode("ABCDEFGHIJ");
+    const destination = document.createElement("span");
+    destination.id = "live-preview-destination";
+    destination.textContent = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     editor.replaceChildren(
-      sourceText,
-      document.createTextNode(" "),
       audio,
-      document.createTextNode(" "),
       document.createElement("br"),
-      destinationText
+      destination
     );
-    window.__preciseDropAudio = audio;
-    window.__preciseDropText = destinationText;
+    window.__livePreviewAudio = audio;
+    window.__livePreviewSamples = [];
+    document.addEventListener("pointermove", () => {
+      const preview = document.querySelector(".material-audio-drop-placeholder");
+      if (preview?.isConnected) {
+        const rect = preview.getBoundingClientRect();
+        window.__livePreviewSamples.push({
+          left: Math.round(rect.left),
+          top: Math.round(rect.top)
+        });
+      }
+    });
     editor.focus();
   });
 
   const targetPoint = await page.evaluate(() => {
-    const text = window.__preciseDropText;
+    const text = document.getElementById("live-preview-destination").firstChild;
     const range = document.createRange();
-    range.setStart(text, 3);
-    range.setEnd(text, 4);
+    range.setStart(text, 15);
+    range.setEnd(text, 16);
     const rect = range.getBoundingClientRect();
-    return { x: rect.right - 0.2, y: rect.top + rect.height / 2 };
+    return { x: rect.right, y: rect.top + rect.height / 2 };
   });
   const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  const destinationLine = await page.locator("#live-preview-destination").boundingBox();
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
-  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 8 });
+  // First enter the target line, then move horizontally through it. The
+  // recorded positions must prove the shaded slot advances along the line.
+  await page.mouse.move(
+    destinationLine.x + 2,
+    destinationLine.y + destinationLine.height / 2,
+    { steps: 8 }
+  );
+  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
 
-  await expect(page.locator(".material-audio-drop-indicator")).toBeVisible();
-  const preview = await page.evaluate(() => ({
-    sameTextNode: materialAudioPointerDragState.dropTarget.range.startContainer ===
-      window.__preciseDropText,
-    offset: materialAudioPointerDragState.dropTarget.range.startOffset,
-    indicatorWidth: document.querySelector(".material-audio-drop-indicator")
-      .getBoundingClientRect().width,
-    indicatorLeft: document.querySelector(".material-audio-drop-indicator")
-      .getBoundingClientRect().left
-  }));
-  expect(preview.sameTextNode).toBe(true);
-  expect(preview.offset).toBe(4);
-  expect(preview.indicatorWidth).toBeGreaterThan(0);
-  expect(Math.abs(preview.indicatorLeft - targetPoint.x)).toBeLessThanOrEqual(2);
+  const livePreview = await page.evaluate(() => {
+    const audio = window.__livePreviewAudio;
+    const editor = document.getElementById("materialComposerEditor");
+    const placeholder = editor.querySelector(".material-audio-drop-placeholder");
+    const nextText = (() => {
+      let node = placeholder?.nextSibling;
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node;
+        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
+            node.textContent?.trim()) return node.firstChild;
+        node = node.nextSibling;
+      }
+      return null;
+    })();
+    const nextChar = nextText?.nodeType === Node.TEXT_NODE
+      ? [...(nextText.nodeValue || "")].findIndex(char => !/\s/.test(char))
+      : -1;
+    let nextCharLeft = null;
+    if (nextText?.nodeType === Node.TEXT_NODE && nextChar >= 0) {
+      const range = document.createRange();
+      range.setStart(nextText, nextChar);
+      range.setEnd(nextText, nextChar + 1);
+      nextCharLeft = range.getBoundingClientRect().left;
+    }
+    const rect = placeholder?.getBoundingClientRect();
+    const positions = [...new Set(window.__livePreviewSamples.map(
+      point => point.left + ":" + point.top
+    ))];
+    return {
+      previewIsInEditor: Boolean(placeholder && editor.contains(placeholder)),
+      realAudioIsHeldOutsideEditor: !audio.isConnected,
+      highlighted: placeholder?.classList.contains("material-audio-drop-placeholder"),
+      width: rect?.width || 0,
+      right: rect?.right ?? null,
+      nextCharLeft,
+      positions,
+      originMarkerPresent: Boolean(editor.querySelector(".material-audio-origin-placeholder"))
+    };
+  });
+
+  expect(livePreview.previewIsInEditor).toBe(true);
+  expect(livePreview.realAudioIsHeldOutsideEditor).toBe(true);
+  expect(livePreview.highlighted).toBe(true);
+  expect(livePreview.width).toBeGreaterThan(20);
+  expect(livePreview.nextCharLeft).not.toBeNull();
+  expect(livePreview.nextCharLeft).toBeGreaterThanOrEqual(livePreview.right);
+  expect(livePreview.positions.length).toBeGreaterThan(1);
+  expect(livePreview.originMarkerPresent).toBe(true);
 
   await page.mouse.up();
 
-  const finalPosition = await page.evaluate(() => {
-    const audio = window.__preciseDropAudio;
+  const committed = await page.evaluate(() => {
+    const audio = window.__livePreviewAudio;
     const editor = document.getElementById("materialComposerEditor");
     const nearestNonWhitespaceText = (node, direction) => {
       while (node) {
         if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
-          return node.nodeValue;
+          return node.nodeValue.trim();
         }
+        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
+            node.textContent?.trim()) return node.textContent.trim();
+        node = node[direction];
+      }
+      return "";
+    };
+    return {
+      sameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
+        editor.querySelector("[data-material-draggable-audio='true']") === audio,
+      connected: audio.isConnected,
+      originMarkerRemoved: !editor.querySelector(".material-audio-origin-placeholder"),
+      previewRemoved: !editor.querySelector(".material-audio-drop-placeholder"),
+      dragHighlightRemoved: !audio.classList.contains("is-dragging"),
+      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
+      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling")
+    };
+  });
+  expect(committed.sameNode).toBe(true);
+  expect(committed.connected).toBe(true);
+  expect(committed.originMarkerRemoved).toBe(true);
+  expect(committed.previewRemoved).toBe(true);
+  expect(committed.dragHighlightRemoved).toBe(true);
+  expect(committed.textBefore).toBe("ABCDEFGHIJKLMNOP");
+  expect(committed.textAfter).toBe("QRSTUVWXYZ");
+  expect(runtimeErrors, "JavaScript errors while previewing and committing a live Material audio move").toEqual([]);
+});
+
+test("cancelling a live Material audio drag restores the original inline position", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    const prefix = document.createTextNode("Inicio");
+    const audio = createMaterialInlineAttachment({
+      id: "cancel-preview-audio",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:cancel-preview"
+    });
+    editor.replaceChildren(prefix, document.createTextNode(" "), audio,
+      document.createTextNode(" "), document.createElement("br"),
+      document.createTextNode("Destino"));
+    window.__cancelPreviewAudio = audio;
+    editor.focus();
+  });
+
+  const source = await page.locator("#materialComposerEditor [data-material-draggable-audio='true']").boundingBox();
+  const destination = await page.locator("#materialComposerEditor").boundingBox();
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(destination.x + destination.width - 20, destination.y + 8, { steps: 5 });
+  await page.evaluate(() => {
+    const pointerId = materialAudioPointerDragState?.pointerId;
+    document.dispatchEvent(new PointerEvent("pointercancel", {
+      pointerId,
+      bubbles: true,
+      cancelable: true
+    }));
+  });
+
+  const restored = await page.evaluate(() => {
+    const audio = window.__cancelPreviewAudio;
+    const editor = document.getElementById("materialComposerEditor");
+    const nearestNonWhitespaceText = (node, direction) => {
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) return node.nodeValue;
+        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "BR" &&
+            node.textContent?.trim()) return node.textContent;
         node = node[direction];
       }
       return null;
     };
     return {
-      isSameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
+      sameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
         editor.querySelector("[data-material-draggable-audio='true']") === audio,
-      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
-      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
-      indicatorRemoved: !document.querySelector(".material-audio-drop-indicator")
+      before: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
+      after: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
+      markerRemoved: !editor.querySelector(".material-audio-origin-placeholder"),
+      previewRemoved: !editor.querySelector(".material-audio-drop-placeholder"),
+      highlightRemoved: !audio.classList.contains("is-dragging")
     };
   });
-  expect(finalPosition).toEqual({
-    isSameNode: true,
-    textBefore: "ABCD",
-    textAfter: "EFGHIJ",
-    indicatorRemoved: true
+  expect(restored).toEqual({
+    sameNode: true,
+    before: "Inicio",
+    after: "Destino",
+    markerRemoved: true,
+    previewRemoved: true,
+    highlightRemoved: true
   });
-  expect(runtimeErrors, "JavaScript errors while placing Material audio between characters").toEqual([]);
+  expect(runtimeErrors, "JavaScript errors while cancelling a Material audio drag").toEqual([]);
 });
 
 test("outdent removes indentation from every selected material line after DOM text splits", async ({ page }) => {
