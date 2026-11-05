@@ -130,16 +130,32 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   await expect(chips.nth(0)).not.toHaveAttribute("draggable", "true");
 
   await page.evaluate(() => {
-    window.__materialOriginalAudioChip = document.querySelector(
-      '#materialComposerEditor [data-material-draggable-audio="true"]'
+    const editor = document.getElementById("materialComposerEditor");
+    window.__materialOriginalAudioChip = editor.querySelector(
+      '[data-material-draggable-audio="true"]'
     );
+    editor.appendChild(document.createElement("br"));
+    editor.appendChild(document.createTextNode("Destino"));
   });
 
   const firstBox = await chips.nth(0).boundingBox();
-  const targetBox = await chips.nth(1).boundingBox();
+  const destinationBox = await page.locator("#materialComposerEditor").boundingBox();
+  const destinationText = page.locator("#materialComposerEditor").getByText("Destino", { exact: true });
+  const destinationTextBox = await destinationText.boundingBox();
   await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(targetBox.x + targetBox.width - 2, targetBox.y + targetBox.height / 2, { steps: 6 });
+  // First move the preview to a separate line so the remaining chips settle
+  // into their real positions after the source chip leaves the original row.
+  await page.mouse.move(destinationTextBox.x + 2, destinationTextBox.y + destinationTextBox.height / 2, { steps: 5 });
+
+  const secondBox = await page.locator(
+    '#materialComposerEditor [data-material-draggable-audio="true"]'
+  ).nth(0).boundingBox();
+  const thirdBox = await page.locator(
+    '#materialComposerEditor [data-material-draggable-audio="true"]'
+  ).nth(1).boundingBox();
+  const betweenChipsX = (secondBox.x + secondBox.width + thirdBox.x) / 2;
+  await page.mouse.move(betweenChipsX, secondBox.y + secondBox.height / 2, { steps: 8 });
   await page.mouse.up();
 
   const visibleOrder = await chips.evaluateAll(nodes =>
@@ -184,7 +200,11 @@ test("dragging a Material audio previews its real inline space and shifts text l
       mime_type: "audio/flac",
       storage_path: "local:live-preview"
     });
-    editor.replaceChildren(audio, document.createTextNode(" ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+    editor.replaceChildren(
+      audio,
+      document.createElement("br"),
+      document.createTextNode("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    );
     window.__livePreviewAudio = audio;
     window.__livePreviewSamples = [];
     document.addEventListener("pointermove", () => {
@@ -199,8 +219,8 @@ test("dragging a Material audio previews its real inline space and shifts text l
   const targetPoint = await page.evaluate(() => {
     const text = document.getElementById("materialComposerEditor").lastChild;
     const range = document.createRange();
-    range.setStart(text, 5);
-    range.setEnd(text, 6);
+    range.setStart(text, 4);
+    range.setEnd(text, 5);
     const rect = range.getBoundingClientRect();
     return { x: rect.right, y: rect.top + rect.height / 2 };
   });
