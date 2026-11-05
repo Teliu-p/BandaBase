@@ -276,3 +276,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - La implementación nueva prioriza los límites geométricos de caracteres/chips de la línea bajo el puntero y conserva el caret nativo como respaldo para líneas sin texto visible. En el origen coloca un clon oculto con la huella inline del chip y los espacios eliminados, preservando la distribución mientras se arrastra.
 - La prueba nueva fuerza una respuesta nativa incorrecta, simula texto enriquecido/envuelto, verifica que la altura del renglón no cambie, mide el placeholder respecto del caret y comprueba texto antes/después e identidad del nodo. CI [#42092923727](https://github.com/Teliu-p/BandaBase/actions/runs/42092923727) pasó (18 smoke tests de Chromium).
 - PR #146 sigue abierta en `fix/material-drag-drop-geometric-hit-test-20261105`. No declarar publicado hasta merge y Pages; el comportamiento real del navegador del usuario sigue pendiente de confirmación. Sin cambios a Supabase, datos, RLS, Storage, migraciones ni servidor local.
+
+
+### 2026-11-05 — reconstrucción del movimiento de archivos desde cero
+
+- Tras los intentos #141–#146, el usuario informó que el sombreado seguía apareciendo en posiciones arbitrarias y autorizó retirar esos intentos y rehacer la función.
+- Decisión: conservar la multiselección de archivos, pero reemplazar completamente el motor de Pointer Events y sus heurísticas por HTML Drag and Drop nativo del navegador. El destino se obtiene del caret nativo en las coordenadas de `dragover/drop`; no se debe sustituir por aproximaciones manuales. Si no hay caret válido, se cancela en vez de dejar el adjunto en otro lugar.
+- El archivo original permanece conectado al DOM para mantener el drag nativo; se saca temporalmente del flujo con posición fija, se conserva un clon invisible en el origen y se coloca un placeholder inline en el caret. Al cancelar, `dragend` restaura el mismo nodo y los separadores.
+- Esta rama debe considerarse una reconstrucción en pruebas, no una corrección ya validada. CI, Pages y confirmación manual pendientes.
