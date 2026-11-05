@@ -372,7 +372,8 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
   }
 
   editor.querySelectorAll(".material-inline-attachment").forEach(node => {
-    if (node === ignoredAttachment) return;
+    if (node === ignoredAttachment ||
+        node.classList.contains("material-attachment-origin-placeholder")) return;
     const rect = node.getBoundingClientRect();
     if (!rect?.height || rect.width <= 0) return;
     segments.push({
@@ -608,27 +609,26 @@ function beginMaterialComposerAttachmentLivePreview(attachment, state, editor) {
   editorRange.collapse(true);
   const spaceWidth = getMaterialSpaceWidth(editorRange, editor);
 
-  const sourceMarker = document.createElement("span");
-  sourceMarker.className = "material-attachment-origin-placeholder";
-  sourceMarker.contentEditable = "false";
+  // Keep a hidden visual clone in the source flow while dragging. A
+  // display:none marker collapses the original line, moving all following
+  // text vertically under a stationary pointer and making clientY target a
+  // different line. Cloning the chip also preserves its exact inline baseline.
+  const sourceMarker = attachment.cloneNode(true);
+  sourceMarker.classList.remove("is-dragging");
+  sourceMarker.classList.add("material-attachment-origin-placeholder");
+  sourceMarker.querySelectorAll(".inline-remove").forEach(button => button.remove());
+  sourceMarker.removeAttribute("data-attachment-id");
+  sourceMarker.removeAttribute("data-pending-key");
+  sourceMarker.removeAttribute("data-material-draggable-attachment");
+  sourceMarker.removeAttribute("data-material-draggable-audio");
   sourceMarker.setAttribute("aria-hidden", "true");
-  // Keep the original inline footprint while dragging. Hiding this marker
-  // with display:none collapses its line; the text below jumps vertically
-  // under a stationary pointer, so the same clientY hits a different line.
-  // The adjacent literal spaces are removed below, so reserve their width here.
+  sourceMarker.setAttribute("contenteditable", "false");
   Object.assign(sourceMarker.style, {
-    display: "inline-block",
     visibility: "hidden",
     pointerEvents: "none",
     boxSizing: "border-box",
     width: String(attachmentRect.width + (spaceWidth * 2) + 2) + "px",
-    height: String(attachmentRect.height) + "px",
-    margin: "0",
-    padding: "0",
-    border: "0",
-    verticalAlign: "baseline",
-    lineHeight: "inherit",
-    whiteSpace: "pre"
+    margin: "0"
   });
   attachment.replaceWith(sourceMarker);
 
