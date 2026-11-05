@@ -218,3 +218,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - La prueba local aislada del servidor pasó: sesión ausente 403, upload autorizado 201, emisión de ticket 200, descarga 200, Range 206, no-sobrescritura 400 y delete 200. Se usaron mocks para consultas Supabase; faltan una prueba autenticada real desde la PC anfitriona y confirmar que el .py actualizado quede instalado allí.
 - Sin cambios de esquema/migraciones/RLS de Supabase. La columna `storage_path` ya era text; se consultaron las políticas reales de `material_attachments` (select por miembro; write por creador/admin) y la función `is_band_admin(uuid)` disponible para authenticated.
 - Limitaciones: audios antiguos que solo estén en Storage dejan de reproducirse desde Materiales hasta copiarlos/volver a adjuntarlos localmente; los objetos cloud quedan intactos. Si la PC host no responde, no habrá reproducción de audio en Materiales. Si la limpieza local falla y se elimina el registro por RLS, puede quedar un archivo huérfano en la biblioteca. No se obliga a probar otro dispositivo.
+
+
+### Resultado e integración — audio de Materiales local-only (2026-11-05)
+
+- PR #140 fusionada en main como \`55ebb0ebc141f32c7276820617c74567d922650e\`; Tests [#41960155461](https://github.com/Teliu-p/BandaBase/actions/runs/41960155461) y Pages [#41960155134](https://github.com/Teliu-p/BandaBase/actions/runs/41960155134) pasaron.
+- El servidor actualizado v0.3 se entrega al usuario como archivo. El deploy web no cambia la copia Python instalada localmente: el usuario debe detener el proceso anterior y reemplazar solo \`bandabase_audio_server.py\`, preservando biblioteca, manifiesto, secreto de tickets y backups.
+- Prueba aislada final contra HTTP local con Supabase simulado pasó: upload 201; ticket 200; reproducción parcial 206; rechazo de sesión 403; rechazo de sobrescritura 400; delete 200.
+- Pendiente final, solo desde el equipo anfitrión: instalar v0.3, iniciar el servidor y guardar/reproducir un audio nuevo en Materiales con la sesión normal. No se exige una segunda PC.
