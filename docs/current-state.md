@@ -245,3 +245,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - La columna real `public.material_attachments.storage_path` es text; no requiere migración. Las políticas RLS reales permiten select a miembros y escritura al creador/admin. `is_band_admin(uuid)` existe y `authenticated` puede ejecutarla. No se cambiaron RLS, esquema, datos ni objetos Storage durante la preparación.
 - Los audios existentes en Storage no se migran ni borran automáticamente. Si no están ya en la biblioteca local/manifest, no se reproducirán desde Materiales hasta volver a adjuntarlos desde la PC anfitriona. Las copias antiguas de Storage quedan intactas. Al borrar desde Materiales, si el servidor local está apagado, la compensación puede quitar la fila y dejar un archivo local huérfano que deberá limpiarse más adelante.
 - Pendiente: revisión final, CI/Pages de la PR y prueba manual desde la misma PC anfitriona. El usuario todavía debe reemplazar manualmente `C:\\BandaBaseAudio\\bandabase_audio_server.py` por el archivo Python entregado; no está instalado remotamente desde GitHub.
+
+
+## 19. Resultado final: audio de Materiales local-only (2026-11-05)
+
+- PR #140 integrada en \`main\` como \`55ebb0ebc141f32c7276820617c74567d922650e\`: [PR #140](https://github.com/Teliu-p/BandaBase/pull/140).
+- Tests de main [#41960155461](https://github.com/Teliu-p/BandaBase/actions/runs/41960155461) y despliegue GitHub Pages [#41960155134](https://github.com/Teliu-p/BandaBase/actions/runs/41960155134) terminaron correctamente en ese SHA.
+- Audio de Materiales: nuevo guardado en biblioteca local por servidor autenticado; lectura exclusivamente local, sin fallback a Storage en error de red, HTTP 409/5xx o host apagado. Eliminación local con RLS. Archivos no-audio de Materiales y audio de Comentarios/Propuestas continúan en Storage.
+- El servidor actualizado v0.3 se entregó como archivo \`bandabase_audio_server.py\` en la conversación; requiere reemplazo manual en \`C:\\BandaBaseAudio\\bandabase_audio_server.py\`. Se debe conservar \`library/\`, \`library-manifest.json\`, \`server-config.json\` y \`backup/\`.
+- Verificación del script entregado: \`py_compile\`; prueba HTTP aislada con Supabase simulado (403 sin sesión, upload 201, ticket 200, Range 206, clave existente no sobrescrita 400 y delete 200). Aún falta ejecutarlo instalado en Windows con la sesión real de Supabase; esa será la prueba final desde la PC anfitriona, sin requerir otro dispositivo.
+- No se ejecutaron migraciones ni se modificaron esquema, RLS, filas ni objetos de Storage. Audios históricos subidos a Storage quedan intactos; si no tienen copia en biblioteca/manifest, hay que volver a adjuntarlos desde el host para usarlos en Materiales. No hacer borrado masivo del bucket.
