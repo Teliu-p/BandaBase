@@ -322,6 +322,40 @@ function isMaterialComposerDraggableAudio(attachment) {
 function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredAttachment = null) {
   if (!editor) return null;
 
+  // Ask the browser for the caret under the pointer first. Unlike the
+  // character-geometry approximation below, this keeps the exact horizontal
+  // offset on the selected visual line, including rich-text spans and wraps.
+  let nativeRange = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(clientX, clientY);
+    if (point && editor.contains(point.offsetNode) &&
+        !ignoredAttachment?.contains(point.offsetNode) &&
+        !point.offsetNode.parentElement?.closest?.(".material-inline-attachment")) {
+      nativeRange = document.createRange();
+      nativeRange.setStart(point.offsetNode, point.offset);
+      nativeRange.collapse(true);
+    }
+  }
+  if (!nativeRange && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(clientX, clientY);
+    if (point && editor.contains(point.startContainer) &&
+        editor.contains(point.endContainer) &&
+        !ignoredAttachment?.contains(point.startContainer) &&
+        !point.startContainer.parentElement?.closest?.(".material-inline-attachment")) {
+      nativeRange = point.cloneRange();
+      nativeRange.collapse(true);
+    }
+  }
+  if (nativeRange) {
+    const caret = getMaterialRangeCaretPoint(nativeRange, editor, clientY);
+    return {
+      range: nativeRange,
+      x: caret?.x,
+      y: caret?.y,
+      height: caret?.height
+    };
+  }
+
   const segments = [];
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
   let textNode;
@@ -3210,6 +3244,16 @@ document.addEventListener("pointerup", event => {
       event.clientX <= editorRect.right &&
       event.clientY >= editorRect.top &&
       event.clientY <= editorRect.bottom;
+    if (pointerInsideEditor) {
+      // Use the pointerup coordinates too: the final drop position must be the
+      // caret immediately under the cursor, not an earlier pointermove sample.
+      state.hasValidDropTarget = moveMaterialComposerAttachmentPreviewToPoint(
+        event.clientX,
+        event.clientY,
+        materialComposerEditor,
+        state
+      );
+    }
     moved = pointerInsideEditor && state.hasValidDropTarget &&
       state.dropPlaceholder?.parentNode
       ? commitMaterialComposerAttachmentLivePreview(attachment, state)
