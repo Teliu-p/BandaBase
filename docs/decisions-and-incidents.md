@@ -284,3 +284,6 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Decisión: conservar la multiselección de archivos, pero reemplazar completamente el motor de Pointer Events y sus heurísticas por HTML Drag and Drop nativo del navegador. El destino se obtiene del caret nativo en las coordenadas de `dragover/drop`; no se debe sustituir por aproximaciones manuales. Si no hay caret válido, se cancela en vez de dejar el adjunto en otro lugar.
 - El archivo original permanece conectado al DOM para mantener el drag nativo; se saca temporalmente del flujo con posición fija, se conserva un clon invisible en el origen y se coloca un placeholder inline en el caret. Al cancelar, `dragend` restaura el mismo nodo y los separadores.
 - Esta rama debe considerarse una reconstrucción en pruebas, no una corrección ya validada. CI, Pages y confirmación manual pendientes.
+
+
+- Reconstrucción nueva en PR #147: CI [#42098206552](https://github.com/Teliu-p/BandaBase/actions/runs/42098206552) pasó con 18 smoke tests Chromium. Los tests usan movimientos reales de mouse y el flujo HTML Drag and Drop nativo, y cubren PDF/audio, ubicación de caret, orden, identidad del nodo y cancelación. PR sigue abierta; falta Pages y confirmación manual.
