@@ -7,11 +7,11 @@ Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias ante
 
 ## 0. PR #141 — adjuntos múltiples y reordenamiento de audio (2026-11-05)
 
-- Rama: `feat/materials-multi-file-audio-reorder-20261105`; PR #141: https://github.com/Teliu-p/BandaBase/pull/141. Se debe verificar el último HEAD/CI/Pages antes de afirmar que está publicada.
-- `index.html` marca el selector `#materialPendingFile` como `multiple`; el handler valida primero todos los archivos y luego los inserta en el cursor. El guardado no cambia: audios nuevos a la biblioteca local; otros archivos de Materiales a Storage.
-- Los chips de audio se identifican con `data-material-draggable-audio` y se mueven con Pointer Events. No usar `draggable=true`/HTML5 drag porque la primera prueba cubría un gesto distinto al esperado. La regresión debe verificar que el mismo nodo se mueve y que el orden de `collectMaterialComposerBlocks` coincide con el orden visual.
-- El reporte del usuario se produjo con `main` todavía en `7b48607925b638a5cf2f061bbf09bb71d4563cc8`, que no contenía la opción `multiple` ni los nuevos eventos. Los cambios en una PR abierta no aparecen en el sitio de Pages. No pedir validación en producción hasta integrar y desplegar.
-- No requiere migración ni modifica Supabase, RLS, Storage, filas u objetos.
+- PR #141 quedó fusionada en `main` como `f65735cdf3d5f1a92b4e9d68363d57284df484c1`: https://github.com/Teliu-p/BandaBase/pull/141.
+- Tests de la PR pasaron en el último commit probado `5baae327d662fc2e5d388ef22f200b5ecb55ffe2`, incluyendo npm test, ESLint/no-undef y Playwright/Chromium. La regresión inserta tres FLAC y comprueba con mouse down/move/up que se mueve el mismo nodo y que el orden serializado coincide.
+- `index.html` marca `#materialPendingFile` como `multiple`; el handler valida toda la selección y la inserta en el cursor. El guardado conserva los flujos: audio a la biblioteca local; archivos no-audio a Storage.
+- Los chips de audio usan Pointer Events, no `draggable=true` de HTML5. Se previene la selección nativa y se mueve el mismo nodo existente. No hay tablas, filas auxiliares, migraciones ni cambios en Supabase.
+- Verificación del repositorio: `main` quedó en `f65735cdf3d5f1a92b4e9d68363d57284df484c1` y contiene el selector múltiple y los eventos Pointer. El estado final del deployment de GitHub Pages no pudo comprobarse desde el conector disponible; no afirmar que la versión pública ya refleja este commit hasta comprobarlo.
 
 ## 1. Código y despliegue
 
