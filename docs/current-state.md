@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-11-03, Argentina.  
-**Último cambio funcional documentado antes de este apartado:** PR #134 (actualizaciones en tiempo real, iconos SVG propios y paridad del editor Materiales); la CI funcional pasó en el run #618. Este apartado documenta el trabajo siguiente en PR #135; comprobar su CI/estado y Pages antes de asumir integración. Los runs anteriores no sustituyen una prueba auditiva con pistas reales.  
+**Última actualización:** 2026-11-05, Argentina.  
+**Último cambio funcional integrado:** PR #144 (arrastre directo de todos los archivos de Materiales), commit `858271ba90576ba3211305c17f06ec7285eeb29d`. Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y GitHub Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. Este documento registra además el historial previo; distinguir pruebas automatizadas de validación manual.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
@@ -274,10 +274,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - No hay cambios de esquema, migraciones, RLS, Storage ni operaciones sobre datos de Supabase.
 
 
-## 20. Movimiento directo de cualquier archivo en Materiales (2026-11-05, PR en preparación)
+## 20. Resultado final — movimiento directo de cualquier archivo en Materiales (2026-11-05)
 
-- La aclaración del usuario corrigió el alcance anterior: no se trata de mover únicamente audio ni de simular pulsaciones de Espacio/Backspace. El gesto esperado es arrastrar un chip de archivo con el botón izquierdo a cualquier posición del texto y ver sombreado el lugar preciso que ocupará.
-- La implementación generaliza el gesto a todo adjunto cuyo tipo sea `file`. La copia visual sigue al puntero; el placeholder sombreado se inserta en el punto de destino dentro del flujo editable y muestra cómo se redistribuye el texto.
-- Al confirmar se inserta el mismo nodo DOM del archivo; no se crea un segundo adjunto. Al cancelar o soltar fuera del editor, se restaura el nodo y los separadores en el lugar de origen.
-- Se agrega regresión Chromium con un archivo PDF no-audio, además de conservar las pruebas de movimiento de audio, restauración al cancelar y orden serializado.
-- Pendiente al abrir esta PR: comprobar `npm test`, ESLint/no-undef, smoke tests Chromium, Tests de main y deploy de Pages. No hay cambios previstos en Supabase, Storage, RLS ni servidor local.
+- PR #144 integrada en `main`: https://github.com/Teliu-p/BandaBase/pull/144. Squash merge `858271ba90576ba3211305c17f06ec7285eeb29d`.
+- La implementación anterior (#143) movía únicamente audio y no expresaba bien el gesto pedido. La especificación final es arrastrar cualquier chip de archivo con el botón izquierdo hacia cualquier posición horizontal o vertical del editor, no simular teclas Espacio/Backspace.
+- Durante el arrastre, una copia visual del chip acompaña al puntero y un placeholder sombreado ocupa el punto de destino dentro del flujo editable. El texto se redistribuye alrededor del espacio provisional. Al soltar dentro del editor se coloca el mismo nodo DOM original, sin duplicarlo; cancelar o soltar fuera restaura el punto de origen.
+- Los enlaces web no entran en el movimiento; el alcance es cualquier adjunto de tipo archivo, incluidos audio y PDF.
+- Regresión Chromium: arrastra un PDF no-audio y comprueba que el chip visual sigue al puntero, que el placeholder se desplaza y empuja el texto, que el archivo queda entre los caracteres esperados y que se conserva la identidad DOM. Se mantienen cobertura de audio, orden y restauración al cancelar.
+- Tests de PR [#42085812268](https://github.com/Teliu-p/BandaBase/actions/runs/42085812268), Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron en los SHAs correspondientes.
+- No se modificaron Supabase, esquema, migraciones, RLS, Storage, datos ni servidor Python. La validación de interacción automatizada pasó; falta únicamente la comprobación manual del usuario en la interfaz publicada.
