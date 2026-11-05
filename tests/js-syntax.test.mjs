@@ -364,6 +364,22 @@ async function runAttachmentAccessRegressionTests() {
   assert.equal(JSON.parse(fetchCalls[1].options.body).download, true);
 
   const previousFetchCount = fetchCalls.length;
+  const materialNonAudioUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    {
+      id: audioAttachment.id,
+      storage_path: "private/material-document.pdf",
+      mime_type: "application/pdf",
+      name: "document.pdf"
+    }
+  );
+  assert.equal(materialNonAudioUrl, "https://storage.example.test/signed");
+  assert.equal(
+    fetchCalls.length,
+    previousFetchCount,
+    "Los archivos que no son audio de Materiales deben conservar Storage."
+  );
+
   const nonAudioUrl = await getAttachmentAccessUrl(
     "proposal_attachments",
     {
@@ -392,6 +408,22 @@ async function runAttachmentAccessRegressionTests() {
     "Un rechazo de autorización local debe mostrarse y no convertirse en un fallback silencioso."
   );
   assert.equal(storageCalls.length, previousStorageCount);
+
+  fetchBehavior = async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ error: "No está en la biblioteca local." })
+  });
+  await assert.rejects(
+    getAttachmentAccessUrl("material_attachments", audioAttachment),
+    /todavía no está copiado a la biblioteca local/,
+    "Un audio antiguo sin copia local no debe recuperar el objeto de Storage."
+  );
+  assert.equal(
+    storageCalls.length,
+    previousStorageCount,
+    "HTTP 409 para Materiales tampoco debe consultar Storage."
+  );
 
   for (const status of [500, 502, 503, 504]) {
     fetchBehavior = async () => ({
