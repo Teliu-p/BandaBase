@@ -135,13 +135,14 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
       '[data-material-draggable-audio="true"]'
     );
     editor.appendChild(document.createElement("br"));
-    editor.appendChild(document.createTextNode("Destino"));
+    const destination = document.createElement("span");
+    destination.id = "dragTestDestination";
+    destination.textContent = "Destino";
+    editor.appendChild(destination);
   });
 
   const firstBox = await chips.nth(0).boundingBox();
-  const destinationBox = await page.locator("#materialComposerEditor").boundingBox();
-  const destinationText = page.locator("#materialComposerEditor").getByText("Destino", { exact: true });
-  const destinationTextBox = await destinationText.boundingBox();
+  const destinationTextBox = await page.locator("#dragTestDestination").boundingBox();
   await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
   // First move the preview to a separate line so the remaining chips settle
@@ -210,7 +211,11 @@ test("dragging a Material audio previews its real inline space and shifts text l
     document.addEventListener("pointermove", () => {
       const preview = document.querySelector(".material-audio-drop-placeholder");
       if (preview?.isConnected) {
-        window.__livePreviewSamples.push(preview.getBoundingClientRect().left);
+        const rect = preview.getBoundingClientRect();
+        window.__livePreviewSamples.push({
+          left: Math.round(rect.left),
+          top: Math.round(rect.top)
+        });
       }
     });
     editor.focus();
@@ -254,7 +259,9 @@ test("dragging a Material audio previews its real inline space and shifts text l
       nextCharLeft = range.getBoundingClientRect().left;
     }
     const rect = placeholder?.getBoundingClientRect();
-    const positions = [...new Set(window.__livePreviewSamples.map(x => Math.round(x)))];
+    const positions = [...new Set(window.__livePreviewSamples.map(
+      point => point.left + ":" + point.top
+    ))];
     return {
       previewIsInEditor: Boolean(placeholder && editor.contains(placeholder)),
       realAudioIsHeldOutsideEditor: !audio.isConnected,
