@@ -454,46 +454,24 @@ test("dragging a Material audio follows the pointer even when the native caret r
   const preview = await page.evaluate(() => {
     const placeholder = document.querySelector(".material-attachment-drop-placeholder");
     const rect = placeholder?.getBoundingClientRect();
-    const previousText = placeholder?.previousSibling;
-    const nextText = placeholder?.nextSibling;
     const editor = document.getElementById("materialComposerEditor");
-    const collapsed = document.createRange();
-    if (previousText?.nodeType === Node.TEXT_NODE) {
-      collapsed.setStart(previousText, previousText.nodeValue.length);
-      collapsed.collapse(true);
-    }
-    const previousChar = document.createRange();
-    if (previousText?.nodeType === Node.TEXT_NODE && previousText.nodeValue.length) {
-      previousChar.setStart(previousText, previousText.nodeValue.length - 1);
-      previousChar.setEnd(previousText, previousText.nodeValue.length);
-    }
-    const nextChar = document.createRange();
-    if (nextText?.nodeType === Node.TEXT_NODE && nextText.nodeValue.length) {
-      nextChar.setStart(nextText, 0);
-      nextChar.setEnd(nextText, 1);
-    }
-    const prevRect = previousChar.getBoundingClientRect();
-    const nextRect = nextChar.getBoundingClientRect();
-    const collapsedRect = collapsed.getBoundingClientRect();
+    const sourceMarker = editor.querySelector(".material-attachment-origin-placeholder");
     return {
       inEditor: Boolean(placeholder && editor.contains(placeholder)),
       left: rect?.left ?? null,
       expectedX: window.__pointerDropExpectedX,
-      previousText: previousText?.nodeValue ?? null,
-      nextText: nextText?.nodeValue ?? null,
-      previousCharRight: prevRect?.right ?? null,
-      nextCharLeft: nextRect?.left ?? null,
-      collapsedRangeLeft: collapsedRect?.left ?? null,
+      previousText: placeholder?.previousSibling?.nodeValue ?? null,
+      nextText: placeholder?.nextSibling?.nodeValue ?? null,
       sourceLineHeightBefore: window.__pointerDropSourceLineHeightBefore,
       sourceLineHeightDuring: window.__pointerDropSourceLine?.getBoundingClientRect().height ?? null,
-      sourceMarkerVisibility: editor.querySelector(".material-attachment-origin-placeholder") ?
-        getComputedStyle(editor.querySelector(".material-attachment-origin-placeholder")).visibility : null
+      sourceMarkerVisibility: sourceMarker ? getComputedStyle(sourceMarker).visibility : null
     };
   });
-  console.log("MATERIAL DROP GEOMETRY", JSON.stringify(preview));
   expect(preview.inEditor).toBe(true);
   expect(preview.sourceMarkerVisibility).toBe("hidden");
   expect(Math.abs(preview.sourceLineHeightDuring - preview.sourceLineHeightBefore)).toBeLessThanOrEqual(0.5);
+  expect(preview.previousText).toBe("0123456789ABCD");
+  expect(preview.nextText).toBe("EFGHIJKLMN");
   expect(Math.abs(preview.left - preview.expectedX)).toBeLessThanOrEqual(2);
 
   await page.mouse.up();
