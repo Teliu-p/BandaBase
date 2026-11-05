@@ -3637,6 +3637,17 @@
   -webkit-user-select: none;
 }
 
+.material-audio-drop-placeholder {
+  display: inline-block;
+  box-sizing: border-box;
+  vertical-align: baseline;
+  border: 1px dashed var(--bb-accent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--bb-accent) 18%, var(--bb-surface-raised));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bb-accent) 14%, transparent);
+  pointer-events: none;
+}
+
 .material-inline-attachment-label {
   display: inline-block;
   min-width: 0;
