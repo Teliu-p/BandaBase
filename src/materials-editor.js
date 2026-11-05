@@ -632,8 +632,10 @@ function moveMaterialComposerAudioPreviewToPoint(clientX, clientY, editor, state
       return false;
     }
 
+    const restoreRange = document.createRange();
+    restoreRange.setStartBefore(placeholder);
+    restoreRange.collapse(true);
     const oldParent = placeholder.parentNode;
-    const oldNextSibling = placeholder.nextSibling;
     placeholder.remove();
     // Rejoin only the text fragments created by the previous preview position.
     oldParent?.normalize();
@@ -644,11 +646,10 @@ function moveMaterialComposerAudioPreviewToPoint(clientX, clientY, editor, state
       editor
     );
     if (!dropTarget?.range) {
-      if (oldParent?.isConnected) {
-        oldParent.insertBefore(
-          placeholder,
-          oldNextSibling?.parentNode === oldParent ? oldNextSibling : null
-        );
+      if (editor.contains(restoreRange.startContainer)) {
+        restoreRange.insertNode(placeholder);
+      } else if (oldParent?.isConnected) {
+        oldParent.appendChild(placeholder);
       }
       return false;
     }
