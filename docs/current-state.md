@@ -264,20 +264,11 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Verificación del script entregado: \`py_compile\`; prueba HTTP aislada con Supabase simulado (403 sin sesión, upload 201, ticket 200, Range 206, clave existente no sobrescrita 400 y delete 200). Aún falta ejecutarlo instalado en Windows con la sesión real de Supabase; esa será la prueba final desde la PC anfitriona, sin requerir otro dispositivo.
 - No se ejecutaron migraciones ni se modificaron esquema, RLS, filas ni objetos de Storage. Audios históricos subidos a Storage quedan intactos; si no tienen copia en biblioteca/manifest, hay que volver a adjuntarlos desde el host para usarlos en Materiales. No hacer borrado masivo del bucket.
 
-## Resultado — posición precisa de arrastre de audio en Materiales (2026-11-05)
+## Resultado — arrastre de audio con vista previa inline real (2026-11-05)
 
-- PR #142 quedó integrada en `main` mediante squash merge, commit `f902f0e8287fcb879ea1f582a3b85ade561c94ca`: [PR #142](https://github.com/Teliu-p/BandaBase/pull/142).
-- El destino de inserción se calcula con la geometría visual de caracteres y chips inline. Durante el movimiento se muestra una guía vertical y un sombreado del ancho aproximado del audio; al soltar se reutiliza el mismo rango que se estaba previsualizando.
-- Se conserva el mismo nodo DOM del adjunto y el serializador sigue determinando el orden guardado.
-- CI del HEAD de PR `3cba0dc69ed26a561762609779eae37eeb2730d4` pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium: [Tests #41982813856](https://github.com/Teliu-p/BandaBase/actions/runs/41982813856). La regresión nueva ubica el audio entre dos caracteres concretos, valida la guía, el texto a ambos lados, la identidad del nodo y la limpieza del indicador.
-- Tras el merge, los workflows de main para Tests y GitHub Pages se iniciaron en `f902f0e8287fcb879ea1f582a3b85ade561c94ca`; su resultado final debe comprobarse antes de afirmar que la versión pública está desplegada.
+- PR #143 quedó integrada en `main` mediante squash merge, commit `e3830846b478004bb8d1611910cc58007ffeb785`: [PR #143](https://github.com/Teliu-p/BandaBase/pull/143).
+- La vista previa es un `span.material-audio-drop-placeholder` sombreado dentro del flujo editable. Su ancho incluye el tamaño del chip y las separaciones laterales; mientras se arrastra se mueve por el renglón y desplaza realmente el texto. Al cambiarlo de lugar, el texto recupera el espacio anterior.
+- El audio original se conserva separado durante el gesto. Al soltar, se coloca el mismo nodo DOM donde estaba el sombreado; ante `pointercancel`, se restaura el audio y los espacios originales en el punto de origen.
+- CI de la PR pasó `npm test`, ESLint/no-undef y los smoke tests de Chromium: [Tests #42072480690](https://github.com/Teliu-p/BandaBase/actions/runs/42072480690). Se verificaron selección múltiple, reordenamiento entre chips después de reacomodar el renglón de origen, desplazamiento progresivo del sombreado en el renglón destino, ubicación final entre caracteres, identidad del adjunto y restauración al cancelar.
+- Los workflows del merge en main también pasaron: [Tests #42072659164](https://github.com/Teliu-p/BandaBase/actions/runs/42072659164) y [GitHub Pages #42072657702](https://github.com/Teliu-p/BandaBase/actions/runs/42072657702).
 - No hay cambios de esquema, migraciones, RLS, Storage ni operaciones sobre datos de Supabase.
-
-## Seguimiento en curso — vista previa en flujo al arrastrar audios (2026-11-05)
-
-- Rama: `fix/material-audio-live-drag-preview-20261105`.
-- Reemplaza la guía flotante por movimiento provisional del mismo nodo de audio dentro del flujo de texto en cada Pointer Event. Su ancho real desplaza las letras durante el gesto.
-- Se guarda un marcador invisible en el origen con sus espacios originales; al soltar se elimina el marcador y al cancelar se restaura el chip y los espacios.
-- Las pruebas E2E cubren movimiento visible previo a soltar, desplazamiento del texto, identidad del nodo y rollback ante `pointercancel`.
-- Estado de CI, PR, merge y Pages: pendiente de verificación.
-- No hay cambios de Supabase ni operaciones sobre datos.
