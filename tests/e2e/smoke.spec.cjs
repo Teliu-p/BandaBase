@@ -127,7 +127,7 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   expect(await chips.evaluateAll(nodes => nodes.map(node => node.querySelector(".material-inline-attachment-label")?.textContent.trim())))
     .toEqual(["♫ 01-Bajo.flac", "♫ 02-Bateria.flac", "♫ 03-Teclas.flac"]);
   await expect(chips.nth(0)).toHaveAttribute("data-material-draggable-audio", "true");
-  await expect(chips.nth(0)).not.toHaveAttribute("draggable", "true");
+  await expect(chips.nth(0)).toHaveAttribute("draggable", "true");
 
   await page.evaluate(() => {
     const editor = document.getElementById("materialComposerEditor");
@@ -149,12 +149,14 @@ test("Materials accepts multiple files and audio chips can be reordered by dragg
   // into their real positions after the source chip leaves the original row.
   await page.mouse.move(destinationTextBox.x + 2, destinationTextBox.y + destinationTextBox.height / 2, { steps: 5 });
 
+  // The native drag source remains connected but is temporarily fixed
+  // outside the flow; skip it when measuring the two remaining chips.
   const secondBox = await page.locator(
     '#materialComposerEditor [data-material-draggable-audio="true"]'
-  ).nth(0).boundingBox();
+  ).nth(1).boundingBox();
   const thirdBox = await page.locator(
     '#materialComposerEditor [data-material-draggable-audio="true"]'
-  ).nth(1).boundingBox();
+  ).nth(2).boundingBox();
   const betweenChipsX = (secondBox.x + secondBox.width + thirdBox.x) / 2;
   await page.mouse.move(betweenChipsX, secondBox.y + secondBox.height / 2, { steps: 8 });
   await page.mouse.up();
