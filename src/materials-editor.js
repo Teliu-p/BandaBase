@@ -322,40 +322,10 @@ function isMaterialComposerDraggableAudio(attachment) {
 function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredAttachment = null) {
   if (!editor) return null;
 
-  // Ask the browser for the caret under the pointer first. Unlike the
-  // character-geometry approximation below, this keeps the exact horizontal
-  // offset on the selected visual line, including rich-text spans and wraps.
-  let nativeRange = null;
-  if (typeof document.caretPositionFromPoint === "function") {
-    const point = document.caretPositionFromPoint(clientX, clientY);
-    if (point && editor.contains(point.offsetNode) &&
-        !ignoredAttachment?.contains(point.offsetNode) &&
-        !point.offsetNode.parentElement?.closest?.(".material-inline-attachment")) {
-      nativeRange = document.createRange();
-      nativeRange.setStart(point.offsetNode, point.offset);
-      nativeRange.collapse(true);
-    }
-  }
-  if (!nativeRange && typeof document.caretRangeFromPoint === "function") {
-    const point = document.caretRangeFromPoint(clientX, clientY);
-    if (point && editor.contains(point.startContainer) &&
-        editor.contains(point.endContainer) &&
-        !ignoredAttachment?.contains(point.startContainer) &&
-        !point.startContainer.parentElement?.closest?.(".material-inline-attachment")) {
-      nativeRange = point.cloneRange();
-      nativeRange.collapse(true);
-    }
-  }
-  if (nativeRange) {
-    const caret = getMaterialRangeCaretPoint(nativeRange, editor, clientY);
-    return {
-      range: nativeRange,
-      x: caret?.x,
-      y: caret?.y,
-      height: caret?.height
-    };
-  }
-
+  // Determine the insertion point from the actual visible character/chip
+  // rectangles first. Native caret APIs can legally return a position inside
+  // the editor that is still far from the pointer (for example, the line
+  // start while the editor is being dragged with user-select disabled).
   const segments = [];
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
   let textNode;
@@ -385,7 +355,7 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
       charRange.setStart(textNode, index);
       charRange.setEnd(textNode, index + 1);
       const rect = charRange.getBoundingClientRect();
-      if (!rect?.height || rect.width < 0) continue;
+      if (!rect?.height || rect.width < 0 || !Number.isFinite(rect.left)) continue;
 
       segments.push({
         kind: "text",
@@ -402,7 +372,8 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
   }
 
   editor.querySelectorAll(".material-inline-attachment").forEach(node => {
-    if (node === ignoredAttachment) return;
+    if (node === ignoredAttachment ||
+        node.classList.contains("material-attachment-origin-placeholder")) return;
     const rect = node.getBoundingClientRect();
     if (!rect?.height || rect.width <= 0) return;
     segments.push({
@@ -418,7 +389,7 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
   });
 
   if (segments.length) {
-    const nearestSegment = segments.reduce((nearest, segment) => {
+    const nearestMatch = segments.reduce((nearest, segment) => {
       const distance = clientY < segment.top
         ? segment.top - clientY
         : clientY > segment.bottom
@@ -427,73 +398,107 @@ function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredA
       return !nearest || distance < nearest.distance
         ? { segment, distance }
         : nearest;
-    }, null).segment;
+    }, null);
 
-    const lineSegments = segments
-      .filter(segment =>
-        Math.abs(segment.centerY - nearestSegment.centerY) <=
-        Math.max(4, Math.min(segment.height, nearestSegment.height) * 0.55)
-      )
-      .sort((a, b) => a.left - b.left);
+    const nearestSegment = nearestMatch?.segment;
+    const lineIsUnderPointer = nearestSegment &&
+      nearestMatch.distance <= Math.max(10, nearestSegment.height * 0.8);
 
-    if (lineSegments.length) {
-      let destination = null;
-      let placeBefore = false;
+    if (lineIsUnderPointer) {
+      const lineSegments = segments
+        .filter(segment =>
+          Math.abs(segment.centerY - nearestSegment.centerY) <=
+          Math.max(4, Math.min(segment.height, nearestSegment.height) * 0.55)
+        )
+        .sort((a, b) => a.left - b.left);
 
-      for (const segment of lineSegments) {
-        const midpoint = segment.left + (segment.right - segment.left) / 2;
-        if (clientX <= midpoint) {
+      if (lineSegments.length) {
+        let destination = lineSegments[0];
+        let placeBefore = true;
+
+        for (const segment of lineSegments) {
+          const midpoint = segment.left + (segment.right - segment.left) / 2;
+          if (clientX <= midpoint) {
+            destination = segment;
+            placeBefore = true;
+            break;
+          }
           destination = segment;
-          placeBefore = true;
-          break;
+          placeBefore = false;
         }
-      }
 
-      if (!destination) {
-        destination = lineSegments[lineSegments.length - 1];
-      }
+        const range = document.createRange();
+        let caretX;
 
-      const range = document.createRange();
-      let caretX;
-
-      if (destination.kind === "attachment") {
-        if (placeBefore) {
-          range.setStartBefore(destination.node);
-          caretX = destination.left;
+        if (destination.kind === "attachment") {
+          if (placeBefore) {
+            range.setStartBefore(destination.node);
+            caretX = destination.left;
+          } else {
+            range.setStartAfter(destination.node);
+            caretX = destination.right;
+          }
         } else {
-          range.setStartAfter(destination.node);
-          caretX = destination.right;
+          range.setStart(
+            destination.node,
+            destination.index + (placeBefore ? 0 : 1)
+          );
+          // Use the measured edge of the selected character, not the bounding
+          // box of a collapsed Range (which can report the inline's left edge).
+          caretX = placeBefore ? destination.left : destination.right;
         }
-      } else {
-        range.setStart(
-          destination.node,
-          destination.index + (placeBefore ? 0 : 1)
-        );
-        const caret = getMaterialRangeCaretPoint(
-          range,
-          editor,
-          destination.centerY
-        );
-        caretX = Number.isFinite(caret?.x)
-          ? caret.x
-          : (placeBefore ? destination.left : destination.right);
-      }
 
-      range.collapse(true);
-      return {
-        range,
-        x: caretX,
-        y: destination.centerY,
-        height: destination.height
-      };
+        range.collapse(true);
+        return {
+          range,
+          x: caretX,
+          y: destination.centerY,
+          height: destination.height
+        };
+      }
     }
   }
 
-  // If the browser did not produce a valid text caret, keep the geometry
-  // fallback above as the only alternative; never insert into a non-editable chip.
+  // Empty lines have no character rectangles. Only in that case, ask the
+  // browser for a native caret, and reject positions inside non-editable chips.
+  const isInsideAttachment = node => {
+    const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    return Boolean(element?.closest?.(".material-inline-attachment"));
+  };
+
+  let nativeRange = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(clientX, clientY);
+    if (point && editor.contains(point.offsetNode) &&
+        !ignoredAttachment?.contains(point.offsetNode) &&
+        !isInsideAttachment(point.offsetNode)) {
+      nativeRange = document.createRange();
+      nativeRange.setStart(point.offsetNode, point.offset);
+      nativeRange.collapse(true);
+    }
+  }
+  if (!nativeRange && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(clientX, clientY);
+    if (point && editor.contains(point.startContainer) &&
+        editor.contains(point.endContainer) &&
+        !ignoredAttachment?.contains(point.startContainer) &&
+        !isInsideAttachment(point.startContainer)) {
+      nativeRange = point.cloneRange();
+      nativeRange.collapse(true);
+    }
+  }
+  if (nativeRange) {
+    const caret = getMaterialRangeCaretPoint(nativeRange, editor, clientY);
+    return {
+      range: nativeRange,
+      x: caret?.x,
+      y: caret?.y,
+      height: caret?.height
+    };
+  }
+
   return null;
 }
-
 
 function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor, ignoredAttachment = null) {
   return getMaterialComposerDropTargetAtPoint(
@@ -603,17 +608,36 @@ function beginMaterialComposerAttachmentLivePreview(attachment, state, editor) {
   editorRange.selectNodeContents(editor);
   editorRange.collapse(true);
   const spaceWidth = getMaterialSpaceWidth(editorRange, editor);
-
-  const sourceMarker = document.createElement("span");
-  sourceMarker.className = "material-attachment-origin-placeholder";
-  sourceMarker.contentEditable = "false";
-  sourceMarker.style.display = "none";
-  attachment.replaceWith(sourceMarker);
-
   const removablePrevious = previousSpacer?.nodeType === Node.TEXT_NODE &&
     previousSpacer.nodeValue === " " ? previousSpacer : null;
   const removableNext = nextSpacer?.nodeType === Node.TEXT_NODE &&
     nextSpacer.nodeValue === " " ? nextSpacer : null;
+  const removedSpacerCount = Number(Boolean(removablePrevious)) +
+    Number(Boolean(removableNext));
+
+  // Keep a hidden visual clone in the source flow while dragging. A
+  // display:none marker collapses the original line, moving all following
+  // text vertically under a stationary pointer and making clientY target a
+  // different line. Cloning the chip also preserves its exact inline baseline.
+  const sourceMarker = attachment.cloneNode(true);
+  sourceMarker.classList.remove("is-dragging");
+  sourceMarker.classList.add("material-attachment-origin-placeholder");
+  sourceMarker.querySelectorAll(".inline-remove").forEach(button => button.remove());
+  sourceMarker.removeAttribute("data-attachment-id");
+  sourceMarker.removeAttribute("data-pending-key");
+  sourceMarker.removeAttribute("data-material-draggable-attachment");
+  sourceMarker.removeAttribute("data-material-draggable-audio");
+  sourceMarker.setAttribute("aria-hidden", "true");
+  sourceMarker.setAttribute("contenteditable", "false");
+  Object.assign(sourceMarker.style, {
+    visibility: "hidden",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+    width: String(attachmentRect.width + (spaceWidth * removedSpacerCount) + 2) + "px",
+    margin: "0"
+  });
+  attachment.replaceWith(sourceMarker);
+
   removablePrevious?.remove();
   removableNext?.remove();
 

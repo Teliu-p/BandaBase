@@ -295,3 +295,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 
 
 - Validación automatizada final: la prueba de audio coloca el placeholder a no más de 2 px del caret elegido y verifica el texto exacto a ambos lados tras soltar; también se repite para un PDF no-audio. No se modificó Supabase, Storage, RLS, datos, migraciones ni el servidor Python. Falta únicamente la confirmación manual del usuario en la web ya publicada.
+
+
+## Corrección del destino y estabilidad del renglón al arrastrar (2026-11-05, PR #146 abierta)
+
+- El usuario confirmó que PR #145 no resolvía el caso real: el audio y el sombreado seguían yéndose al extremo izquierdo del renglón aunque el puntero estuviera más a la derecha.
+- Se encontraron dos fallos complementarios. Primero, `getMaterialComposerDropTargetAtPoint` aceptaba cualquier caret nativo dentro del editor aunque no coincidiera horizontalmente con el puntero. Segundo, al comenzar el gesto, el chip original se reemplazaba por un marcador `display:none`: el renglón de origen colapsaba y el contenido siguiente cambiaba de posición vertical mientras el puntero seguía en las coordenadas originales.
+- PR #146, rama `fix/material-drag-drop-geometric-hit-test-20261105`, corrige ambos: hit-testing geométrico primero con rectángulos reales de caracteres/chips; caret nativo solo como respaldo en zonas sin texto visible; y clon oculto del chip original que conserva su tamaño/huella inline durante el gesto. El clon de origen se excluye del hit-testing y la anchura reservada incluye solo los espacios literales que efectivamente se retiran.
+- La regresión Chromium fuerza las APIs nativas a devolver falsamente el inicio del texto, usa contenido enriquecido con ajuste de línea, exige que el renglón de origen conserve su altura, comprueba la separación exacta de los caracteres antes/después y conserva la identidad DOM del audio. En el test, la altura del renglón quedó en 25,59375 px antes y durante el arrastre, y el placeholder quedó a 0,016 px del caret medido.
+- CI de PR [#42092923727](https://github.com/Teliu-p/BandaBase/actions/runs/42092923727) pasó: 18 smoke tests de Chromium, incluidos los casos de archivos/audio, más pruebas existentes, sintaxis y ESLint/no-undef.
+- Estado: PR #146 abierta, todavía no fusionada ni publicada. Pages queda pendiente de merge/deploy y la confirmación manual del usuario en su navegador todavía es necesaria. No se modificó Supabase, Storage, RLS, datos, migraciones ni servidor Python.
