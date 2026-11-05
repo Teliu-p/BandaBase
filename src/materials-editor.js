@@ -622,16 +622,8 @@ function moveMaterialComposerAudioPreviewToPoint(clientX, clientY, editor, state
   if (!placeholder || !editor) return false;
 
   if (placeholder.isConnected) {
-    const rect = placeholder.getBoundingClientRect();
-    if (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    ) {
-      return false;
-    }
-
+    // Do not freeze when the pointer enters the preview itself. Keep moving
+    // the shaded inline slot toward the pointer on every movement event.
     const restoreRange = document.createRange();
     restoreRange.setStartBefore(placeholder);
     restoreRange.collapse(true);
