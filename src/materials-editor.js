@@ -319,7 +319,144 @@ function isMaterialComposerDraggableAudio(attachment) {
 }
 
 
-function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor) {
+function getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, ignoredAttachment = null) {
+  if (!editor) return null;
+
+  const segments = [];
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let textNode;
+
+  while ((textNode = walker.nextNode())) {
+    if (ignoredAttachment?.contains(textNode) ||
+        textNode.parentElement?.closest?.(".material-inline-attachment") ||
+        textNode.parentElement?.closest?.(".material-audio-drop-indicator")) {
+      continue;
+    }
+
+    if (
+      ignoredAttachment &&
+      textNode.nodeType === Node.TEXT_NODE &&
+      textNode.nodeValue === " " &&
+      (textNode === ignoredAttachment.previousSibling ||
+       textNode === ignoredAttachment.nextSibling)
+    ) {
+      continue;
+    }
+
+    const value = textNode.nodeValue || "";
+    for (let index = 0; index < value.length; index++) {
+      if (value[index] === "\n" || value[index] === "\r") continue;
+
+      const charRange = document.createRange();
+      charRange.setStart(textNode, index);
+      charRange.setEnd(textNode, index + 1);
+      const rect = charRange.getBoundingClientRect();
+      if (!rect?.height || rect.width < 0) continue;
+
+      segments.push({
+        kind: "text",
+        node: textNode,
+        index,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        centerY: rect.top + rect.height / 2,
+        height: rect.height
+      });
+    }
+  }
+
+  editor.querySelectorAll(".material-inline-attachment").forEach(node => {
+    if (node === ignoredAttachment) return;
+    const rect = node.getBoundingClientRect();
+    if (!rect?.height || rect.width <= 0) return;
+    segments.push({
+      kind: "attachment",
+      node,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      centerY: rect.top + rect.height / 2,
+      height: rect.height
+    });
+  });
+
+  if (segments.length) {
+    const nearestSegment = segments.reduce((nearest, segment) => {
+      const distance = clientY < segment.top
+        ? segment.top - clientY
+        : clientY > segment.bottom
+          ? clientY - segment.bottom
+          : 0;
+      return !nearest || distance < nearest.distance
+        ? { segment, distance }
+        : nearest;
+    }, null).segment;
+
+    const lineSegments = segments
+      .filter(segment =>
+        Math.abs(segment.centerY - nearestSegment.centerY) <=
+        Math.max(4, Math.min(segment.height, nearestSegment.height) * 0.55)
+      )
+      .sort((a, b) => a.left - b.left);
+
+    if (lineSegments.length) {
+      let destination = null;
+      let placeBefore = false;
+
+      for (const segment of lineSegments) {
+        const midpoint = segment.left + (segment.right - segment.left) / 2;
+        if (clientX <= midpoint) {
+          destination = segment;
+          placeBefore = true;
+          break;
+        }
+      }
+
+      if (!destination) {
+        destination = lineSegments[lineSegments.length - 1];
+      }
+
+      const range = document.createRange();
+      let caretX;
+
+      if (destination.kind === "attachment") {
+        if (placeBefore) {
+          range.setStartBefore(destination.node);
+          caretX = destination.left;
+        } else {
+          range.setStartAfter(destination.node);
+          caretX = destination.right;
+        }
+      } else {
+        range.setStart(
+          destination.node,
+          destination.index + (placeBefore ? 0 : 1)
+        );
+        const caret = getMaterialRangeCaretPoint(
+          range,
+          editor,
+          destination.centerY
+        );
+        caretX = Number.isFinite(caret?.x)
+          ? caret.x
+          : (placeBefore ? destination.left : destination.right);
+      }
+
+      range.collapse(true);
+      return {
+        range,
+        x: caretX,
+        y: destination.centerY,
+        height: destination.height
+      };
+    }
+  }
+
+  // En renglones vacíos o zonas sin glifos, conservar el posicionamiento nativo
+  // del navegador como alternativa.
   let range = null;
   if (typeof document.caretPositionFromPoint === "function") {
     const point = document.caretPositionFromPoint(clientX, clientY);
@@ -336,43 +473,43 @@ function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor) {
       range.collapse(true);
     }
   }
-  return range;
+  if (!range) return null;
+
+  const caret = getMaterialRangeCaretPoint(range, editor, clientY);
+  return {
+    range,
+    x: caret?.x,
+    y: caret?.y,
+    height: caret?.height
+  };
 }
 
 
-function moveMaterialComposerAudioAttachmentToPoint(attachment, clientX, clientY, editor) {
+function getMaterialComposerDropRangeAtPoint(clientX, clientY, editor, ignoredAttachment = null) {
+  return getMaterialComposerDropTargetAtPoint(
+    clientX,
+    clientY,
+    editor,
+    ignoredAttachment
+  )?.range || null;
+}
+
+
+function moveMaterialComposerAudioAttachmentToPoint(
+  attachment,
+  clientX,
+  clientY,
+  editor,
+  knownDropTarget = null
+) {
   if (!attachment || !editor || !editor.contains(attachment) || !attachment.isConnected) {
     return false;
   }
 
-  const hit = document.elementFromPoint(clientX, clientY);
-  const targetAttachment = hit?.closest?.(".material-inline-attachment");
-  if (targetAttachment === attachment) return false;
-
-  let range = document.createRange();
-  if (targetAttachment && editor.contains(targetAttachment)) {
-    const rect = targetAttachment.getBoundingClientRect();
-    const placeAfter = clientX >= rect.left + rect.width / 2;
-    if (placeAfter) range.setStartAfter(targetAttachment);
-    else range.setStartBefore(targetAttachment);
-  } else {
-    range = getMaterialComposerDropRangeAtPoint(clientX, clientY, editor);
-    if (!range) return false;
-
-    const container = range.startContainer.nodeType === Node.ELEMENT_NODE
-      ? range.startContainer
-      : range.startContainer.parentElement;
-    const containingAttachment = container?.closest?.(".material-inline-attachment");
-    if (containingAttachment === attachment) return false;
-
-    if (containingAttachment && editor.contains(containingAttachment)) {
-      const rect = containingAttachment.getBoundingClientRect();
-      const placeAfter = clientX >= rect.left + rect.width / 2;
-      range = document.createRange();
-      if (placeAfter) range.setStartAfter(containingAttachment);
-      else range.setStartBefore(containingAttachment);
-    }
-  }
+  const dropTarget = knownDropTarget ||
+    getMaterialComposerDropTargetAtPoint(clientX, clientY, editor, attachment);
+  const range = dropTarget?.range;
+  if (!range || !editor.contains(range.startContainer)) return false;
 
   // Do not detach any nodes until a valid destination has been found.
   const destinationNode = range.startContainer;
@@ -415,10 +552,42 @@ function moveMaterialComposerAudioAttachmentToPoint(attachment, clientX, clientY
 }
 
 
+function showMaterialComposerAudioDropIndicator(dropTarget, attachment, state) {
+  if (!dropTarget || !Number.isFinite(dropTarget.x) || !Number.isFinite(dropTarget.y)) {
+    state?.dropIndicator?.remove();
+    if (state) state.dropIndicator = null;
+    return;
+  }
+
+  let indicator = state.dropIndicator;
+  if (!indicator || !indicator.isConnected) {
+    indicator = document.createElement("span");
+    indicator.className = "material-audio-drop-indicator";
+    indicator.setAttribute("aria-hidden", "true");
+    document.body.appendChild(indicator);
+    state.dropIndicator = indicator;
+  }
+
+  const attachmentRect = attachment.getBoundingClientRect();
+  const height = Math.max(14, dropTarget.height || attachmentRect.height || 20);
+  const width = Math.max(36, Math.min(attachmentRect.width || 96, 240));
+  indicator.style.left = String(dropTarget.x) + "px";
+  indicator.style.top = String(dropTarget.y) + "px";
+  indicator.style.height = String(height) + "px";
+  indicator.style.setProperty("--material-audio-drop-preview-width", String(width) + "px");
+}
+
+
+function clearMaterialComposerAudioDropIndicator(state = materialAudioPointerDragState) {
+  state?.dropIndicator?.remove();
+  if (state) state.dropIndicator = null;
+}
+
 function clearMaterialComposerAudioDragState(editor) {
   editor?.querySelectorAll?.(".material-inline-attachment.is-drop-target")
     .forEach(node => node.classList.remove("is-drop-target"));
   materialDraggedAudioAttachment?.classList?.remove("is-dragging");
+  clearMaterialComposerAudioDropIndicator();
   materialDraggedAudioAttachment = null;
 }
 
@@ -2835,7 +3004,9 @@ materialComposerEditor.addEventListener("pointerdown", event => {
     pointerId: event.pointerId,
     startX: event.clientX,
     startY: event.clientY,
-    dragging: false
+    dragging: false,
+    dropTarget: null,
+    dropIndicator: null
   };
 });
 
@@ -2856,15 +3027,18 @@ document.addEventListener("pointermove", event => {
   }
 
   event.preventDefault();
-  materialComposerEditor.querySelectorAll(".material-inline-attachment.is-drop-target")
-    .forEach(node => node.classList.remove("is-drop-target"));
-
-  const target = document.elementFromPoint(event.clientX, event.clientY)
-    ?.closest?.(".material-inline-attachment");
-  if (target && target !== materialDraggedAudioAttachment &&
-      materialComposerEditor.contains(target)) {
-    target.classList.add("is-drop-target");
-  }
+  const dropTarget = getMaterialComposerDropTargetAtPoint(
+    event.clientX,
+    event.clientY,
+    materialComposerEditor,
+    materialDraggedAudioAttachment
+  );
+  state.dropTarget = dropTarget;
+  showMaterialComposerAudioDropIndicator(
+    dropTarget,
+    materialDraggedAudioAttachment,
+    state
+  );
 }, true);
 
 document.addEventListener("pointerup", event => {
@@ -2876,12 +3050,16 @@ document.addEventListener("pointerup", event => {
   if (state.dragging && dragged) {
     event.preventDefault();
     moved = moveMaterialComposerAudioAttachmentToPoint(
-      dragged, event.clientX, event.clientY, materialComposerEditor
+      dragged,
+      event.clientX,
+      event.clientY,
+      materialComposerEditor,
+      state.dropTarget
     );
   }
 
-  materialAudioPointerDragState = null;
   clearMaterialComposerAudioDragState(materialComposerEditor);
+  materialAudioPointerDragState = null;
   materialComposerEditor.classList.remove("is-moving-material-audio");
   if (moved) rememberMaterialSelection();
 }, true);
@@ -2890,8 +3068,8 @@ document.addEventListener("pointercancel", event => {
   if (!materialAudioPointerDragState ||
       event.pointerId !== materialAudioPointerDragState.pointerId) return;
 
-  materialAudioPointerDragState = null;
   clearMaterialComposerAudioDragState(materialComposerEditor);
+  materialAudioPointerDragState = null;
   materialComposerEditor.classList.remove("is-moving-material-audio");
 }, true);
 
