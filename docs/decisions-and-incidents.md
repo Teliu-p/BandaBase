@@ -250,9 +250,12 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - No requiere cambios de esquema, migraciones, RLS, Storage ni escrituras a Supabase.
 
 
-### 2026-11-05 — generalizar el arrastre de adjuntos y mostrar el objeto bajo el puntero (seguimiento de PR #144)
+### 2026-11-05 — generalizar el arrastre de adjuntos y mostrar el objeto bajo el puntero (PR #144 integrada)
 
 - Corrección de alcance aclarada por el usuario: el gesto debe servir para cualquier archivo de Materiales, no solo audio. No pidió simular teclas Espacio/Backspace; esas teclas solo describían el reacomodo visual del contenido al mover el adjunto.
 - Durante el gesto, una copia visual del chip acompaña al puntero y el sombreado inline muestra la posición real de inserción. El hit-testing se hace sin el placeholder anterior para que la posición insertada no contamine la medición del siguiente movimiento.
 - El commit final conserva y reposiciona el nodo DOM original. Los archivos no-audio también entran en el mismo flujo; enlaces web quedan excluidos. Cancelar o soltar fuera del editor restaura el origen.
 - Se añade cobertura Chromium para un PDF no-audio y seguimiento del puntero, además de las regresiones de audio/orden/cancelación. No se modifican Supabase, Storage, RLS, datos, migraciones ni el servidor Python.
+
+
+- Resultado final: PR #144 fusionada como `858271ba90576ba3211305c17f06ec7285eeb29d`. CI de PR [#42085812268](https://github.com/Teliu-p/BandaBase/actions/runs/42085812268), Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. La implementación está publicada; la verificación manual en la sesión del usuario queda pendiente.
