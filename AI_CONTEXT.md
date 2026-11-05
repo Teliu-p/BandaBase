@@ -144,3 +144,12 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - Tests Python aislados pasaron compile, 403 sin sesión, upload 201, ticket 200, GET 200, Range 206, overwrite rechazado 400 y delete 200; Supabase se simuló en esa prueba. Las regresiones JS y el CI de la rama todavía deben verificarse.
 - Supabase en vivo: `material_attachments.storage_path` es text; RLS permite select a miembros y escritura al creador/admin; `is_band_admin(uuid)` se encuentra disponible para authenticated. No se aplicaron migraciones ni se tocaron datos/RLS/Storage al preparar el cambio.
 - Los objetos antiguos de audio en Storage no se migran ni borran. Los audios antiguos que no estén ya en la biblioteca/manifest dejan de reproducirse en Materiales hasta re-adjuntarlos localmente. No borrar objetos cloud en bloque.
+
+
+## Verificación final: audio de Materiales local-only (2026-11-05)
+
+- PR #140 se fusionó en \`main\` como \`55ebb0ebc141f32c7276820617c74567d922650e\`. Tests [#41960155461](https://github.com/Teliu-p/BandaBase/actions/runs/41960155461) y Pages [#41960155134](https://github.com/Teliu-p/BandaBase/actions/runs/41960155134) pasaron en ese SHA.
+- Estado definitivo: los audios de Materiales se guardan y reproducen exclusivamente desde la biblioteca local; no hay fallback a Supabase Storage ni ante host apagado. Archivos no-audio de Materiales y adjuntos de Comentarios/Propuestas mantienen Storage. No se migran ni eliminan objetos antiguos de Storage.
+- Servidor local v0.3 actualizado: \`POST /api/upload/<attachment_id>\` y \`POST /api/delete/<attachment_id>\`, JWT/RLS y comprobación creador/admin para upload, escritura por streaming a temporal local, no sobrescritura de claves, serialización por ID y eliminación local. Archivo entregado en esta conversación como \`bandabase_audio_server.py\`; aún debe instalarse manualmente en \`C:\\BandaBaseAudio\\bandabase_audio_server.py\`.
+- Validaciones: py_compile y prueba HTTP aislada con Supabase simulado: no-session 403, upload 201, ticket 200, Range 206, no-sobrescritura 400 y delete 200. CI de la rama y CI/Pages de main pasaron. La verificación autenticada final contra el proyecto real queda para cuando el usuario instale el .py y guarde un audio de prueba desde el host.
+- Supabase: no hubo cambios de esquema, migraciones, RLS ni datos. \`material_attachments.storage_path\` ya era text y acepta claves \`local:\`. No es necesario usar otra computadora para validar el objetivo solicitado.
