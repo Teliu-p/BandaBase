@@ -348,7 +348,7 @@ test("dragging any Material file follows the pointer and previews its exact inli
   expect(runtimeErrors, "JavaScript errors while dragging and committing a non-audio Material file").toEqual([]);
 });
 
-test("dragging a Material audio drops at the caret under the pointer instead of the line start", async ({ page }) => {
+test("dragging a Material audio follows the pointer even when the native caret reports the line start", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -363,6 +363,10 @@ test("dragging a Material audio drops at the caret under the pointer instead of 
     }
 
     const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "360px";
+    editor.style.maxWidth = "360px";
+    editor.style.boxSizing = "border-box";
+
     const audio = createMaterialInlineAttachment({
       id: "pointer-drop-audio",
       kind: "file",
@@ -370,23 +374,64 @@ test("dragging a Material audio drops at the caret under the pointer instead of 
       mime_type: "audio/flac",
       storage_path: "local:pointer-drop"
     });
-    const text = document.createElement("span");
-    text.id = "pointer-drop-text";
-    text.textContent = "0123456789ABCDEFGHIJ";
-    editor.replaceChildren(audio, document.createElement("br"), text);
+    const sourceLine = document.createElement("div");
+    sourceLine.appendChild(audio);
+
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "pointer-drop-line";
+    const prefix = document.createTextNode("Texto previo al adjunto con formato: ");
+    const strong = document.createElement("strong");
+    strong.id = "pointer-drop-rich-text";
+    strong.textContent = "0123456789ABCDEFGHIJKLMN";
+    const suffix = document.createElement("em");
+    suffix.textContent = " y texto posterior para verificar el contenido enriquecido.";
+    destinationLine.append(prefix, strong, suffix);
+
+    editor.replaceChildren(sourceLine, destinationLine);
     window.__pointerDropAudio = audio;
+    window.__pointerDropPrefix = prefix;
+    window.__pointerDropRichText = strong.firstChild;
+    window.__pointerDropLine = destinationLine;
     editor.focus();
+
+    // Reproduce el fallo que no detectaba el test anterior: el navegador
+    // responde con un caret válido dentro del editor, pero al inicio del texto,
+    // aunque el puntero esté mucho más a la derecha.
+    const wrongCaret = document.createRange();
+    wrongCaret.setStart(prefix, 0);
+    wrongCaret.collapse(true);
+    Object.defineProperty(document, "caretPositionFromPoint", {
+      configurable: true,
+      value: () => ({ offsetNode: prefix, offset: 0 })
+    });
+    Object.defineProperty(document, "caretRangeFromPoint", {
+      configurable: true,
+      value: () => wrongCaret.cloneRange()
+    });
   });
 
   const target = await page.evaluate(() => {
-    const text = document.getElementById("pointer-drop-text").firstChild;
+    const text = window.__pointerDropRichText;
     const range = document.createRange();
     range.setStart(text, 13);
     range.setEnd(text, 14);
     const rect = range.getBoundingClientRect();
+    const firstChar = document.createRange();
+    firstChar.setStart(window.__pointerDropPrefix, 0);
+    firstChar.setEnd(window.__pointerDropPrefix, 1);
+    const firstRect = firstChar.getBoundingClientRect();
     window.__pointerDropExpectedX = rect.right;
-    return { x: rect.right, y: rect.top + rect.height / 2 };
+    return {
+      x: rect.right,
+      y: rect.top + rect.height / 2,
+      targetY: rect.top,
+      firstY: firstRect.top,
+      firstLineX: firstRect.left
+    };
   });
+  expect(target.targetY).toBeGreaterThan(target.firstY + 5);
+  const editorBox = await page.locator("#materialComposerEditor").boundingBox();
+  expect(target.x).toBeGreaterThan(editorBox.x + 20);
   const source = await page.locator(
     "#materialComposerEditor [data-material-draggable-audio='true']"
   ).boundingBox();
@@ -410,24 +455,24 @@ test("dragging a Material audio drops at the caret under the pointer instead of 
   await page.mouse.up();
 
   const committed = await page.evaluate(() => {
-    const editor = document.getElementById("materialComposerEditor");
+    const line = window.__pointerDropLine;
     const audio = window.__pointerDropAudio;
     const before = document.createRange();
-    before.setStart(editor, 0);
+    before.setStart(line, 0);
     before.setEndBefore(audio);
     const after = document.createRange();
     after.setStartAfter(audio);
-    after.setEnd(editor, editor.childNodes.length);
+    after.setEnd(line, line.childNodes.length);
     return {
-      sameNode: editor.querySelector("[data-material-draggable-audio='true']") === audio,
+      sameNode: line.querySelector("[data-material-draggable-audio='true']") === audio,
       before: before.toString().trim(),
       after: after.toString().trim()
     };
   });
   expect(committed.sameNode).toBe(true);
-  expect(committed.before).toBe("0123456789ABCD");
-  expect(committed.after).toBe("EFGHIJ");
-  expect(runtimeErrors, "JavaScript errors while dropping audio at the pointer caret").toEqual([]);
+  expect(committed.before).toBe("Texto previo al adjunto con formato: 0123456789ABCD");
+  expect(committed.after).toBe("EFGHIJKLMN y texto posterior para verificar el contenido enriquecido.");
+  expect(runtimeErrors, "JavaScript errors while dropping audio at the measured pointer position").toEqual([]);
 });
 
 test("cancelling a live Material audio drag restores the original inline position", async ({ page }) => {
