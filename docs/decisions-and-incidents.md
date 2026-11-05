@@ -200,3 +200,12 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Inspección: el resolver ya hacía fallback ante TypeError/AbortError y HTTP 409; una respuesta 5xx de Funnel (o del servidor local) entraba en el bloque de error y detenía la solicitud antes de firmar la URL de Storage.
 - Cambio propuesto en `fix/audio-storage-fallback-server-errors-20261104`: HTTP 500–599 se considera indisponibilidad de la ruta local y permite continuar a Supabase Storage. Se preservan los rechazos 4xx, especialmente 403, como errores visibles; no se relaja la autorización de los tickets locales.
 - Pruebas agregadas para 500, 502, 503 y 504. Pendiente CI y una comprobación manual desde otra PC con el host apagado. No hubo cambios en Supabase ni el servidor Python.
+
+
+### 2026-11-04 — cierre de fallback y revisión estática de Funnel
+
+- PR #138 se fusionó en `main` como `28cbe3141ea6924d7c2562b65c33f6edd7325d5e`. Tests de la PR [#41901884137](https://github.com/Teliu-p/BandaBase/actions/runs/41901884137), Tests de main [#41955423709](https://github.com/Teliu-p/BandaBase/actions/runs/41955423709) y Pages [#41955423316](https://github.com/Teliu-p/BandaBase/actions/runs/41955423316) pasaron. El cliente continúa a Supabase Storage ante HTTP 5xx y preserva 4xx explícitos.
+- Se revisó estáticamente la copia compartida de `bandabase_audio_server.py`: el servidor enlaza a `127.0.0.1`; solo atiende `/health`, `/api/ticket` y `/api/media/<ticket>`; rutas restantes devuelven 404. El ticket se genera después de consultar la fila usando el JWT del usuario, y la URL de medios requiere HMAC válido/expiración. Las claves de archivo se validan con patrón acotado y el destino se resuelve dentro de `LIBRARY_DIR`; no se encontró una ruta de listado ni de lectura arbitraria del sistema de archivos.
+- Los registros del usuario muestran probes de `/.env`, `/.aws/credentials`, `/` y variantes con 404. Eso no aporta evidencia de acceso a esos archivos. El logger reemplaza el ticket por `[ticket]` para no escribirlo en consola.
+- Limitaciones de la revisión: la copia compartida no se comparó por hash con el archivo real de Windows, no se inspeccionaron ACL NTFS, no hay rate limiting y el TTL del ticket es de 60 minutos. No se alteró el servidor local en este cambio.
+- Sigue pendiente la prueba manual desde una segunda PC: reproducción con host encendido/Funnel activo y fallback a Storage con host apagado. El incidente original no capturó el status HTTP, así que 5xx sigue siendo una hipótesis explicativa, no un hecho observado.
