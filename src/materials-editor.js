@@ -611,7 +611,25 @@ function beginMaterialComposerAttachmentLivePreview(attachment, state, editor) {
   const sourceMarker = document.createElement("span");
   sourceMarker.className = "material-attachment-origin-placeholder";
   sourceMarker.contentEditable = "false";
-  sourceMarker.style.display = "none";
+  sourceMarker.setAttribute("aria-hidden", "true");
+  // Keep the original inline footprint while dragging. Hiding this marker
+  // with display:none collapses its line; the text below jumps vertically
+  // under a stationary pointer, so the same clientY hits a different line.
+  // The adjacent literal spaces are removed below, so reserve their width here.
+  Object.assign(sourceMarker.style, {
+    display: "inline-block",
+    visibility: "hidden",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+    width: String(attachmentRect.width + (spaceWidth * 2) + 2) + "px",
+    height: String(attachmentRect.height) + "px",
+    margin: "0",
+    padding: "0",
+    border: "0",
+    verticalAlign: "baseline",
+    lineHeight: "inherit",
+    whiteSpace: "pre"
+  });
   attachment.replaceWith(sourceMarker);
 
   const removablePrevious = previousSpacer?.nodeType === Node.TEXT_NODE &&
