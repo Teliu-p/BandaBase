@@ -248,3 +248,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - El audio original se conserva separado mientras dura el gesto. Al soltar reemplaza el placeholder en su posición actual, y ante `pointercancel` vuelve junto con los espacios originales al marcador de origen.
 - PR #143 integrada en `main` como `e3830846b478004bb8d1611910cc58007ffeb785`. CI de PR pasó 17 smoke tests en Chromium junto con `npm test` y ESLint/no-undef: [Tests #42072480690](https://github.com/Teliu-p/BandaBase/actions/runs/42072480690). CI de main y despliegue Pages pasaron: [Tests #42072659164](https://github.com/Teliu-p/BandaBase/actions/runs/42072659164), [Pages #42072657702](https://github.com/Teliu-p/BandaBase/actions/runs/42072657702).
 - No requiere cambios de esquema, migraciones, RLS, Storage ni escrituras a Supabase.
+
+
+### 2026-11-05 — generalizar el arrastre de adjuntos y mostrar el objeto bajo el puntero (seguimiento de PR #144)
+
+- Corrección de alcance aclarada por el usuario: el gesto debe servir para cualquier archivo de Materiales, no solo audio. No pidió simular teclas Espacio/Backspace; esas teclas solo describían el reacomodo visual del contenido al mover el adjunto.
+- Durante el gesto, una copia visual del chip acompaña al puntero y el sombreado inline muestra la posición real de inserción. El hit-testing se hace sin el placeholder anterior para que la posición insertada no contamine la medición del siguiente movimiento.
+- El commit final conserva y reposiciona el nodo DOM original. Los archivos no-audio también entran en el mismo flujo; enlaces web quedan excluidos. Cancelar o soltar fuera del editor restaura el origen.
+- Se añade cobertura Chromium para un PDF no-audio y seguimiento del puntero, además de las regresiones de audio/orden/cancelación. No se modifican Supabase, Storage, RLS, datos, migraciones ni el servidor Python.
