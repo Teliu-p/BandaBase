@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última actualización:** 2026-11-05, Argentina.  
-**HEAD actual de main:** `2d0af16f527fc29d4b840ff9a2f2d884b8af55fb` (PR #147 fusionada). Tests [#42098668867](https://github.com/Teliu-p/BandaBase/actions/runs/42098668867) y Pages [#42098667320](https://github.com/Teliu-p/BandaBase/actions/runs/42098667320) pasaron. El arrastre de adjuntos requiere validación manual del usuario; PR #148 está abierta y su ejecución de Tests observada falló: [#42101112706](https://github.com/Teliu-p/BandaBase/actions/runs/42101112706).  
+**Último HEAD funcional inspeccionado:** `2d0af16f527fc29d4b840ff9a2f2d884b8af55fb` (PR #147 fusionada). Después se agregaron commits exclusivamente documentales; verificar el HEAD actual antes de trabajar. Tests [#42098668867](https://github.com/Teliu-p/BandaBase/actions/runs/42098668867) y Pages [#42098667320](https://github.com/Teliu-p/BandaBase/actions/runs/42098667320) pasaron. El arrastre de adjuntos requiere validación manual del usuario; PR #148 está abierta y su ejecución de Tests observada falló: [#42101112706](https://github.com/Teliu-p/BandaBase/actions/runs/42101112706).  
 **Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
 **Auditoría integral vigente:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md). La auditoría fue de solo lectura; no se tocaron datos, esquema, permisos ni lógica funcional.
 
