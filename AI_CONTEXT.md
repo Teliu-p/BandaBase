@@ -1,6 +1,6 @@
 # BandaBase — punto de entrada para asistentes de IA
 
-**Última inspección:** 2026-11-03 (zona horaria de Argentina)  
+**Última inspección:** 2026-11-04 (zona horaria de Argentina)  
 **Rama de referencia:** main  
 **Trabajo funcional reciente:** PR #135 incorporó pegado enriquecido seguro, comparación compartida y reproducción agrupada. PR #136 integró el acceso local a adjuntos de audio con fallback a Supabase Storage. PR #137 configuró el hostname HTTPS de Tailscale Funnel y se fusionó en `main` como `678c218ac591f25d022d760280249158cfddefd8`. Tests [#41723820635](https://github.com/Teliu-p/BandaBase/actions/runs/41723820635) y Pages [#41723820206](https://github.com/Teliu-p/BandaBase/actions/runs/41723820206) pasaron. El usuario confirmó reproducción desde el reproductor habitual de Materiales en el host; el acceso autenticado desde una segunda PC sigue pendiente. Verificar siempre HEAD, PR, CI y Pages antes de asumir el estado actual.
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
@@ -125,3 +125,10 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - HEAD funcional de main: `678c218ac591f25d022d760280249158cfddefd8` (PR #137). Tests y despliegue de Pages pasaron en los workflows enlazados arriba.
 - El archivo público `src/audio-server-config.js` contiene solo el hostname HTTPS, no secretos. La autorización sigue en el JWT de Supabase y RLS del servidor local.
 - Próxima verificación: desde una segunda computadora, iniciar sesión en BandaBase y reproducir el FLAC de la biblioteca mientras el host Windows permanece despierto con el servidor Python y Funnel activos.
+
+## Actualización de contexto (2026-11-04): fallback cuando el host local está apagado
+
+- El usuario observó que los audios dejaron de reproducirse desde una segunda computadora después de apagar el host. No se capturó el código HTTP real; no se debe afirmar como hecho que Funnel devolvió 502.
+- La inspección de `src/attachment-access.js` en main encontró una brecha: los fallos de red/timeout y 409 activaban Storage fallback, pero un HTTP 5xx del proxy era tratado como un error explícito y podía impedirlo.
+- Rama correctiva: `fix/audio-storage-fallback-server-errors-20261104`. Devuelve al flujo Storage para 500/502/503/504, conserva 403 y otros 4xx como errores explícitos y agrega regresiones para los cuatro códigos. CI/PR pendientes.
+- Esta es una corrección de robustez razonable, pero la causa exacta del incidente solo quedará demostrada al reproducirlo con el host apagado y observar la respuesta; no se modificó Supabase ni los objetos originales.

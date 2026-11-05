@@ -193,3 +193,10 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - La app ya carga el hostname Funnel antes del helper de adjuntos. La prueba manual del usuario confirmó la reproducción habitual en Materiales desde el host.
 - Sigue pendiente una prueba de reproducción autenticada desde una segunda PC; eso no se considera validado por CI ni por los chequeos HTTP/CORS desde PowerShell.
 - El proceso `tailscale funnel 8788` corre en primer plano, al igual que el servidor Python. No se configuró arranque automático ni persistencia tras cerrar sesión/suspender/apagar el host.
+
+## 2026-11-04 — Robustecer el fallback cuando Funnel no alcanza al host
+
+- Observación del usuario: desde la segunda PC, los audios dejaron de reproducirse después de que el equipo anfitrión se apagó. No se capturó el status HTTP de la solicitud fallida, así que no se atribuye definitivamente la causa a un 502.
+- Inspección: el resolver ya hacía fallback ante TypeError/AbortError y HTTP 409; una respuesta 5xx de Funnel (o del servidor local) entraba en el bloque de error y detenía la solicitud antes de firmar la URL de Storage.
+- Cambio propuesto en `fix/audio-storage-fallback-server-errors-20261104`: HTTP 500–599 se considera indisponibilidad de la ruta local y permite continuar a Supabase Storage. Se preservan los rechazos 4xx, especialmente 403, como errores visibles; no se relaja la autorización de los tickets locales.
+- Pruebas agregadas para 500, 502, 503 y 504. Pendiente CI y una comprobación manual desde otra PC con el host apagado. No hubo cambios en Supabase ni el servidor Python.

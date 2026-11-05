@@ -96,6 +96,11 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
   // Keep using the existing private Supabase Storage object in that case.
   if (response.status === 409) return null;
 
+  // A local server or Funnel 5xx response means the local route is unavailable.
+  // Do not let an infrastructure failure block the existing Storage fallback.
+  // Client/permission errors (especially 403) remain explicit and are not hidden.
+  if (response.status >= 500) return null;
+
   if (!response.ok) {
     throw new Error(
       payload?.error || "El servidor local rechazó la solicitud (HTTP " + response.status + ")."
