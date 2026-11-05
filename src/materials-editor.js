@@ -346,10 +346,23 @@ function moveMaterialComposerAudioAttachmentToPoint(attachment, clientX, clientY
 
   const hit = document.elementFromPoint(clientX, clientY);
   const targetAttachment = hit?.closest?.(".material-inline-attachment");
+  if (targetAttachment === attachment) return false;
+
+  // Each freshly inserted chip receives one text-space before and after it.
+  // Remove those single-node spacers from its old position before moving it,
+  // otherwise a drag would leave a visible gap where the audio used to be.
+  const previousSpacer = attachment.previousSibling;
+  const nextSpacer = attachment.nextSibling;
+  if (previousSpacer?.nodeType === Node.TEXT_NODE && previousSpacer.nodeValue === " ") {
+    previousSpacer.remove();
+  }
+  if (nextSpacer?.nodeType === Node.TEXT_NODE && nextSpacer.nodeValue === " ") {
+    nextSpacer.remove();
+  }
+
   let range = document.createRange();
 
   if (targetAttachment && editor.contains(targetAttachment)) {
-    if (targetAttachment === attachment) return false;
     const rect = targetAttachment.getBoundingClientRect();
     const placeAfter = clientX >= rect.left + rect.width / 2;
     if (placeAfter) range.setStartAfter(targetAttachment);
