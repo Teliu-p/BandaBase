@@ -51,3 +51,10 @@ Son operaciones distintas. La consulta actual es compatible con que sus resultad
 La reparación del tracking sigue pendiente, pero ahora queda acotada: confirmar con el resultado del CLI del checkout del usuario si esas doce versiones figuran como pendientes y decidir, versión por versión, si se registra como aplicada, si se reemplaza con una migración consolidada o si existe evidencia suficiente para otra corrección. El procedimiento oficial de `supabase migration repair` solo modifica el registro de versiones, no aplica el SQL; por eso solo corresponde tras validar el SQL y sus efectos. No insertar filas manualmente en `supabase_migrations.schema_migrations`.
 
 No se creó una rama de Supabase de pago ni se modificó la base en esta revisión. La PR #98 sigue siendo un trabajo separado: su política UPDATE de `band_list_items` debe probarse antes de desplegar; la existencia de la política `band_list_items_update_control_v2` en el catálogo actual refuerza que no hay que aplicar cambios a ciegas.
+
+
+## Addendum de recuento — 2026-11-05
+
+La auditoría integral del 5 de noviembre volvió a comparar directamente `supabase/migrations/` en GitHub con `list_migrations` del proyecto remoto. El recuento actual es **60 archivos locales y 48 versiones remotas**. Persisten exactamente las mismas 12 versiones locales sin fila remota enumeradas en la sección 1; no hay versiones remotas sin archivo local. El recuento anterior de 56/44 de este documento quedó desactualizado porque cuatro migraciones posteriores ya están presentes en ambos lados. No se modificó el historial remoto ni se ejecutó SQL durante esta actualización.
+
+Informe actualizado: [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md). Mantener la recomendación: no ejecutar `db push`, no borrar archivos y no marcar versiones como aplicadas en bloque. Cada una debe reconciliarse con evidencia del esquema/efectos y, solo después, corregirse el metadato con el mecanismo oficial.
