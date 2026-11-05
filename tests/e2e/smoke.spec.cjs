@@ -232,11 +232,20 @@ test("dragging a Material audio shows the exact character insertion point before
   const finalPosition = await page.evaluate(() => {
     const audio = window.__preciseDropAudio;
     const editor = document.getElementById("materialComposerEditor");
+    const nearestNonWhitespaceText = (node, direction) => {
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+          return node.nodeValue;
+        }
+        node = node[direction];
+      }
+      return null;
+    };
     return {
       isSameNode: editor.querySelectorAll("[data-material-draggable-audio='true']").length === 1 &&
         editor.querySelector("[data-material-draggable-audio='true']") === audio,
-      textBefore: audio.previousSibling?.previousSibling?.textContent,
-      textAfter: audio.nextSibling?.nextSibling?.textContent,
+      textBefore: nearestNonWhitespaceText(audio.previousSibling, "previousSibling"),
+      textAfter: nearestNonWhitespaceText(audio.nextSibling, "nextSibling"),
       indicatorRemoved: !document.querySelector(".material-audio-drop-indicator")
     };
   });
