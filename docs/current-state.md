@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Última actualización:** 2026-11-05, Argentina.  
-**Último cambio funcional integrado:** PR #144 (arrastre directo de todos los archivos de Materiales), commit `858271ba90576ba3211305c17f06ec7285eeb29d`. Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y GitHub Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. Este documento registra además el historial previo; distinguir pruebas automatizadas de validación manual.  
+**Último cambio funcional integrado en main:** PR #146 (intento de corregir el arrastre), commit `5c8922eead8cffad63a0097b4d30c35c4d3ff0be`. El usuario confirmó que el gesto seguía sin funcionar; PR #147 reconstruye el motor nativo y permanece abierta. Tests de main [#42085984629](https://github.com/Teliu-p/BandaBase/actions/runs/42085984629) y GitHub Pages [#42085984089](https://github.com/Teliu-p/BandaBase/actions/runs/42085984089) pasaron. Este documento registra además el historial previo; distinguir pruebas automatizadas de validación manual.  
 **Supabase:** evuwcikuxptrgzdzejov.  
 Este documento es una fotografía. Revalidar PR, CI, esquema y advertencias antes de una actuación; especialmente después de nuevas conversaciones o commits.
 
@@ -305,3 +305,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - La regresión Chromium fuerza las APIs nativas a devolver falsamente el inicio del texto, usa contenido enriquecido con ajuste de línea, exige que el renglón de origen conserve su altura, comprueba la separación exacta de los caracteres antes/después y conserva la identidad DOM del audio. En el test, la altura del renglón quedó en 25,59375 px antes y durante el arrastre, y el placeholder quedó a 0,016 px del caret medido.
 - CI de PR [#42092923727](https://github.com/Teliu-p/BandaBase/actions/runs/42092923727) pasó: 18 smoke tests de Chromium, incluidos los casos de archivos/audio, más pruebas existentes, sintaxis y ESLint/no-undef.
 - Estado: PR #146 abierta, todavía no fusionada ni publicada. Pages queda pendiente de merge/deploy y la confirmación manual del usuario en su navegador todavía es necesaria. No se modificó Supabase, Storage, RLS, datos, migraciones ni servidor Python.
+
+
+## Reconstrucción completa del arrastre de adjuntos (2026-11-05, rama nueva)
+
+- El usuario confirmó que el comportamiento seguía incorrecto incluso después de las PR #141–#146 y pidió reiniciar la función. Las PR fusionadas no se borran del historial GitHub; esta rama reemplaza su implementación activa.
+- Se conserva la selección múltiple de archivos de PR #141: `#materialPendingFile[multiple]` y validación/inserción secuencial siguen intactas.
+- Se retiró el motor de movimiento con Pointer Events, su cálculo geométrico propio, el ghost movido por JavaScript y las variables asociadas. La nueva implementación usa el flujo nativo del navegador `dragstart/dragover/drop/dragend`; el caret se consulta en las coordenadas nativas del evento. Si no existe un rango válido, no se acepta el destino.
+- Durante el gesto, el elemento original continúa conectado como fuente nativa del drag, fuera del flujo visual; un clon invisible conserva el ancho del origen y un placeholder inline reserva el destino. El mismo nodo original se inserta al soltar; `dragend` restaura el origen si no hubo drop válido.
+- Pruebas E2E nuevas simulan gesto real con mouse down/move/up y comprueban `dragstart`, `dragover`, caret bajo puntero, separación de texto, identidad del nodo y restauración al cancelar. CI de PR [#42098206552](https://github.com/Teliu-p/BandaBase/actions/runs/42098206552) pasó con 18 pruebas de Chromium (incluyendo PDF, audio, cancelación y multiselección), más sintaxis y ESLint/no-undef.
+- PR #147 está abierta y aún no está publicada; Pages y confirmación manual quedan pendientes. No se modificó Supabase, Storage, RLS, datos, migraciones ni servidor Python.
