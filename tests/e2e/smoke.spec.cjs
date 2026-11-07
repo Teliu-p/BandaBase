@@ -412,6 +412,394 @@ test("native browser drag drops Material audio inside formatted wrapped text", a
   expect(runtimeErrors, "JavaScript errors during native Material audio drag").toEqual([]);
 });
 
+test("native drag commits at the pointer position inside a Material text line", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const audio = createMaterialInlineAttachment({
+      id: "native-caret-pointer-position",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-caret-pointer-position"
+    });
+    const sourceLine = document.createElement("div");
+    sourceLine.appendChild(audio);
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-caret-pointer-line";
+    destinationLine.textContent =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeCaretAudio = audio;
+    window.__nativeCaretLine = destinationLine;
+    window.__nativeCaretResolvedRanges = [];
+    const originalResolver = window.getMaterialNativeDropRangeAtPoint;
+    window.getMaterialNativeDropRangeAtPoint = function(clientX, clientY, targetEditor) {
+      const range = originalResolver(clientX, clientY, targetEditor);
+      let textBefore = null;
+      if (range && window.__nativeCaretLine.contains(range.startContainer)) {
+        try {
+          const prefix = document.createRange();
+          prefix.selectNodeContents(window.__nativeCaretLine);
+          prefix.setEnd(range.startContainer, range.startOffset);
+          textBefore = prefix.toString();
+        } catch (error) {
+          textBefore = null;
+        }
+      }
+      window.__nativeCaretResolvedRanges.push({
+        x: clientX,
+        y: clientY,
+        node: range?.startContainer?.nodeName ?? null,
+        offset: range?.startOffset ?? null,
+        textBefore
+      });
+      return range;
+    };
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-caret-pointer-line");
+    const textRange = document.createRange();
+    textRange.selectNodeContents(line.firstChild);
+    const rect = textRange.getBoundingClientRect();
+    const point = {
+      x: rect.left + rect.width * 0.32,
+      y: rect.top + rect.height / 2
+    };
+    const caret = document.caretPositionFromPoint(point.x, point.y);
+    const prefix = document.createRange();
+    prefix.selectNodeContents(line);
+    prefix.setEnd(caret.offsetNode, caret.offset);
+    return {
+      ...point,
+      expectedTextBefore: prefix.toString(),
+      expectedOffset: prefix.toString().length,
+      totalTextLength: line.textContent.length
+    };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+
+  const preview = await page.evaluate(() => {
+    const placeholder = document.querySelector(
+      "#materialComposerEditor .material-attachment-drop-placeholder"
+    );
+    const rect = placeholder?.getBoundingClientRect();
+    return {
+      left: rect?.left ?? null,
+      resolved: window.__nativeCaretResolvedRanges.at(-1) ?? null
+    };
+  });
+
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const line = window.__nativeCaretLine;
+    const audio = window.__nativeCaretAudio;
+    const before = document.createRange();
+    before.selectNodeContents(line);
+    before.setEndBefore(audio);
+    const after = document.createRange();
+    after.setStartAfter(audio);
+    after.setEnd(line, line.childNodes.length);
+    return {
+      sameLine: line.contains(audio),
+      textBefore: before.toString(),
+      textAfter: after.toString(),
+      lastResolved: window.__nativeCaretResolvedRanges.at(-1) ?? null,
+      resolvedCount: window.__nativeCaretResolvedRanges.length
+    };
+  });
+
+  console.log("NATIVE_CARET_POINTER_RESULT", JSON.stringify({ target, preview, committed }));
+  expect(committed.sameLine).toBe(true);
+  expect(committed.resolvedCount).toBeGreaterThan(1);
+  expect(committed.textBefore.length).toBeGreaterThan(5);
+  expect(committed.textBefore.length).toBeLessThan(target.totalTextLength - 5);
+  expect(Math.abs(committed.textBefore.length - target.expectedOffset)).toBeLessThanOrEqual(2);
+  expect(runtimeErrors, "JavaScript errors during native text-line drag").toEqual([]);
+});
+
+test("native drag keeps the preview aligned when the source audio is embedded in text", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-embedded-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-embedded-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Texto antes del audio "),
+      audio,
+      document.createTextNode(" texto después del audio")
+    );
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-embedded-destination";
+    destinationLine.textContent =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ texto de destino con más contenido";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeEmbeddedAudio = audio;
+    window.__nativeEmbeddedLine = destinationLine;
+    window.__nativeEmbeddedDiagnostics = [];
+    editor.addEventListener("dragover", event => {
+      const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
+      const rect = placeholder?.getBoundingClientRect();
+      window.__nativeEmbeddedDiagnostics.push({
+        x: event.clientX,
+        y: event.clientY,
+        previewLeft: rect?.left ?? null
+      });
+    });
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-embedded-destination");
+    const range = document.createRange();
+    range.selectNodeContents(line.firstChild);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.left + rect.width * 0.42, y: rect.top + rect.height / 2 };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  const preview = await page.evaluate(() => {
+    const placeholder = document.querySelector(".material-attachment-drop-placeholder");
+    const rect = placeholder?.getBoundingClientRect();
+    return {
+      rectLeft: rect?.left ?? null,
+      lastEvent: window.__nativeEmbeddedDiagnostics.at(-1) ?? null
+    };
+  });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const line = window.__nativeEmbeddedLine;
+    const audio = window.__nativeEmbeddedAudio;
+    const before = document.createRange();
+    before.selectNodeContents(line);
+    before.setEndBefore(audio);
+    const rect = audio.getBoundingClientRect();
+    return {
+      audioInDestination: line.contains(audio),
+      textBefore: before.toString(),
+      audioLeft: rect.left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_EMBEDDED_SOURCE_RESULT", JSON.stringify({ target, preview, committed }));
+  expect(committed.audioInDestination).toBe(true);
+  expect(committed.textBefore.length).toBeGreaterThan(5);
+  expect(committed.textBefore.length).toBeLessThan(50);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(preview.rectLeft - committed.audioLeft)).toBeLessThanOrEqual(2);
+  expect(runtimeErrors, "JavaScript errors when dragging an audio embedded in text").toEqual([]);
+});
+
+test("native drag places audio at the pointer's horizontal position on an empty line", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-empty-line-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-empty-line-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Origen "),
+      audio,
+      document.createTextNode(" final")
+    );
+    const beforeLine = document.createElement("div");
+    beforeLine.textContent = "Texto de la línea anterior";
+    const emptyLine = document.createElement("div");
+    emptyLine.id = "native-empty-line-destination";
+    emptyLine.appendChild(document.createElement("br"));
+    editor.replaceChildren(sourceLine, beforeLine, emptyLine);
+    window.__nativeEmptyAudio = audio;
+    window.__nativeEmptyLine = emptyLine;
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const editor = document.getElementById("materialComposerEditor");
+    const line = document.getElementById("native-empty-line-destination");
+    const style = getComputedStyle(editor);
+    const bounds = editor.getBoundingClientRect();
+    const contentStartX = bounds.left + editor.clientLeft +
+      (parseFloat(style.paddingLeft) || 0);
+    const rect = line.getBoundingClientRect();
+    return {
+      x: contentStartX + 220,
+      y: rect.top + rect.height / 2
+    };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const audio = window.__nativeEmptyAudio;
+    const rect = audio.getBoundingClientRect();
+    return {
+      inEmptyLine: window.__nativeEmptyLine.contains(audio),
+      audioLeft: rect.left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_EMPTY_LINE_RESULT", JSON.stringify({ target, committed }));
+  expect(committed.inEmptyLine).toBe(true);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(committed.audioLeft - target.x)).toBeLessThanOrEqual(8);
+  expect(runtimeErrors, "JavaScript errors when dragging into an empty line").toEqual([]);
+});
+
+test("native drag places audio at the pointer after existing text on the same line", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-after-text-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-after-text-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Origen "),
+      audio,
+      document.createTextNode(" final")
+    );
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-after-text-destination";
+    destinationLine.textContent = "Texto previo";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeAfterTextAudio = audio;
+    window.__nativeAfterTextLine = destinationLine;
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-after-text-destination");
+    const range = document.createRange();
+    range.selectNodeContents(line.firstChild);
+    const textRect = range.getBoundingClientRect();
+    return {
+      x: textRect.right + 140,
+      y: textRect.top + textRect.height / 2,
+      text: line.textContent
+    };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const line = window.__nativeAfterTextLine;
+    const audio = window.__nativeAfterTextAudio;
+    const before = document.createRange();
+    before.selectNodeContents(line);
+    before.setEndBefore(audio);
+    return {
+      inLine: line.contains(audio),
+      textBefore: before.toString(),
+      audioLeft: audio.getBoundingClientRect().left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_AFTER_TEXT_RESULT", JSON.stringify({ target, committed }));
+  expect(committed.inLine).toBe(true);
+  expect(committed.textBefore.startsWith(target.text)).toBe(true);
+  expect(committed.textBefore.length).toBeGreaterThan(target.text.length);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(committed.audioLeft - target.x)).toBeLessThanOrEqual(8);
+  expect(runtimeErrors, "JavaScript errors when dragging after existing text").toEqual([]);
+});
+
 test("native Material drag cancelled outside the editor restores the original audio", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 

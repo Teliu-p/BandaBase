@@ -86,6 +86,9 @@ function hasMaterialTextAtOrAfterPointOnLine(editor, targetX, targetY, lineHeigh
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
   let node;
   while ((node = walker.nextNode())) {
+    if (node.parentElement?.closest(
+      ".material-inline-attachment, .material-attachment-drop-placeholder, .material-attachment-origin-placeholder"
+    )) continue;
     const value = node.nodeValue || "";
     for (let index = 0; index < value.length; index++) {
       if (value[index] === "\n" || value[index] === "\r") continue;
@@ -362,6 +365,47 @@ function getMaterialNativeDropRangeAtPoint(clientX, clientY, editor) {
 }
 
 
+function insertMaterialNativeDropPadding(range, event, editor) {
+  if (!range || !event || !editor) return false;
+
+  const hit = document.elementFromPoint(event.clientX, event.clientY);
+  if (hit?.closest?.(
+    ".material-inline-attachment, .material-attachment-drop-placeholder"
+  )) return false;
+
+  const caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+  const style = getComputedStyle(editor);
+  const bounds = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  const lineHeight = parseFloat(style.lineHeight) || font * 1.5;
+  const spaceWidth = getMaterialSpaceWidth(range, editor);
+  const contentStartX = bounds.left + editor.clientLeft +
+    (parseFloat(style.paddingLeft) || 0);
+  const padding = calculateMaterialForcedCaretPadding(
+    caret.x, caret.y, event.clientX, event.clientY,
+    lineHeight, spaceWidth, contentStartX
+  );
+
+  let prefix = "\n".repeat(padding.lineBreaks);
+  if (padding.lineBreaks > 0) {
+    prefix += " ".repeat(padding.spaces);
+  } else if (event.clientX > caret.x &&
+             !hasMaterialTextAtOrAfterPointOnLine(
+               editor, event.clientX, event.clientY, lineHeight
+             )) {
+    prefix += " ".repeat(padding.spaces);
+  }
+
+  if (!prefix) return false;
+
+  const filler = document.createTextNode(prefix);
+  range.insertNode(filler);
+  range.setStartAfter(filler);
+  range.collapse(true);
+  return true;
+}
+
+
 function createMaterialNativeAttachmentDragState(attachment, event, editor) {
   const dataTransfer = event.dataTransfer;
   if (!attachment?.parentNode || !dataTransfer) return null;
@@ -452,7 +496,7 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
   dropPlaceholder.contentEditable = "false";
   dropPlaceholder.setAttribute("aria-hidden", "true");
   Object.assign(dropPlaceholder.style, {
-    width: String(reservedWidth) + "px",
+    width: String(rect.width) + "px",
     height: String(rect.height) + "px",
     margin: style.margin,
     verticalAlign: style.verticalAlign
@@ -460,12 +504,27 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
 
   return {
     attachment, sourceMarker, previousSpacer, nextSpacer,
-    dropPlaceholder, dragImage, editor, originalStyle, dropped: false
+    dropPlaceholder, dragImage, editor, originalStyle,
+    marginRight: style.marginRight, spaceWidth, dropped: false
   };
 }
 
 
-function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
+function updateMaterialNativeDropPreviewSpacing(state, placeholder) {
+  if (!state || !placeholder?.parentNode) return;
+
+  const next = placeholder.nextSibling;
+  const needsTrailingSpace = !(
+    next?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]/.test(next.nodeValue || "")
+  );
+  placeholder.style.marginRight = needsTrailingSpace
+    ? `calc(${state.marginRight} + ${state.spaceWidth}px)`
+    : state.marginRight;
+}
+
+
+function moveMaterialNativeAttachmentDropPreview(event, editor, state, applyPointerPadding = false) {
   const placeholder = state?.dropPlaceholder;
   if (!placeholder || !editor || !event) return false;
 
@@ -483,13 +542,18 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
       (range.startContainer !== editor && !editor.contains(range.startContainer))) {
     if (oldMarker?.parentNode) {
       oldMarker.replaceWith(placeholder);
+      updateMaterialNativeDropPreviewSpacing(state, placeholder);
       oldParent?.normalize();
     }
     return false;
   }
 
   range.collapse(true);
+  if (applyPointerPadding) {
+    insertMaterialNativeDropPadding(range, event, editor);
+  }
   range.insertNode(placeholder);
+  updateMaterialNativeDropPreviewSpacing(state, placeholder);
   oldMarker?.remove();
   oldParent?.normalize();
   return true;
@@ -525,10 +589,9 @@ function commitMaterialNativeAttachmentDrop(state) {
   if (state.originalStyle === null) attachment.removeAttribute("style");
   else attachment.setAttribute("style", state.originalStyle);
 
-  const previous = attachment.previousSibling;
-  if (!(previous?.nodeType === Node.TEXT_NODE && /[\s\u00a0]$/.test(previous.nodeValue || ""))) {
-    parent.insertBefore(document.createTextNode(" "), attachment);
-  }
+  // Keep the dropped attachment's border box at the native caret.
+  // The chip's own CSS margin provides visual separation before it.
+  // Only reserve a trailing text space when the following node needs one.
   const next = attachment.nextSibling;
   if (!(next?.nodeType === Node.TEXT_NODE && /^[\s\u00a0]/.test(next.nodeValue || ""))) {
     parent.insertBefore(document.createTextNode(" "), attachment.nextSibling);
@@ -3000,7 +3063,8 @@ materialComposerEditor.addEventListener("drop", event => {
   const hasPreview = moveMaterialNativeAttachmentDropPreview(
     event,
     materialComposerEditor,
-    state
+    state,
+    true
   );
   const committed = hasPreview && commitMaterialNativeAttachmentDrop(state);
 
