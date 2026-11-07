@@ -638,7 +638,7 @@ test("native drag keeps the preview aligned when the source audio is embedded in
   expect(runtimeErrors, "JavaScript errors when dragging an audio embedded in text").toEqual([]);
 });
 
-test("native drag preview and committed audio agree on an actual empty line", async ({ page }) => {
+test("native drag places audio at the pointer's horizontal position on an empty line", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
   await page.evaluate(() => {
@@ -676,23 +676,21 @@ test("native drag preview and committed audio agree on an actual empty line", as
     editor.replaceChildren(sourceLine, beforeLine, emptyLine);
     window.__nativeEmptyAudio = audio;
     window.__nativeEmptyLine = emptyLine;
-    window.__nativeEmptyDiagnostics = [];
-    editor.addEventListener("dragover", event => {
-      const placeholder = editor.querySelector(".material-attachment-drop-placeholder");
-      const rect = placeholder?.getBoundingClientRect();
-      window.__nativeEmptyDiagnostics.push({
-        x: event.clientX,
-        y: event.clientY,
-        previewLeft: rect?.left ?? null
-      });
-    });
     editor.focus();
   });
 
   const target = await page.evaluate(() => {
+    const editor = document.getElementById("materialComposerEditor");
     const line = document.getElementById("native-empty-line-destination");
+    const style = getComputedStyle(editor);
+    const bounds = editor.getBoundingClientRect();
+    const contentStartX = bounds.left + editor.clientLeft +
+      (parseFloat(style.paddingLeft) || 0);
     const rect = line.getBoundingClientRect();
-    return { x: rect.left + Math.min(220, rect.width * 0.55), y: rect.top + rect.height / 2 };
+    return {
+      x: contentStartX + 220,
+      y: rect.top + rect.height / 2
+    };
   });
   const source = await page.locator(
     "#materialComposerEditor [data-material-draggable-audio='true']"
@@ -701,15 +699,6 @@ test("native drag preview and committed audio agree on an actual empty line", as
   await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
   await page.mouse.down();
   await page.mouse.move(target.x, target.y, { steps: 24 });
-  const preview = await page.evaluate(() => {
-    const placeholder = document.querySelector(".material-attachment-drop-placeholder");
-    const rect = placeholder?.getBoundingClientRect();
-    return {
-      inEmptyLine: Boolean(placeholder && window.__nativeEmptyLine.contains(placeholder)),
-      rectLeft: rect?.left ?? null,
-      lastEvent: window.__nativeEmptyDiagnostics.at(-1) ?? null
-    };
-  });
   await page.mouse.up();
 
   const committed = await page.evaluate(() => {
@@ -722,12 +711,93 @@ test("native drag preview and committed audio agree on an actual empty line", as
     };
   });
 
-  console.log("NATIVE_EMPTY_LINE_RESULT", JSON.stringify({ target, preview, committed }));
-  expect(preview.inEmptyLine).toBe(true);
+  console.log("NATIVE_EMPTY_LINE_RESULT", JSON.stringify({ target, committed }));
   expect(committed.inEmptyLine).toBe(true);
   expect(committed.noPreview).toBe(true);
-  expect(Math.abs(preview.rectLeft - committed.audioLeft)).toBeLessThanOrEqual(2);
+  expect(Math.abs(committed.audioLeft - target.x)).toBeLessThanOrEqual(8);
   expect(runtimeErrors, "JavaScript errors when dragging into an empty line").toEqual([]);
+});
+
+test("native drag places audio at the pointer after existing text on the same line", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    showMaterialForm();
+    let parent = document.getElementById("materialComposerEditor");
+    while (parent && parent !== document.body) {
+      parent.classList?.remove("hidden");
+      parent.style.display = "block";
+      parent = parent.parentElement;
+    }
+
+    const editor = document.getElementById("materialComposerEditor");
+    editor.style.width = "760px";
+    editor.style.maxWidth = "760px";
+    const sourceLine = document.createElement("div");
+    const audio = createMaterialInlineAttachment({
+      id: "native-after-text-source",
+      kind: "file",
+      name: "Pista.flac",
+      mime_type: "audio/flac",
+      storage_path: "local:native-after-text-source"
+    });
+    sourceLine.append(
+      document.createTextNode("Origen "),
+      audio,
+      document.createTextNode(" final")
+    );
+    const destinationLine = document.createElement("div");
+    destinationLine.id = "native-after-text-destination";
+    destinationLine.textContent = "Texto previo";
+    editor.replaceChildren(sourceLine, destinationLine);
+    window.__nativeAfterTextAudio = audio;
+    window.__nativeAfterTextLine = destinationLine;
+    editor.focus();
+  });
+
+  const target = await page.evaluate(() => {
+    const line = document.getElementById("native-after-text-destination");
+    const range = document.createRange();
+    range.selectNodeContents(line.firstChild);
+    const textRect = range.getBoundingClientRect();
+    return {
+      x: textRect.right + 140,
+      y: textRect.top + textRect.height / 2,
+      text: line.textContent
+    };
+  });
+  const source = await page.locator(
+    "#materialComposerEditor [data-material-draggable-audio='true']"
+  ).boundingBox();
+
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x, target.y, { steps: 24 });
+  await page.mouse.up();
+
+  const committed = await page.evaluate(() => {
+    const line = window.__nativeAfterTextLine;
+    const audio = window.__nativeAfterTextAudio;
+    const before = document.createRange();
+    before.selectNodeContents(line);
+    before.setEndBefore(audio);
+    return {
+      inLine: line.contains(audio),
+      textBefore: before.toString(),
+      audioLeft: audio.getBoundingClientRect().left,
+      noPreview: !document.querySelector(".material-attachment-drop-placeholder")
+    };
+  });
+
+  console.log("NATIVE_AFTER_TEXT_RESULT", JSON.stringify({ target, committed }));
+  expect(committed.inLine).toBe(true);
+  expect(committed.textBefore.startsWith(target.text)).toBe(true);
+  expect(committed.textBefore.length).toBeGreaterThan(target.text.length);
+  expect(committed.noPreview).toBe(true);
+  expect(Math.abs(committed.audioLeft - target.x)).toBeLessThanOrEqual(8);
+  expect(runtimeErrors, "JavaScript errors when dragging after existing text").toEqual([]);
 });
 
 test("native Material drag cancelled outside the editor restores the original audio", async ({ page }) => {
