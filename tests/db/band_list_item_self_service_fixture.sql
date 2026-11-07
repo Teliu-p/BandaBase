@@ -354,6 +354,10 @@ insert into public.songs (id,band_id) values
 insert into public.band_list_managers (list_id,user_id) values
   ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000004');
 
+-- Keep seeded participants annotated. Production auto-confirmation is exercised
+-- explicitly in the behavior test after this fixture is loaded.
+set bandabase.skip_list_auto_confirm = 'on';
+
 insert into public.band_list_items
   (id,list_id,item_type,title,details,song_id,member_user_id,status,position,participation_instruments,created_by)
 values
@@ -364,6 +368,8 @@ values
   ('50000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000001','member','Responsable que participa',null,null,'10000000-0000-0000-0000-000000000004','Anotado',3,array['guitar'],'10000000-0000-0000-0000-000000000004'),
   ('50000000-0000-0000-0000-000000000007','40000000-0000-0000-0000-000000000004','member','Confirmación manual',null,null,'10000000-0000-0000-0000-000000000003','Anotado',0,array['voice'],'10000000-0000-0000-0000-000000000003'),
   ('50000000-0000-0000-0000-000000000008','40000000-0000-0000-0000-000000000005','member','Auto-confirmación confiable',null,null,'10000000-0000-0000-0000-000000000003','Anotado',0,array['guitar'],'10000000-0000-0000-0000-000000000003');
+
+reset bandabase.skip_list_auto_confirm;
 
 alter table public.band_list_items enable row level security;
 
