@@ -212,15 +212,17 @@ begin
 
   -- Direct self-confirmation is rejected while the slot is available.
   caught_expected_error := false;
+  affected := -1;
   begin
     update public.band_list_items
     set status = 'Confirmado'
     where id = '50000000-0000-0000-0000-000000000005';
+    get diagnostics affected = row_count;
   exception
     when raise_exception or insufficient_privilege then caught_expected_error := true;
   end;
-  if not caught_expected_error then
-    raise exception 'Participant was able to confirm themselves directly.';
+  if not caught_expected_error and affected <> 0 then
+    raise exception 'Participant was able to confirm themselves directly; affected=%', affected;
   end if;
   select status into actual_status
   from public.band_list_items
