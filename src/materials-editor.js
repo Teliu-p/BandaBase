@@ -452,7 +452,7 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
   dropPlaceholder.contentEditable = "false";
   dropPlaceholder.setAttribute("aria-hidden", "true");
   Object.assign(dropPlaceholder.style, {
-    width: String(reservedWidth) + "px",
+    width: String(rect.width) + "px",
     height: String(rect.height) + "px",
     margin: style.margin,
     verticalAlign: style.verticalAlign
@@ -460,40 +460,22 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
 
   return {
     attachment, sourceMarker, previousSpacer, nextSpacer,
-    dropPlaceholder, dragImage, editor, originalStyle, dropped: false
+    dropPlaceholder, dragImage, editor, originalStyle,
+    attachmentWidth: rect.width, spaceWidth, dropped: false
   };
 }
 
 
-function addMaterialNativeDropPreviewSpacing(state, placeholder) {
-  const parent = placeholder?.parentNode;
-  if (!state || !parent) return;
-
-  const previous = placeholder.previousSibling;
-  if (!(previous?.nodeType === Node.TEXT_NODE && /[\\s\\u00a0]$/.test(previous.nodeValue || ""))) {
-    state.previewSpacerBefore = document.createTextNode(" ");
-    parent.insertBefore(state.previewSpacerBefore, placeholder);
-  }
+function updateMaterialNativeDropPreviewWidth(state, placeholder) {
+  if (!state || !placeholder?.parentNode) return;
 
   const next = placeholder.nextSibling;
-  if (!(next?.nodeType === Node.TEXT_NODE && /^[\\s\\u00a0]/.test(next.nodeValue || ""))) {
-    state.previewSpacerAfter = document.createTextNode(" ");
-    parent.insertBefore(state.previewSpacerAfter, placeholder.nextSibling);
-  }
-}
-
-
-function removeMaterialNativeDropPreviewSpacing(state) {
-  if (!state) return;
-
-  const beforeParent = state.previewSpacerBefore?.parentNode || null;
-  const afterParent = state.previewSpacerAfter?.parentNode || null;
-  state.previewSpacerBefore?.remove();
-  state.previewSpacerAfter?.remove();
-  state.previewSpacerBefore = null;
-  state.previewSpacerAfter = null;
-  beforeParent?.normalize();
-  if (afterParent && afterParent !== beforeParent) afterParent.normalize();
+  const needsTrailingSpace = !(
+    next?.nodeType === Node.TEXT_NODE &&
+    /^[\\s\\u00a0]/.test(next.nodeValue || "")
+  );
+  const trailingSpaceWidth = needsTrailingSpace ? state.spaceWidth : 0;
+  placeholder.style.width = String(state.attachmentWidth + trailingSpaceWidth) + "px";
 }
 
 
@@ -507,9 +489,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
     oldMarker = document.createComment("material-drop-preview-position");
     placeholder.before(oldMarker);
     oldParent = oldMarker.parentNode;
-    removeMaterialNativeDropPreviewSpacing(state);
     placeholder.remove();
-    oldParent?.normalize();
   }
 
   const range = getMaterialNativeDropRangeAtPoint(event.clientX, event.clientY, editor);
@@ -517,7 +497,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
       (range.startContainer !== editor && !editor.contains(range.startContainer))) {
     if (oldMarker?.parentNode) {
       oldMarker.replaceWith(placeholder);
-      addMaterialNativeDropPreviewSpacing(state, placeholder);
+      updateMaterialNativeDropPreviewWidth(state, placeholder);
       oldParent?.normalize();
     }
     return false;
@@ -525,7 +505,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
 
   range.collapse(true);
   range.insertNode(placeholder);
-  addMaterialNativeDropPreviewSpacing(state, placeholder);
+  updateMaterialNativeDropPreviewWidth(state, placeholder);
   oldMarker?.remove();
   oldParent?.normalize();
   return true;
@@ -537,10 +517,7 @@ function restoreMaterialNativeAttachmentDrag(state) {
   const { attachment, sourceMarker, previousSpacer, nextSpacer } = state;
   if (!sourceMarker?.parentNode) return false;
 
-  const previewParent = state.dropPlaceholder?.parentNode;
-  removeMaterialNativeDropPreviewSpacing(state);
   state.dropPlaceholder?.remove();
-  previewParent?.normalize();
   sourceMarker.replaceWith(attachment);
   if (state.originalStyle === null) attachment.removeAttribute("style");
   else attachment.setAttribute("style", state.originalStyle);
@@ -564,12 +541,11 @@ function commitMaterialNativeAttachmentDrop(state) {
   if (state.originalStyle === null) attachment.removeAttribute("style");
   else attachment.setAttribute("style", state.originalStyle);
 
-  const previous = attachment.previousSibling;
-  if (!(previous?.nodeType === Node.TEXT_NODE && /[\s\u00a0]$/.test(previous.nodeValue || ""))) {
-    parent.insertBefore(document.createTextNode(" "), attachment);
-  }
+  // Keep the dropped attachment's border box at the native caret.
+  // The chip's own CSS margin provides visual separation before it.
+  // Only reserve a trailing text space when the following node needs one.
   const next = attachment.nextSibling;
-  if (!(next?.nodeType === Node.TEXT_NODE && /^[\s\u00a0]/.test(next.nodeValue || ""))) {
+  if (!(next?.nodeType === Node.TEXT_NODE && /^[\\s\\u00a0]/.test(next.nodeValue || ""))) {
     parent.insertBefore(document.createTextNode(" "), attachment.nextSibling);
   }
 
