@@ -349,7 +349,7 @@ function renderComments() {
 }
 
 
-async function loadComments() {
+async function loadComments(propagateErrors = false) {
   const list =
     document.getElementById(
       "commentsList"
@@ -430,10 +430,8 @@ async function loadComments() {
     renderComments();
   } catch (error) {
     if (currentSong?.id !== songId) return;
-    showNotice(
-      error.message,
-      "error"
-    );
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
   }
 }
 
