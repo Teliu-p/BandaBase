@@ -1,8 +1,12 @@
 /* Comentarios generales. */
 
+let recentGeneralComments = [];
+let recentGeneralCommentProfilesMap = {};
+
 function renderGeneralCommentCard(
   comment,
-  showActions = true
+  showActions = true,
+  profilesMap = generalCommentProfilesMap
 ) {
   const canManageComment =
     comment.user_id === currentUser?.id ||
@@ -29,7 +33,7 @@ function renderGeneralCommentCard(
     escapeHtml(
       getCommentAuthorNameFromMap(
         comment,
-        generalCommentProfilesMap
+        profilesMap
       )
     ) +
     "</div>" +
@@ -78,26 +82,26 @@ function renderRecentGeneralComments() {
 
   if (!list) return;
 
-  if (!generalComments.length) {
+  if (!recentGeneralComments.length) {
     list.innerHTML =
       '<div class="empty-state">Todavía no hay comentarios generales.</div>';
     return;
   }
 
   list.innerHTML =
-    generalComments
+    recentGeneralComments
       .map(
         comment =>
           renderGeneralCommentCard(
             comment,
-            false
+            false,
+            recentGeneralCommentProfilesMap
           )
       )
       .join("");
 
   bindCommentAttachmentEvents();
 }
-
 
 async function fetchCommentData(
   comments
@@ -229,18 +233,18 @@ async function loadRecentGeneralComments(propagateErrors = false) {
       throw result.error;
     }
 
-    generalComments =
+    recentGeneralComments =
       await fetchCommentData(
         result.data || []
       );
 
-    generalCommentProfilesMap =
+    recentGeneralCommentProfilesMap =
       {};
 
     const userIds =
       Array.from(
         new Set(
-          generalComments
+          recentGeneralComments
             .map(
               comment =>
                 comment.user_id
@@ -267,7 +271,7 @@ async function loadRecentGeneralComments(propagateErrors = false) {
 
       (profiles || []).forEach(
         profile => {
-          generalCommentProfilesMap[
+          recentGeneralCommentProfilesMap[
             profile.user_id
           ] = profile;
         }
