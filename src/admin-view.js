@@ -182,7 +182,7 @@ function adminChangedFields(row) {
   return changed.join(", ");
 }
 
-async function loadAdminPanel() {
+async function loadAdminPanel(propagateErrors = false) {
   if (!bandabaseIsAdminRole() || !currentBand) {
     return;
   }
@@ -203,18 +203,14 @@ async function loadAdminPanel() {
   ]);
 
   if (auditResult.error) {
-    showNotice(
-      auditResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw auditResult.error;
+    showNotice(auditResult.error.message, "error");
     return;
   }
 
   if (trashResult.error) {
-    showNotice(
-      trashResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw trashResult.error;
+    showNotice(trashResult.error.message, "error");
     return;
   }
 
@@ -223,7 +219,7 @@ async function loadAdminPanel() {
   adminTrashData =
     trashResult.data || {};
 
-  await hydrateAdminHistoryNames();
+  await hydrateAdminHistoryNames(propagateErrors);
 
   renderAdminHistory();
   renderAdminTrash();
@@ -242,7 +238,7 @@ async function loadAdminPanel() {
   }
 }
 
-async function hydrateAdminHistoryNames() {
+async function hydrateAdminHistoryNames(propagateErrors = false) {
   const userIds =
     [
       ...new Set(
@@ -266,7 +262,10 @@ async function hydrateAdminHistoryNames() {
     return;
   }
 
-  const { data } =
+  const {
+    data,
+    error
+  } =
     await supabaseClient
       .from("band_members")
       .select(
@@ -280,6 +279,12 @@ async function hydrateAdminHistoryNames() {
         "user_id",
         missing
       );
+
+  if (error) {
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
+    return;
+  }
 
   (data || []).forEach(member => {
     allBandMembers.push({

@@ -167,7 +167,8 @@ async function loadMembers() {
     );
 
   const {
-    data: profiles
+    data: profiles,
+    error: profileError
   } =
     await supabaseClient
       .from("profiles")
@@ -178,6 +179,8 @@ async function loadMembers() {
         "user_id",
         userIds
       );
+
+  if (profileError) throw profileError;
 
   bandMemberProfilesMap =
     Object.fromEntries(

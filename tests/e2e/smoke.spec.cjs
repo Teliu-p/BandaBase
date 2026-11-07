@@ -788,6 +788,262 @@ test("logout clears state again after a previous initialization finishes", async
   expect(result.loginVisible).toBe(true);
 });
 
+test("Realtime reconciles the initial snapshot and refreshes only changes from the active band", async ({ page }) => {
+  await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const saved = {
+      currentUser,
+      currentBand,
+      currentSong,
+      channel: supabaseClient.channel,
+      removeChannel: supabaseClient.removeChannel,
+      refresh: refreshBandabaseRealtimeDomain,
+      schedule: scheduleBandabaseRealtimeFlush
+    };
+    const notice = document.getElementById("notice");
+    const originalNotice = notice?.innerHTML || "";
+    const topics = [];
+    const handlers = [];
+    const refreshCalls = [];
+    let statusHandler = null;
+
+    const channel = {
+      on(type, filter, callback) {
+        handlers.push({ type, filter, callback });
+        return this;
+      },
+      subscribe(callback) {
+        statusHandler = callback;
+        return this;
+      }
+    };
+
+    supabaseClient.channel = topic => {
+      topics.push(topic);
+      return channel;
+    };
+    supabaseClient.removeChannel = async () => "ok";
+    refreshBandabaseRealtimeDomain = async (domain, songIds) => {
+      refreshCalls.push({
+        domain,
+        songIds: Array.from(songIds || [])
+      });
+    };
+    scheduleBandabaseRealtimeFlush = () => {};
+
+    currentUser = { id: "user-1" };
+    currentBand = { id: "band-1" };
+    currentSong = null;
+
+    startBandabaseRealtime();
+    statusHandler?.("SUBSCRIBED");
+    await flushBandabaseRealtimeRefreshes();
+
+    const initial = {
+      refreshedDomains: refreshCalls.map(item => item.domain),
+      notice: notice?.textContent || ""
+    };
+    refreshCalls.length = 0;
+
+    const postgresChanges = handlers.find(
+      handler => handler.type === "postgres_changes"
+    );
+    postgresChanges?.callback({
+      table: "songs",
+      new: { id: "other-band-song", band_id: "band-other" },
+      old: {}
+    });
+    await flushBandabaseRealtimeRefreshes();
+    const otherBandRefreshCount = refreshCalls.length;
+
+    postgresChanges?.callback({
+      table: "songs",
+      new: { id: "song-1", band_id: "band-1" },
+      old: {}
+    });
+    await flushBandabaseRealtimeRefreshes();
+
+    const output = {
+      topics,
+      filters: postgresChanges?.filter || null,
+      initial,
+      otherBandRefreshCount,
+      refreshCalls,
+      finalNotice: notice?.textContent || ""
+    };
+
+    stopBandabaseRealtime();
+    supabaseClient.channel = saved.channel;
+    supabaseClient.removeChannel = saved.removeChannel;
+    currentUser = saved.currentUser;
+    currentBand = saved.currentBand;
+    currentSong = saved.currentSong;
+    refreshBandabaseRealtimeDomain = saved.refresh;
+    scheduleBandabaseRealtimeFlush = saved.schedule;
+    if (notice) notice.innerHTML = originalNotice;
+
+    return output;
+  });
+
+  expect(result.topics).toEqual(["bandabase-live-band-1"]);
+  expect(result.filters).toEqual({ event: "*", schema: "public" });
+  expect(result.initial.refreshedDomains).toContain("songs");
+  expect(result.initial.notice).not.toContain("Los cambios compartidos se actualizaron.");
+  expect(result.otherBandRefreshCount).toBe(0);
+  expect(result.refreshCalls).toEqual([
+    { domain: "songs", songIds: ["song-1"] }
+  ]);
+  expect(result.finalNotice).toContain("Los cambios compartidos se actualizaron.");
+});
+
+test("Realtime keeps failed refreshes queued and confirms synchronization only after retry", async ({ page }) => {
+  await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const saved = {
+      currentUser,
+      currentBand,
+      refresh: refreshBandabaseRealtimeDomain,
+      schedule: scheduleBandabaseRealtimeFlush,
+      pendingDomains: bandabaseRealtimePendingDomains,
+      pendingSongIds: bandabaseRealtimePendingSongIds,
+      pendingNotice: bandabaseRealtimePendingChangeNotice,
+      retryAttempt: bandabaseRealtimeRetryAttempt,
+      refreshWarning: bandabaseRealtimeRefreshWarningShown
+    };
+    const notice = document.getElementById("notice");
+    const originalNotice = notice?.innerHTML || "";
+    const delays = [];
+    const refreshedSongIds = [];
+    let attempts = 0;
+
+    currentUser = { id: "user-1" };
+    currentBand = { id: "band-1" };
+    bandabaseRealtimePendingDomains = new Set(["songs"]);
+    bandabaseRealtimePendingSongIds = new Set(["song-retry-1"]);
+    bandabaseRealtimePendingChangeNotice = true;
+    bandabaseRealtimeRetryAttempt = 0;
+    bandabaseRealtimeRefreshWarningShown = false;
+
+    refreshBandabaseRealtimeDomain = async (_domain, songIds) => {
+      attempts += 1;
+      refreshedSongIds.push(Array.from(songIds || []));
+      if (attempts === 1) {
+        throw new Error("Fallo temporal de prueba");
+      }
+    };
+    scheduleBandabaseRealtimeFlush = delay => {
+      delays.push(delay);
+    };
+
+    await flushBandabaseRealtimeRefreshes();
+    const afterFailure = {
+      queued: bandabaseRealtimePendingDomains.has("songs"),
+      retryDelay: delays[0] ?? null,
+      pendingSongIds: Array.from(bandabaseRealtimePendingSongIds),
+      notice: notice?.textContent || ""
+    };
+
+    await flushBandabaseRealtimeRefreshes();
+    const afterRetry = {
+      queued: bandabaseRealtimePendingDomains.has("songs"),
+      attempts,
+      refreshedSongIds,
+      notice: notice?.textContent || "",
+      pendingNotice: bandabaseRealtimePendingChangeNotice
+    };
+
+    currentUser = saved.currentUser;
+    currentBand = saved.currentBand;
+    refreshBandabaseRealtimeDomain = saved.refresh;
+    scheduleBandabaseRealtimeFlush = saved.schedule;
+    bandabaseRealtimePendingDomains = saved.pendingDomains;
+    bandabaseRealtimePendingSongIds = saved.pendingSongIds;
+    bandabaseRealtimePendingChangeNotice = saved.pendingNotice;
+    bandabaseRealtimeRetryAttempt = saved.retryAttempt;
+    bandabaseRealtimeRefreshWarningShown = saved.refreshWarning;
+    if (notice) notice.innerHTML = originalNotice;
+
+    return { afterFailure, afterRetry };
+  });
+
+  expect(result.afterFailure.queued).toBe(true);
+  expect(result.afterFailure.retryDelay).toBe(1000);
+  expect(result.afterFailure.notice).toContain("Voy a reintentarlo automáticamente");
+  expect(result.afterRetry.queued).toBe(false);
+  expect(result.afterRetry.attempts).toBe(2);
+  expect(result.afterRetry.pendingNotice).toBe(false);
+  expect(result.afterRetry.notice).toContain("Los cambios compartidos se actualizaron.");
+});
+
+test("loading recent general comments in parallel does not overwrite the full comments list", async ({ page }) => {
+  await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const saved = {
+      currentBand,
+      generalComments,
+      generalCommentProfilesMap,
+      recentGeneralComments,
+      recentGeneralCommentProfilesMap,
+      getComments: getGeneralCommentsByBandId,
+      fetchCommentData,
+      renderGeneralComments,
+      renderRecentGeneralComments
+    };
+    let renderedFull = [];
+    let renderedRecent = [];
+
+    currentBand = { id: "band-1" };
+    getGeneralCommentsByBandId = async (_client, _bandId, limit = 50) => ({
+      data: limit === 5
+        ? [{ id: "recent-1", user_id: null }]
+        : [
+            { id: "full-1", user_id: null },
+            { id: "full-2", user_id: null }
+          ],
+      error: null
+    });
+    fetchCommentData = async rows => rows;
+    renderGeneralComments = () => {
+      renderedFull = generalComments.map(comment => comment.id);
+    };
+    renderRecentGeneralComments = () => {
+      renderedRecent = recentGeneralComments.map(comment => comment.id);
+    };
+
+    await Promise.all([
+      loadGeneralComments(),
+      loadRecentGeneralComments()
+    ]);
+
+    const output = {
+      fullState: generalComments.map(comment => comment.id),
+      recentState: recentGeneralComments.map(comment => comment.id),
+      renderedFull,
+      renderedRecent
+    };
+
+    currentBand = saved.currentBand;
+    generalComments = saved.generalComments;
+    generalCommentProfilesMap = saved.generalCommentProfilesMap;
+    recentGeneralComments = saved.recentGeneralComments;
+    recentGeneralCommentProfilesMap = saved.recentGeneralCommentProfilesMap;
+    getGeneralCommentsByBandId = saved.getComments;
+    fetchCommentData = saved.fetchCommentData;
+    renderGeneralComments = saved.renderGeneralComments;
+    renderRecentGeneralComments = saved.renderRecentGeneralComments;
+
+    return output;
+  });
+
+  expect(result.fullState).toEqual(["full-1", "full-2"]);
+  expect(result.recentState).toEqual(["recent-1"]);
+  expect(result.renderedFull).toEqual(["full-1", "full-2"]);
+  expect(result.renderedRecent).toEqual(["recent-1"]);
+});
+
 test("network rejections from auth requests show a user-facing error", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
   const result = await page.evaluate(async () => {

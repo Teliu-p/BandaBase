@@ -97,7 +97,7 @@ assert.match(
 );
 
 const renderCommentsStart = commentsViewSource.indexOf("function renderComments() {");
-const renderCommentsEnd = commentsViewSource.indexOf("\n\nasync function loadComments()", renderCommentsStart);
+const renderCommentsEnd = commentsViewSource.indexOf("\n\nasync function loadComments", renderCommentsStart);
 assert.ok(
   renderCommentsStart >= 0 && renderCommentsEnd > renderCommentsStart,
   "Debe existir la función renderComments para probar el renderizado de comentarios."

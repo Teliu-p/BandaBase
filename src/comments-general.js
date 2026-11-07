@@ -1,15 +1,19 @@
 /* Comentarios generales. */
 
+let recentGeneralComments = [];
+let recentGeneralCommentProfilesMap = {};
+
 function renderGeneralCommentCard(
   comment,
-  showActions = true
+  showActions = true,
+  profilesMap = generalCommentProfilesMap
 ) {
   const canManageComment =
     comment.user_id === currentUser?.id ||
     window.bandabaseIsAdmin?.();
 
   const canContextDelete =
-    canManageComment;
+    showActions && canManageComment;
 
   let html =
     '<article class="comment-card"' +
@@ -29,7 +33,7 @@ function renderGeneralCommentCard(
     escapeHtml(
       getCommentAuthorNameFromMap(
         comment,
-        generalCommentProfilesMap
+        profilesMap
       )
     ) +
     "</div>" +
@@ -78,26 +82,26 @@ function renderRecentGeneralComments() {
 
   if (!list) return;
 
-  if (!generalComments.length) {
+  if (!recentGeneralComments.length) {
     list.innerHTML =
       '<div class="empty-state">Todavía no hay comentarios generales.</div>';
     return;
   }
 
   list.innerHTML =
-    generalComments
+    recentGeneralComments
       .map(
         comment =>
           renderGeneralCommentCard(
             comment,
-            false
+            false,
+            recentGeneralCommentProfilesMap
           )
       )
       .join("");
 
   bindCommentAttachmentEvents();
 }
-
 
 async function fetchCommentData(
   comments
@@ -138,7 +142,7 @@ async function fetchCommentData(
 }
 
 
-async function loadGeneralComments() {
+async function loadGeneralComments(propagateErrors = false) {
   if (!currentBand) return;
 
   const list =
@@ -208,15 +212,13 @@ async function loadGeneralComments() {
 
     renderGeneralComments();
   } catch (error) {
-    showNotice(
-      error.message,
-      "error"
-    );
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
   }
 }
 
 
-async function loadRecentGeneralComments() {
+async function loadRecentGeneralComments(propagateErrors = false) {
   if (!currentBand) return;
 
   try {
@@ -231,18 +233,18 @@ async function loadRecentGeneralComments() {
       throw result.error;
     }
 
-    generalComments =
+    recentGeneralComments =
       await fetchCommentData(
         result.data || []
       );
 
-    generalCommentProfilesMap =
+    recentGeneralCommentProfilesMap =
       {};
 
     const userIds =
       Array.from(
         new Set(
-          generalComments
+          recentGeneralComments
             .map(
               comment =>
                 comment.user_id
@@ -269,7 +271,7 @@ async function loadRecentGeneralComments() {
 
       (profiles || []).forEach(
         profile => {
-          generalCommentProfilesMap[
+          recentGeneralCommentProfilesMap[
             profile.user_id
           ] = profile;
         }
@@ -278,10 +280,8 @@ async function loadRecentGeneralComments() {
 
     renderRecentGeneralComments();
   } catch (error) {
-    showNotice(
-      error.message,
-      "error"
-    );
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
   }
 }
 
