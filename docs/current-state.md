@@ -3,7 +3,8 @@
 **Última actualización:** 2026-11-07, Argentina.  
 **HEAD de `main` verificado:** `5d003055e5067cb3bfdb53c8c54bcdd9b073eaf9`. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
 **Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
-**Estado reciente:** 61 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.
+**Estado reciente:** 61 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.  
+**Informe de auditoría base:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md), complementado por la actualización del 2026-11-07.
 
 ## 0. Fotografía integral del 2026-11-05
 
@@ -330,13 +331,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 
 - Revisión de producción en solo lectura: band_list_items tiene una única política UPDATE (band_list_items_update_control), consolidada por 20261020232312_harden_storage_and_list_item_policies.sql. No se debe volver a aplicar la antigua migración de PR #98 ni recrear la política duplicada.
 - La función actual private.prevent_manager_list_item_edit() ya protegía algunos cambios hechos por responsables, pero no restringía todos los campos que un integrante normal podía modificar en su propia fila mientras estaba Anotado.
-- PR #149 propone la migración 20261106210000_harden_band_list_item_self_service_guard.sql. No modifica la política RLS: limita la autoedición a participation_instruments, conserva el control de estado de responsables y reconoce la auto-confirmación interna por la profundidad del stack de triggers (pg_trigger_depth()), sin modificar la función actual de auto-confirmación. Un responsable que también participa conserva la edición de sus propios instrumentos.
+- En el estado documentado al 2026-11-06, PR #149 proponía la migración 20261106210000_harden_band_list_item_self_service_guard.sql. La migración no modifica la política RLS: limita la autoedición a participation_instruments, conserva el control de estado de responsables y reconoce la auto-confirmación interna por la profundidad del stack de triggers (pg_trigger_depth()), sin modificar la función actual de auto-confirmación. Un responsable que también participa conserva la edición de sus propios instrumentos.
 - El test de PostgreSQL reproduce primero el cambio de título no autorizado con el trigger anterior. Después aplica la migración en un PostgreSQL 17 descartable y comprueba admin, creador, responsable, participante, usuario externo, papelera, confirmación manual, auto-confirmación y rechazo de status=NULL por responsable. En el último CI del commit de código `1d38cac5d179fdb98ab97f21a9beb3c264b88401`, el run #42328986494 pasó en ambos jobs: `database-policy` (PostgreSQL 17) y `test` (npm test, ESLint/no-undef y 18 smoke tests de Chromium).
 - La fixture de PostgreSQL reproduce la política UPDATE y los triggers relevantes observados en producción; no es una restauración completa de producción ni una prueba sobre datos reales.
 - La prueba tests/db/band_list_item_self_service_restore_validation.sql se ejecutó satisfactoriamente en la restauración completa local: aplicó la función candidata y preparó dos listas temporales, comprobó RLS y triggers reales y terminó con ROLLBACK. No se dejó ningún cambio de esa prueba en la base restaurada.
 - Validación E2E manual completada por el usuario con dos sesiones Auth independientes en la aplicación local: `saumerio40` como owner y `lopenzio50` como member. El usuario confirmó que ambas cuentas iniciaron sesión y que las pruebas de autoedición de instrumentos, bloqueo de auto-confirmación directa y protección de la participación de terceros funcionaron según lo esperado.
-- Estado: PR #149 queda lista para revisión en `fix/band-list-self-service-guard-20261106`. No está fusionada ni desplegada y no se aplicó la migración a Supabase de producción. PR #98 sigue siendo una propuesta antigua y no debe fusionarse tal cual.
-- Validaciones técnicas y E2E previstas para esta corrección: completadas. Antes de integrar todavía corresponde la revisión final del diff y la decisión de merge. No ejecutar `db push` en producción como parte de esta validación.
+- Estado histórico al 2026-11-06: PR #149 quedaba lista para revisión en `fix/band-list-self-service-guard-20261106`; aún no estaba fusionada ni desplegada. Ese estado fue superado el 2026-11-07; véase la sección 22. PR #98 sigue siendo una propuesta antigua y no debe fusionarse tal cual.
+- Validaciones técnicas y E2E previstas para esta corrección: completadas en el entorno local en la fecha de esta anotación. El merge, la aplicación en producción y la corrección final del historial se registran posteriormente en la sección 22. No ejecutar `db push` para este caso.
 
 
 ## 22. Cierre de PR #149 y estado operativo (2026-11-07)
