@@ -287,3 +287,14 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 
 
 - Reconstrucción nueva en PR #147: CI [#42098206552](https://github.com/Teliu-p/BandaBase/actions/runs/42098206552) pasó con 18 smoke tests Chromium. Los tests usan movimientos reales de mouse y el flujo HTML Drag and Drop nativo, y cubren PDF/audio, ubicación de caret, orden, identidad del nodo y cancelación. PR sigue abierta; falta Pages y confirmación manual.
+
+### 2026-11-06 — autoedición segura de participantes en Listas (PR #149 en revisión)
+
+- El historial remoto de migraciones ya quedó alineado con los 60 archivos de origin/main; no confundir tracking alineado con prueba histórica de cada sentencia. No ejecutar db push ni re-ejecutar SQL histórico.
+- La política UPDATE de band_list_items en producción ya es una sola política, consolidada por 20261020232312_harden_storage_and_list_item_policies.sql. PR #98 quedó desactualizada porque pretendía volver a reemplazar esa política.
+- La brecha actual se confirmó en private.prevent_manager_list_item_edit(): un integrante anotado podía modificar campos de su propia fila además de los instrumentos.
+- PR #149 añade una migración que limita la autoedición, mantiene los permisos del creador/admin/responsable y conserva la auto-confirmación interna mediante pg_trigger_depth() para reconocer la actualización anidada del trigger. No modifica políticas RLS ni reemplaza la función actual de auto-confirmación.
+- CI más reciente para el commit de código `1d38cac5d179fdb98ab97f21a9beb3c264b88401`: run #42328986494 con ambos jobs completados en `success` (PostgreSQL 17 descartable; npm test, ESLint/no-undef y 18 smoke tests Chromium).
+- La validación sobre la restauración completa local pasó: RLS real, controles de responsable, rechazo de `status=NULL` y auto-confirmación anidada; el script terminó con `ROLLBACK`.
+- E2E manual completada por el usuario en la aplicación local con dos sesiones Auth independientes: `saumerio40` (owner) y `lopenzio50` (member). Confirmó inicio de sesión y funcionamiento esperado de permisos, autoedición de instrumentos, rechazo de auto-confirmación directa y protección de participaciones ajenas.
+- El candidato fue probado/instalado únicamente en restore-lab local. No se modificó producción ni se desplegó. PR #149 queda lista para revisión; antes de integrar solo resta la revisión final del diff y la decisión de merge.
