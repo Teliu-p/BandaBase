@@ -19,6 +19,14 @@ const sqlFiles = [
     "Verify self-service, manager, admin, creator and auto-confirmation behavior",
     "tests/db/band_list_item_self_service_behavior.sql"
   ]
+,  [
+    "Prepare current songs SELECT policy fixture",
+    "tests/db/songs_select_policy_fixture.sql"
+  ],
+  [
+    "Prove redundant songs SELECT policy cleanup preserves RLS visibility",
+    "tests/db/songs_select_policy_redundancy.sql"
+  ]
 ];
 
 if (!process.env.PGHOST || !process.env.PGDATABASE || !process.env.PGPASSWORD) {
