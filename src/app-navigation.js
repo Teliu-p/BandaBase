@@ -419,7 +419,7 @@ function renderRecentProposalResults(
 }
 
 
-async function loadRecentProposalsPreview() {
+async function loadRecentProposalsPreview(propagateErrors = false) {
   const container =
     document.getElementById(
       "recentProposalsPreview"
@@ -552,6 +552,7 @@ async function loadRecentProposalsPreview() {
         })
         .join("");
   } catch (error) {
+    if (propagateErrors) throw error;
     container.innerHTML =
       '<div class="home-recent-empty">No se pudieron cargar las propuestas.</div>';
   }
