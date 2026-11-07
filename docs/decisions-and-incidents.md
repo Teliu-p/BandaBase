@@ -287,3 +287,12 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 
 
 - Reconstrucción nueva en PR #147: CI [#42098206552](https://github.com/Teliu-p/BandaBase/actions/runs/42098206552) pasó con 18 smoke tests Chromium. Los tests usan movimientos reales de mouse y el flujo HTML Drag and Drop nativo, y cubren PDF/audio, ubicación de caret, orden, identidad del nodo y cancelación. PR sigue abierta; falta Pages y confirmación manual.
+
+### 2026-11-06 — autoedición segura de participantes en Listas (PR #149 en revisión)
+
+- El historial remoto de migraciones ya quedó alineado con los 60 archivos de origin/main; no confundir tracking alineado con prueba histórica de cada sentencia. No ejecutar db push ni re-ejecutar SQL histórico.
+- La política UPDATE de band_list_items en producción ya es una sola política, consolidada por 20261020232312_harden_storage_and_list_item_policies.sql. PR #98 quedó desactualizada porque pretendía volver a reemplazar esa política.
+- La brecha actual se confirmó en private.prevent_manager_list_item_edit(): un integrante anotado podía modificar campos de su propia fila además de los instrumentos.
+- PR #149 añade una migración que limita la autoedición, mantiene los permisos del creador/admin/responsable y conserva la auto-confirmación interna. No modifica políticas RLS.
+- CI de PR #149 pasó el 2026-11-07 UTC / 2026-11-06 Argentina: PostgreSQL 17 descartable, reproducción pre-fix, pruebas posteriores de admin/creador/responsable/integrante/externo/papelera/auto-confirmación, npm test, ESLint y 18 smoke tests Chromium. Run: https://github.com/Teliu-p/BandaBase/actions/runs/42323742315.
+- La prueba es una fixture fiel a los objetos relevantes observados, no una réplica completa del proyecto. PR sigue abierta como borrador; no fusionar ni aplicar a producción antes de validar en una copia restaurada y hacer prueba autenticada multiusuario.
