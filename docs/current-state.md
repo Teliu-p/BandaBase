@@ -1,9 +1,9 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-11-06, Argentina.  
-**Último HEAD funcional inspeccionado:** `2d0af16f527fc29d4b840ff9a2f2d884b8af55fb` (PR #147 fusionada). Después se agregaron commits exclusivamente documentales; verificar el HEAD actual antes de trabajar. Tests [#42098668867](https://github.com/Teliu-p/BandaBase/actions/runs/42098668867) y Pages [#42098667320](https://github.com/Teliu-p/BandaBase/actions/runs/42098667320) pasaron. El arrastre de adjuntos requiere validación manual del usuario; PR #148 está abierta y su ejecución de Tests observada falló: [#42101112706](https://github.com/Teliu-p/BandaBase/actions/runs/42101112706).  
+**Última actualización:** 2026-11-07, Argentina.  
+**HEAD de `main` verificado:** `5d003055e5067cb3bfdb53c8c54bcdd9b073eaf9`. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
 **Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
-**Auditoría integral vigente:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md). La auditoría fue de solo lectura; no se tocaron datos, esquema, permisos ni lógica funcional.
+**Estado reciente:** 61 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.
 
 ## 0. Fotografía integral del 2026-11-05
 
@@ -337,3 +337,16 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Validación E2E manual completada por el usuario con dos sesiones Auth independientes en la aplicación local: `saumerio40` como owner y `lopenzio50` como member. El usuario confirmó que ambas cuentas iniciaron sesión y que las pruebas de autoedición de instrumentos, bloqueo de auto-confirmación directa y protección de la participación de terceros funcionaron según lo esperado.
 - Estado: PR #149 queda lista para revisión en `fix/band-list-self-service-guard-20261106`. No está fusionada ni desplegada y no se aplicó la migración a Supabase de producción. PR #98 sigue siendo una propuesta antigua y no debe fusionarse tal cual.
 - Validaciones técnicas y E2E previstas para esta corrección: completadas. Antes de integrar todavía corresponde la revisión final del diff y la decisión de merge. No ejecutar `db push` en producción como parte de esta validación.
+
+
+## 22. Cierre de PR #149 y estado operativo (2026-11-07)
+
+- HEAD actual de `main`: `5d003055e5067cb3bfdb53c8c54bcdd9b073eaf9`. PR #149 se fusionó como ese commit. PR #150 se fusionó como `67a226a0e325fffd61fd60226e7e7c4c47267c54`; PR #151 como `e4a63fb65bf82c07b7fd7af00edae8603a77524e`.
+- CI de main y Pages pasaron para HEAD `5d00305`: [Tests #42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y [Pages #42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142). El usuario confirmó manualmente la posición exacta de arrastre de #150 y el refresco Realtime entre dos sesiones de #151.
+- Migración de permisos #149: `20261106210000_harden_band_list_item_self_service_guard.sql`. La función de trigger esperada está en producción y `manager_list_item_edit_guard` está habilitado. También están habilitados los triggers de auditoría, auto-confirmación, sincronización de repertorio y validación de cupos. `band_list_items` mantiene una sola política UPDATE, `band_list_items_update_control`.
+- Se corrigió el historial remoto: el registro creado por la aplicación inicial bajo versión automática `20261107214735` se marcó como reverted y la versión real del archivo `20261106210000` como applied, con `supabase migration repair`. La consulta final de `supabase migration list --remote` mostró que local y remoto coinciden en las 61 versiones. Esta operación solo corrigió metadatos; no volvió a ejecutar ni revertir SQL. No ejecutar `db push` para este caso.
+- CI específico de PR #149: [run #42328986494](https://github.com/Teliu-p/BandaBase/actions/runs/42328986494), con los jobs PostgreSQL 17 aislado y test general exitosos. La validación del restore-lab terminó en `ROLLBACK`. La prueba manual de dos sesiones se hizo en la copia local; no se afirma que se haya repetido en producción.
+- Inspección de producción de solo lectura: proyecto ACTIVE_HEALTHY; 28 tablas públicas con RLS; 74 políticas públicas; 20 tablas publicadas en Realtime; 61 versiones distintas en `schema_migrations`, sin duplicados; bucket `materials` privado, límite 52.428.800 bytes (50 MiB).
+- No hay datos activos adecuados para reproducir todas las ramas de permisos en producción: las tres listas existentes tienen `deleted_at`, cero listas activas, cero responsables asignados y tres filas `member` ya confirmadas. No se modificaron esos datos ni se sembraron filas de prueba.
+- Asesores Supabase observados: dos SECURITY DEFINER accesibles a `authenticated` (`get_proposal_vote_stats`, `is_band_member`); protección de contraseñas filtradas desactivada; 33 índices marcados como no usados y 11 grupos de políticas permisivas múltiples en otras tablas. No se hicieron cambios a esos puntos. El asesor de salud no devolvió hallazgos.
+- PR #98 permanece abierta como borrador obsoleto: no fusionar su SQL porque parte de una política UPDATE duplicada ya eliminada por `20261020232312`. PR #148 permanece abierta como diagnóstico de caret; la prueba manual aceptada en PR #150 resolvió el problema que investigaba, pero no se cambió su estado.
