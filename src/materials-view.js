@@ -248,7 +248,7 @@ function getAttachmentLabel(
 }
 
 
-async function loadMaterials() {
+async function loadMaterials(propagateErrors = false) {
 
   const materialsList =
     document.getElementById(
@@ -283,14 +283,9 @@ async function loadMaterials() {
   if (String(currentSong?.id || "") !== songId) return;
 
   if (error) {
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
     return;
-
   }
 
   const materialRows =
@@ -317,14 +312,9 @@ async function loadMaterials() {
   if (String(currentSong?.id || "") !== songId) return;
 
   if (attachmentError) {
-
-    showNotice(
-      attachmentError.message,
-      "error"
-    );
-
+    if (propagateErrors) throw attachmentError;
+    showNotice(attachmentError.message, "error");
     return;
-
   }
 
   const attachmentsById =
@@ -349,14 +339,9 @@ async function loadMaterials() {
   if (String(currentSong?.id || "") !== songId) return;
 
   if (blockError) {
-
-    showNotice(
-      blockError.message,
-      "error"
-    );
-
+    if (propagateErrors) throw blockError;
+    showNotice(blockError.message, "error");
     return;
-
   }
 
   const blocksByMaterial = {};
