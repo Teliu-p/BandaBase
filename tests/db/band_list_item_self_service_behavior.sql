@@ -213,18 +213,17 @@ begin
   -- Direct self-confirmation is rejected while the slot is available.
   select status into actual_status
   from public.band_list_items
-  where id = '50000000-0000-0000-0000-000000000005';
-  raise notice 'Before direct self-confirmation: status=%, auth.uid=%',
-    actual_status, auth.uid();
+  where id = '50000000-0000-0000-0000-000000000007';
   if actual_status <> 'Anotado' then
     raise exception 'Fixture state invalid before self-confirmation test: %', actual_status;
   end if;
+
   caught_expected_error := false;
   affected := -1;
   begin
     update public.band_list_items
     set status = 'Confirmado'
-    where id = '50000000-0000-0000-0000-000000000005';
+    where id = '50000000-0000-0000-0000-000000000007';
     get diagnostics affected = row_count;
   exception
     when raise_exception or insufficient_privilege then caught_expected_error := true;
@@ -234,7 +233,7 @@ begin
   end if;
   select status into actual_status
   from public.band_list_items
-  where id = '50000000-0000-0000-0000-000000000005';
+  where id = '50000000-0000-0000-0000-000000000007';
   if actual_status <> 'Anotado' then
     raise exception 'Rejected direct self-confirmation changed status.';
   end if;
@@ -242,7 +241,7 @@ begin
   -- A valid self-service instrument change still triggers trusted auto-confirmation.
   update public.band_list_items
   set participation_instruments = array['bass']::text[]
-  where id = '50000000-0000-0000-0000-000000000005';
+  where id = '50000000-0000-0000-0000-000000000008';
   get diagnostics affected = row_count;
   if affected <> 1 then
     raise exception 'Valid instrument update was rejected on an available-capacity list.';
@@ -250,7 +249,7 @@ begin
   select status, participation_instruments
   into actual_status, actual_instruments
   from public.band_list_items
-  where id = '50000000-0000-0000-0000-000000000005';
+  where id = '50000000-0000-0000-0000-000000000008';
   if actual_status <> 'Confirmado' then
     raise exception 'Trusted auto-confirmation did not transition the eligible participant.';
   end if;
