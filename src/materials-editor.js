@@ -386,7 +386,7 @@ function insertMaterialNativeDropPadding(range, event, editor) {
     lineHeight, spaceWidth, contentStartX
   );
 
-  let prefix = "\\n".repeat(padding.lineBreaks);
+  let prefix = "\n".repeat(padding.lineBreaks);
   if (padding.lineBreaks > 0) {
     prefix += " ".repeat(padding.spaces);
   } else if (event.clientX > caret.x &&
