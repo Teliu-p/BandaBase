@@ -334,7 +334,12 @@ async function flushBandabaseRealtimeRefreshes() {
     );
 
     if (failedDomains.length) {
-      failedDomains.forEach(domain => bandabaseRealtimePendingDomains.add(domain));
+      failedDomains.forEach(domain => {
+        bandabaseRealtimePendingDomains.add(domain);
+        if (domain === "songs") {
+          changedSongIds.forEach(id => bandabaseRealtimePendingSongIds.add(id));
+        }
+      });
 
       const failed = results.find(result => result.status === "rejected");
       console.error(
