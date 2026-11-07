@@ -64,7 +64,7 @@ function renderOriginalComparisonMaterialView() {
 }
 
 
-async function loadOriginalComparisonMaterial() {
+async function loadOriginalComparisonMaterial(propagateErrors = false) {
 
   if (!currentSong) {
     return;
@@ -193,12 +193,12 @@ async function loadOriginalComparisonMaterial() {
 
   } catch (error) {
     if (currentSong?.id !== songId) return;
+    if (propagateErrors) throw error;
 
     console.error(
       "No se pudo cargar la comparación con la original.",
       error
     );
-
   }
 }
 
