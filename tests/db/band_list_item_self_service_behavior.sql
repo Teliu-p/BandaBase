@@ -211,6 +211,14 @@ begin
   end if;
 
   -- Direct self-confirmation is rejected while the slot is available.
+  select status into actual_status
+  from public.band_list_items
+  where id = '50000000-0000-0000-0000-000000000005';
+  raise notice 'Before direct self-confirmation: status=%, auth.uid=%',
+    actual_status, auth.uid();
+  if actual_status <> 'Anotado' then
+    raise exception 'Fixture state invalid before self-confirmation test: %', actual_status;
+  end if;
   caught_expected_error := false;
   affected := -1;
   begin
