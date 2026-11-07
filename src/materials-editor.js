@@ -472,7 +472,7 @@ function updateMaterialNativeDropPreviewWidth(state, placeholder) {
   const next = placeholder.nextSibling;
   const needsTrailingSpace = !(
     next?.nodeType === Node.TEXT_NODE &&
-    /^[\\s\\u00a0]/.test(next.nodeValue || "")
+    /^[\s\u00a0]/.test(next.nodeValue || "")
   );
   const trailingSpaceWidth = needsTrailingSpace ? state.spaceWidth : 0;
   placeholder.style.width = String(state.attachmentWidth + trailingSpaceWidth) + "px";
@@ -545,7 +545,7 @@ function commitMaterialNativeAttachmentDrop(state) {
   // The chip's own CSS margin provides visual separation before it.
   // Only reserve a trailing text space when the following node needs one.
   const next = attachment.nextSibling;
-  if (!(next?.nodeType === Node.TEXT_NODE && /^[\\s\\u00a0]/.test(next.nodeValue || ""))) {
+  if (!(next?.nodeType === Node.TEXT_NODE && /^[\s\u00a0]/.test(next.nodeValue || ""))) {
     parent.insertBefore(document.createTextNode(" "), attachment.nextSibling);
   }
 
