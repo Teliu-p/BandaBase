@@ -915,18 +915,20 @@ test("Realtime keeps failed refreshes queued and confirms synchronization only a
     const notice = document.getElementById("notice");
     const originalNotice = notice?.innerHTML || "";
     const delays = [];
+    const refreshedSongIds = [];
     let attempts = 0;
 
     currentUser = { id: "user-1" };
     currentBand = { id: "band-1" };
     bandabaseRealtimePendingDomains = new Set(["songs"]);
-    bandabaseRealtimePendingSongIds = new Set();
+    bandabaseRealtimePendingSongIds = new Set(["song-retry-1"]);
     bandabaseRealtimePendingChangeNotice = true;
     bandabaseRealtimeRetryAttempt = 0;
     bandabaseRealtimeRefreshWarningShown = false;
 
-    refreshBandabaseRealtimeDomain = async () => {
+    refreshBandabaseRealtimeDomain = async (_domain, songIds) => {
       attempts += 1;
+      refreshedSongIds.push(Array.from(songIds || []));
       if (attempts === 1) {
         throw new Error("Fallo temporal de prueba");
       }
@@ -939,6 +941,7 @@ test("Realtime keeps failed refreshes queued and confirms synchronization only a
     const afterFailure = {
       queued: bandabaseRealtimePendingDomains.has("songs"),
       retryDelay: delays[0] ?? null,
+      pendingSongIds: Array.from(bandabaseRealtimePendingSongIds),
       notice: notice?.textContent || ""
     };
 
@@ -946,6 +949,7 @@ test("Realtime keeps failed refreshes queued and confirms synchronization only a
     const afterRetry = {
       queued: bandabaseRealtimePendingDomains.has("songs"),
       attempts,
+      refreshedSongIds,
       notice: notice?.textContent || "",
       pendingNotice: bandabaseRealtimePendingChangeNotice
     };
