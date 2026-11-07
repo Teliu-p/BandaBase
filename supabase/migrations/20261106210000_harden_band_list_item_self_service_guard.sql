@@ -69,10 +69,11 @@ begin
         return new;
       end if;
 
-      -- The SECURITY DEFINER auto-confirmation function marks only its internal
-      -- status update. It may not change instruments or any other row field.
+      -- Automatic confirmation is issued by the existing AFTER trigger while
+      -- that trigger is still on the call stack. Its nested UPDATE reaches this
+      -- guard at depth > 1; a direct client UPDATE reaches it at depth 1.
       if new.status = 'Confirmado'
-         and current_setting('bandabase.auto_confirming_list_items', true) = 'on'
+         and pg_trigger_depth() > 1
          and new.participation_instruments is not distinct from old.participation_instruments
          and (to_jsonb(new) - 'status') is not distinct from (to_jsonb(old) - 'status') then
         return new;
@@ -100,92 +101,5 @@ begin
   end if;
 
   return new;
-end;
-$function$;
-
--- Preserve the existing capacity calculation and row lock. Add a transaction-
--- local marker around the trusted status update so the guard above can distinguish
--- automatic confirmation from a direct client attempt.
-create or replace function public.auto_confirm_band_list_members(p_list_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path to 'public', 'pg_catalog'
-as $function$
-declare
-  v_slots jsonb;
-  v_ok boolean := true;
-  v_instrument text;
-  v_confirmed integer;
-  v_annotated integer;
-  v_limit integer;
-  v_previous_marker text;
-begin
-  select instrument_slots into v_slots
-  from public.band_lists
-  where id = p_list_id and deleted_at is null
-  for update;
-
-  if not found or v_slots is null or v_slots = '{}'::jsonb then
-    return;
-  end if;
-
-  for v_instrument in
-    select distinct x.instrument
-    from public.band_list_items i
-    cross join lateral unnest(i.participation_instruments) as x(instrument)
-    where i.list_id = p_list_id
-      and i.item_type = 'member'
-      and i.status in ('Anotado', 'Confirmado')
-  loop
-    select count(*) into v_confirmed
-    from public.band_list_items i
-    where i.list_id = p_list_id
-      and i.item_type = 'member'
-      and i.status = 'Confirmado'
-      and v_instrument = any(i.participation_instruments);
-
-    select count(*) into v_annotated
-    from public.band_list_items i
-    where i.list_id = p_list_id
-      and i.item_type = 'member'
-      and i.status = 'Anotado'
-      and v_instrument = any(i.participation_instruments);
-
-    v_limit := coalesce((v_slots ->> v_instrument)::integer, 0);
-
-    if v_confirmed + v_annotated > v_limit then
-      v_ok := false;
-      exit;
-    end if;
-  end loop;
-
-  if v_ok then
-    v_previous_marker := current_setting('bandabase.auto_confirming_list_items', true);
-    perform set_config('bandabase.auto_confirming_list_items', 'on', true);
-
-    begin
-      update public.band_list_items
-      set status = 'Confirmado'
-      where list_id = p_list_id
-        and item_type = 'member'
-        and status = 'Anotado'
-        and cardinality(participation_instruments) > 0;
-    exception
-      when others then
-        perform set_config(
-          'bandabase.auto_confirming_list_items',
-          coalesce(v_previous_marker, ''),
-          true
-        );
-        raise;
-    end;
-
-    perform set_config(
-      'bandabase.auto_confirming_list_items',
-      coalesce(v_previous_marker, ''),
-      true
-    );
-  end if;
 end;
 $function$;
