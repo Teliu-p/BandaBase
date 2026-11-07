@@ -58,3 +58,29 @@ No se creó una rama de Supabase de pago ni se modificó la base en esta revisi�
 La auditoría integral del 5 de noviembre volvió a comparar directamente `supabase/migrations/` en GitHub con `list_migrations` del proyecto remoto. El recuento actual es **60 archivos locales y 48 versiones remotas**. Persisten exactamente las mismas 12 versiones locales sin fila remota enumeradas en la sección 1; no hay versiones remotas sin archivo local. El recuento anterior de 56/44 de este documento quedó desactualizado porque cuatro migraciones posteriores ya están presentes en ambos lados. No se modificó el historial remoto ni se ejecutó SQL durante esta actualización.
 
 Informe actualizado: [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md). Mantener la recomendación: no ejecutar `db push`, no borrar archivos y no marcar versiones como aplicadas en bloque. Cada una debe reconciliarse con evidencia del esquema/efectos y, solo después, corregirse el metadato con el mecanismo oficial.
+
+## Addendum de resultado — 2026-11-06
+
+La reparación del tracking se completó con autorización explícita del usuario, después de generar y probar un respaldo restaurable local. Se usó el mecanismo oficial de CLI supabase migration repair --status applied --remote para registrar las doce versiones listadas en la sección 1; la CLI confirmó las doce y supabase migration list --remote mostró 60 versiones en ambos lados.
+
+Comparación directa posterior:
+- origin/main (cc48a6bb172741878f000154066adec4fb3e1d94): 60 archivos SQL.
+- supabase_migrations.schema_migrations: 60 versiones.
+- Archivos de GitHub sin versión remota: 0.
+- Versiones remotas sin archivo en GitHub: 0.
+- Versiones duplicadas en los archivos de GitHub: 0.
+
+Alcance exacto: migration repair modificó solo el historial de versiones; no ejecutó los SQL de las doce migraciones. Después se consultó producción en solo lectura: 28 tablas públicas con RLS, 74 políticas públicas, 0 índices inválidos, 0 restricciones no validadas y los conteos de 18 tablas con datos coincidieron con la restauración local (2.561 filas).
+
+Limitación que sigue vigente: la igualdad del historial no certifica que todas las sentencias de cada SQL histórico se ejecutaran literalmente ni reconstruye por sí sola las transformaciones de datos anteriores. En particular, el estado final no prueba la secuencia histórica exacta de normalización de estados en 20261007190000 ni la conversión de valores en 20261007200000. No re-ejecutar esos archivos y no usar db push para intentar completar la historia.
+
+La PR #98 quedó obsoleta como solución directa: 20261020232312_harden_storage_and_list_item_policies.sql ya instaló en producción una única política UPDATE para band_list_items. La brecha que subsiste está en el trigger private.prevent_manager_list_item_edit(), que no restringe todos los campos editables por el propio integrante. PR #149 contiene la corrección trigger-only; las pruebas CI, la validación de restauración local y el E2E manual con sesiones autenticadas independientes ya pasaron. La PR está lista para revisión, pero todavía no se fusionó ni se aplicó a producción. Ver docs/current-state.md.
+
+## Actualización 2026-11-07 — validación local de PR #149
+
+La PR #149 completó las validaciones que estaban pendientes en el addendum anterior:
+- El CI del commit de código `1d38cac5d179fdb98ab97f21a9beb3c264b88401` pasó en run #42328986494 (PostgreSQL 17, npm test, ESLint/no-undef y 18 smoke tests Chromium).
+- La prueba `tests/db/band_list_item_self_service_restore_validation.sql` pasó contra la restauración completa local y finalizó con `ROLLBACK`.
+- El usuario ejecutó pruebas E2E manuales en la aplicación local con dos sesiones Auth independientes: `saumerio40` como owner y `lopenzio50` como member. Confirmó que los accesos y las reglas de autoedición/confirmación/protección de filas ajenas funcionaron según lo esperado.
+
+Por lo tanto, las validaciones técnicas y E2E planificadas para PR #149 están completadas. La PR queda lista para revisión; todavía no está fusionada ni desplegada y no se aplicó la migración a producción. La revisión del diff y la decisión de integración siguen siendo pasos separados.
