@@ -182,7 +182,7 @@ function adminChangedFields(row) {
   return changed.join(", ");
 }
 
-async function loadAdminPanel() {
+async function loadAdminPanel(propagateErrors = false) {
   if (!bandabaseIsAdminRole() || !currentBand) {
     return;
   }
@@ -203,18 +203,14 @@ async function loadAdminPanel() {
   ]);
 
   if (auditResult.error) {
-    showNotice(
-      auditResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw auditResult.error;
+    showNotice(auditResult.error.message, "error");
     return;
   }
 
   if (trashResult.error) {
-    showNotice(
-      trashResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw trashResult.error;
+    showNotice(trashResult.error.message, "error");
     return;
   }
 
