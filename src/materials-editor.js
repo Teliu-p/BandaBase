@@ -465,6 +465,38 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
 }
 
 
+function addMaterialNativeDropPreviewSpacing(state, placeholder) {
+  const parent = placeholder?.parentNode;
+  if (!state || !parent) return;
+
+  const previous = placeholder.previousSibling;
+  if (!(previous?.nodeType === Node.TEXT_NODE && /[\\s\\u00a0]$/.test(previous.nodeValue || ""))) {
+    state.previewSpacerBefore = document.createTextNode(" ");
+    parent.insertBefore(state.previewSpacerBefore, placeholder);
+  }
+
+  const next = placeholder.nextSibling;
+  if (!(next?.nodeType === Node.TEXT_NODE && /^[\\s\\u00a0]/.test(next.nodeValue || ""))) {
+    state.previewSpacerAfter = document.createTextNode(" ");
+    parent.insertBefore(state.previewSpacerAfter, placeholder.nextSibling);
+  }
+}
+
+
+function removeMaterialNativeDropPreviewSpacing(state) {
+  if (!state) return;
+
+  const beforeParent = state.previewSpacerBefore?.parentNode || null;
+  const afterParent = state.previewSpacerAfter?.parentNode || null;
+  state.previewSpacerBefore?.remove();
+  state.previewSpacerAfter?.remove();
+  state.previewSpacerBefore = null;
+  state.previewSpacerAfter = null;
+  beforeParent?.normalize();
+  if (afterParent && afterParent !== beforeParent) afterParent.normalize();
+}
+
+
 function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
   const placeholder = state?.dropPlaceholder;
   if (!placeholder || !editor || !event) return false;
@@ -475,7 +507,9 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
     oldMarker = document.createComment("material-drop-preview-position");
     placeholder.before(oldMarker);
     oldParent = oldMarker.parentNode;
+    removeMaterialNativeDropPreviewSpacing(state);
     placeholder.remove();
+    oldParent?.normalize();
   }
 
   const range = getMaterialNativeDropRangeAtPoint(event.clientX, event.clientY, editor);
@@ -483,6 +517,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
       (range.startContainer !== editor && !editor.contains(range.startContainer))) {
     if (oldMarker?.parentNode) {
       oldMarker.replaceWith(placeholder);
+      addMaterialNativeDropPreviewSpacing(state, placeholder);
       oldParent?.normalize();
     }
     return false;
@@ -490,6 +525,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
 
   range.collapse(true);
   range.insertNode(placeholder);
+  addMaterialNativeDropPreviewSpacing(state, placeholder);
   oldMarker?.remove();
   oldParent?.normalize();
   return true;
@@ -501,7 +537,10 @@ function restoreMaterialNativeAttachmentDrag(state) {
   const { attachment, sourceMarker, previousSpacer, nextSpacer } = state;
   if (!sourceMarker?.parentNode) return false;
 
+  const previewParent = state.dropPlaceholder?.parentNode;
+  removeMaterialNativeDropPreviewSpacing(state);
   state.dropPlaceholder?.remove();
+  previewParent?.normalize();
   sourceMarker.replaceWith(attachment);
   if (state.originalStyle === null) attachment.removeAttribute("style");
   else attachment.setAttribute("style", state.originalStyle);
