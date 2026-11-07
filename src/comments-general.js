@@ -138,7 +138,7 @@ async function fetchCommentData(
 }
 
 
-async function loadGeneralComments() {
+async function loadGeneralComments(propagateErrors = false) {
   if (!currentBand) return;
 
   const list =
@@ -208,15 +208,13 @@ async function loadGeneralComments() {
 
     renderGeneralComments();
   } catch (error) {
-    showNotice(
-      error.message,
-      "error"
-    );
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
   }
 }
 
 
-async function loadRecentGeneralComments() {
+async function loadRecentGeneralComments(propagateErrors = false) {
   if (!currentBand) return;
 
   try {
@@ -278,10 +276,8 @@ async function loadRecentGeneralComments() {
 
     renderRecentGeneralComments();
   } catch (error) {
-    showNotice(
-      error.message,
-      "error"
-    );
+    if (propagateErrors) throw error;
+    showNotice(error.message, "error");
   }
 }
 
