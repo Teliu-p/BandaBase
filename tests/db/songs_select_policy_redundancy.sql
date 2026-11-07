@@ -128,7 +128,7 @@ BEGIN
 END;
 $structure_before$;
 
-\ir ../../supabase/migrations/20261107230500_remove_redundant_songs_select_policy.sql
+\ir ../../supabase/migrations/20261107231924_remove_redundant_songs_select_policy.sql
 
 DO $structure_after$
 BEGIN
