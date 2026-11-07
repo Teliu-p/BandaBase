@@ -699,7 +699,7 @@ function renderProposals() {
     });
 }
 
-async function loadProposals() {
+async function loadProposals(propagateErrors = false) {
   const list =
     document.getElementById("proposalsList");
 
@@ -719,14 +719,10 @@ async function loadProposals() {
   );
 
   if (error) {
+    if (propagateErrors) throw error;
     list.innerHTML =
       '<div class="empty-state">No se pudieron cargar las propuestas.</div>';
-
-    showNotice(
-      error.message,
-      "error"
-    );
-
+    showNotice(error.message, "error");
     return;
   }
 
@@ -765,10 +761,8 @@ async function loadProposals() {
     );
 
   if (attachmentsResult.error) {
-    showNotice(
-      attachmentsResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw attachmentsResult.error;
+    showNotice(attachmentsResult.error.message, "error");
     return;
   }
 
@@ -782,10 +776,8 @@ async function loadProposals() {
     );
 
   if (proposalBlocksResult.error) {
-    showNotice(
-      proposalBlocksResult.error.message,
-      "error"
-    );
+    if (propagateErrors) throw proposalBlocksResult.error;
+    showNotice(proposalBlocksResult.error.message, "error");
     return;
   }
 
@@ -930,10 +922,8 @@ async function loadProposals() {
     voteStatsResult.error;
 
   if (combinedError) {
-    showNotice(
-      combinedError.message,
-      "error"
-    );
+    if (propagateErrors) throw combinedError;
+    showNotice(combinedError.message, "error");
     return;
   }
 
@@ -1030,10 +1020,8 @@ async function loadProposals() {
       );
 
     if (profilesError) {
-      showNotice(
-        profilesError.message,
-        "error"
-      );
+      if (propagateErrors) throw profilesError;
+      showNotice(profilesError.message, "error");
       return;
     }
 
