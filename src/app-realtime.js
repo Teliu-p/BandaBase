@@ -29,6 +29,9 @@ let bandabaseRealtimeFlushTimer = null;
 let bandabaseRealtimeFlushRunning = false;
 let bandabaseRealtimeConnectionWarningShown = false;
 let bandabaseRealtimeDeferredWarningShown = false;
+let bandabaseRealtimeRefreshWarningShown = false;
+let bandabaseRealtimeRetryAttempt = 0;
+let bandabaseRealtimePendingChangeNotice = false;
 let bandabaseRealtimeSongDetailDirtyId = null;
 let bandabaseRealtimePendingDomains = new Set();
 let bandabaseRealtimePendingSongIds = new Set();
@@ -110,6 +113,7 @@ function rememberBandabaseRealtimeChange(payload) {
   }
 
   bandabaseRealtimePendingDomains.add(domain);
+  bandabaseRealtimePendingChangeNotice = true;
 
   if (payload.table === "songs" && row.id) {
     bandabaseRealtimePendingSongIds.add(String(row.id));
@@ -210,8 +214,8 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
   if (domain === "materials") {
     if (currentSong) {
       await Promise.all([
-        loadMaterials(),
-        loadOriginalComparisonMaterial()
+        loadMaterials(true),
+        loadOriginalComparisonMaterial(true)
       ]);
     }
     return;
@@ -219,9 +223,9 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
 
   if (domain === "comments") {
     const tasks = [];
-    if (currentSong) tasks.push(loadComments());
-    tasks.push(loadGeneralComments());
-    tasks.push(loadRecentGeneralComments());
+    if (currentSong) tasks.push(loadComments(true));
+    tasks.push(loadGeneralComments(true));
+    tasks.push(loadRecentGeneralComments(true));
     await Promise.all(tasks);
     return;
   }
@@ -266,9 +270,9 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
   }
 
   if (domain === "proposals") {
-    await loadProposals();
+    await loadProposals(true);
     if (typeof loadRecentProposalsPreview === "function") {
-      await loadRecentProposalsPreview();
+      await loadRecentProposalsPreview(true);
     }
     return;
   }
@@ -288,7 +292,7 @@ async function refreshBandabaseRealtimeDomain(domain, changedSongIds) {
       !document.getElementById("section-administracion")?.classList.contains("hidden") &&
       window.bandabaseIsAdmin?.()
     ) {
-      await loadAdminPanel();
+      await loadAdminPanel(true);
     }
   }
 }
@@ -316,6 +320,7 @@ async function flushBandabaseRealtimeRefreshes() {
   const bandId = String(currentBand.id);
 
   bandabaseRealtimeFlushRunning = true;
+  let retryDelay = null;
 
   try {
     const results = await Promise.allSettled(
@@ -324,20 +329,55 @@ async function flushBandabaseRealtimeRefreshes() {
 
     if (String(currentBand?.id || "") !== bandId) return;
 
-    const failed = results.find(result => result.status === "rejected");
-    if (failed) {
-      console.error("No se pudieron aplicar todas las actualizaciones en tiempo real.", failed.reason);
+    const failedDomains = readyDomains.filter(
+      (_domain, index) => results[index].status === "rejected"
+    );
+
+    if (failedDomains.length) {
+      failedDomains.forEach(domain => bandabaseRealtimePendingDomains.add(domain));
+
+      const failed = results.find(result => result.status === "rejected");
+      console.error(
+        "No se pudieron aplicar todas las actualizaciones en tiempo real.",
+        failed?.reason
+      );
+
+      if (!bandabaseRealtimeRefreshWarningShown) {
+        bandabaseRealtimeRefreshWarningShown = true;
+        showNotice(
+          "Llegó un cambio nuevo, pero no pude actualizar una de las vistas. Voy a reintentarlo automáticamente.",
+          "error"
+        );
+      }
+
+      retryDelay = Math.min(
+        1000 * (2 ** Math.min(bandabaseRealtimeRetryAttempt, 5)),
+        30000
+      );
+      bandabaseRealtimeRetryAttempt += 1;
+      return;
+    }
+
+    bandabaseRealtimeRetryAttempt = 0;
+    bandabaseRealtimeRefreshWarningShown = false;
+
+    if (bandabaseRealtimePendingChangeNotice) {
+      bandabaseRealtimePendingChangeNotice = false;
       showNotice(
-        "Llegó un cambio nuevo, pero no pude actualizar una de las vistas. La app seguirá escuchando; entrá de nuevo a esa sección para reintentar.",
-        "error"
+        "Los cambios compartidos se actualizaron.",
+        "success"
       );
     }
   } finally {
     bandabaseRealtimeFlushRunning = false;
+
     if (bandabaseRealtimePendingDomains.size) {
-      scheduleBandabaseRealtimeFlush();
+      scheduleBandabaseRealtimeFlush(
+        retryDelay ?? 160
+      );
     } else {
       bandabaseRealtimeDeferredWarningShown = false;
+      bandabaseRealtimeRefreshWarningShown = false;
     }
   }
 }
@@ -356,6 +396,9 @@ function stopBandabaseRealtime() {
   bandabaseRealtimeSongDetailDirtyId = null;
   bandabaseRealtimeConnectionWarningShown = false;
   bandabaseRealtimeDeferredWarningShown = false;
+  bandabaseRealtimeRefreshWarningShown = false;
+  bandabaseRealtimeRetryAttempt = 0;
+  bandabaseRealtimePendingChangeNotice = false;
 
   if (channel && typeof supabaseClient?.removeChannel === "function") {
     void supabaseClient.removeChannel(channel).catch(error => {
