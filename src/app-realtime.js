@@ -361,7 +361,10 @@ async function flushBandabaseRealtimeRefreshes() {
     bandabaseRealtimeRetryAttempt = 0;
     bandabaseRealtimeRefreshWarningShown = false;
 
-    if (bandabaseRealtimePendingChangeNotice) {
+    if (
+      !bandabaseRealtimePendingDomains.size &&
+      bandabaseRealtimePendingChangeNotice
+    ) {
       bandabaseRealtimePendingChangeNotice = false;
       showNotice(
         "Los cambios compartidos se actualizaron.",
