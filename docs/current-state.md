@@ -3,7 +3,7 @@
 **Última actualización:** 2026-11-07, Argentina.  
 **HEAD de `main` verificado:** `5d003055e5067cb3bfdb53c8c54bcdd9b073eaf9`. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
 **Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
-**Estado reciente:** 61 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.  
+**Estado reciente:** 62 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.  
 **Informe de auditoría base:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md), complementado por la actualización del 2026-11-07.
 
 ## 0. Fotografía integral del 2026-11-05
@@ -353,10 +353,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - PR #98 permanece abierta como borrador obsoleto: no fusionar su SQL porque parte de una política UPDATE duplicada ya eliminada por `20261020232312`. PR #148 permanece abierta como diagnóstico de caret; la prueba manual aceptada en PR #150 resolvió el problema que investigaba, pero no se cambió su estado.
 
 
-## 23. Limpieza de política SELECT redundante de Canciones (PR #153 en revisión)
+## 23. Limpieza de política SELECT redundante de Canciones (PR #153 aplicada, 2026-11-07)
 
-- Inspección de producción encontró dos políticas permisivas SELECT para `public.songs`: `songs_select_active_or_admin` y `songs_select_active_or_own_trash_or_admin`. Ambas requieren pertenencia activa a la banda. La segunda admite exactamente los mismos casos de la primera (canciones activas o cualquier canción para owner/admin) y suma el caso de la papelera propia (`deleted_by = auth.uid()`). Por tanto, la primera está lógicamente contenida en la segunda.
-- La migración histórica `20261007225000_allow_users_to_complete_soft_delete.sql` ya había ordenado eliminar la primera al crear la segunda; el catálogo actual todavía muestra ambas. Esto es coherente con una posible divergencia histórica entre tracking y efectos, y no se interpretó como motivo para reejecutar migraciones antiguas.
-- PR #153 propone una migración nueva, acotada a `DROP POLICY IF EXISTS songs_select_active_or_admin ON public.songs`. No cambia la expresión de la política restante, las columnas, datos ni funciones.
-- La prueba nueva registra la visibilidad con ambas políticas, ejecuta el SQL candidato dentro de una transacción y vuelve a comprobar admin, miembro propietario de papelera, otro miembro, miembro de otra banda y miembro inactivo; exige exactamente los mismos IDs visibles. Todo revierte con `ROLLBACK` al terminar.
-- Estado: en revisión; no aplicado a producción ni fusionado todavía.
+- Inspección de producción encontró dos políticas permisivas SELECT para `public.songs`: `songs_select_active_or_admin` y `songs_select_active_or_own_trash_or_admin`. Ambas requieren pertenencia activa a la banda. La segunda incluye todos los casos de la primera (canciones activas o cualquier canción para owner/admin) y suma la papelera propia (`deleted_by = auth.uid()`). Por tanto, la primera estaba lógicamente contenida en la segunda.
+- La migración histórica `20261007225000_allow_users_to_complete_soft_delete.sql` ya había ordenado eliminar la primera; el catálogo actual conservaba ambas. No se reejecutó la migración histórica.
+- PR #153 se fusionó como `73da35c32f1cfab99381e8a4d8d4347bb3b3d510`. La migración nueva `20261107231924_remove_redundant_songs_select_policy.sql` ejecutó únicamente `DROP POLICY IF EXISTS songs_select_active_or_admin ON public.songs`.
+- Supabase generó la versión `20261107231924` al aplicar la migración. El archivo de Git se renombró con ese prefijo para alinear el seguimiento del CLI y la versión remota; no se editó manualmente `schema_migrations` ni se necesitó `migration repair`.
+- Pruebas CI [#42424616317](https://github.com/Teliu-p/BandaBase/actions/runs/42424616317): jobs `test` y `database-policy` exitosos. La regresión PostgreSQL 17 compara los IDs visibles antes/después para admin, dos miembros con papelera propia/ajena, miembro de otra banda e integrante inactivo; el test termina con `ROLLBACK`.
+- Verificación posterior en producción: solo queda `songs_select_active_or_own_trash_or_admin` para SELECT en `songs`; se mantiene su expresión original. El linter de rendimiento pasó de 11 a 10 grupos de políticas permisivas; los 33 índices no usados permanecen sin cambios. El asesor de salud devolvió cero hallazgos.
+- Alcance: una política permisiva eliminada; sin cambios a datos, columnas, funciones, grants u otras políticas.

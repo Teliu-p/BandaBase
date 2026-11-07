@@ -310,9 +310,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Tests de main #42417389301 y Pages #42417389142 pasaron sobre HEAD `5d00305`. Supabase permaneció ACTIVE_HEALTHY; no hay hallazgos de asesor de salud. Persisten los avisos de SECURITY DEFINER/auth, índices sin uso y políticas permisivas múltiples ya descritos en `current-state.md`; no se modificaron.
 
 
-### 2026-11-07 — política SELECT redundante de Canciones (PR #153 en revisión)
+### 2026-11-07 — política SELECT redundante de Canciones (PR #153 aplicada)
 
-- Producción contiene las políticas permisivas `songs_select_active_or_admin` y `songs_select_active_or_own_trash_or_admin`. La condición de la segunda es una superconjunción: pertenencia activa y (registro activo, papelera propia o admin). Así incluye todos los casos de la primera y agrega la papelera propia; retirar la política más estrecha no reduce acceso.
-- La migración histórica `20261007225000_allow_users_to_complete_soft_delete.sql` ya contenía el DROP de la política antigua. El hecho de que ambas sigan presentes es una divergencia de estado frente a ese SQL versionado; no se reejecuta la migración histórica. Se crea una migración nueva de limpieza explícita.
-- La regresión compara los IDs visibles antes/después para admin, dos miembros con elementos propios/ajenos en papelera, miembro de otra banda e integrante inactivo. Incluye el SQL de la migración y termina con ROLLBACK.
-- No se modifica la política SELECT restante ni datos, funciones, grants o registros de migración anteriores.
+- Producción contenía las políticas permisivas `songs_select_active_or_admin` y `songs_select_active_or_own_trash_or_admin`. La condición de la segunda es una superconjunción: pertenencia activa y (registro activo, papelera propia o admin). Incluye todos los casos de la primera y agrega la papelera propia; retirar la política más estrecha no reduce acceso.
+- La migración histórica `20261007225000_allow_users_to_complete_soft_delete.sql` ya contenía el DROP de la política antigua, pero ambas aparecían en el catálogo real. No se reejecutó el SQL histórico.
+- PR #153 se fusionó como `73da35c32f1cfab99381e8a4d8d4347bb3b3d510`; aplicó solo `DROP POLICY IF EXISTS songs_select_active_or_admin ON public.songs`.
+- Supabase generó tracking `20261107231924`. Se renombró el archivo versionado a `20261107231924_remove_redundant_songs_select_policy.sql` para hacerlo coincidir con remoto; no se manipuló manualmente `schema_migrations` ni se ejecutó `migration repair`.
+- CI #42424616317 pasó en ambos jobs. La prueba compara las filas visibles por RLS antes/después para admin, miembros (papelera propia/ajena), otra banda e integrante inactivo y termina con ROLLBACK.
+- Verificación productiva: la única política SELECT para songs que permanece es `songs_select_active_or_own_trash_or_admin`; asesor de rendimiento redujo sus grupos permisivos de 11 a 10 y el asesor de salud no devolvió hallazgos. No se modificaron datos ni otras políticas.
