@@ -109,6 +109,25 @@ begin
     raise exception 'Manager status change did not persist.';
   end if;
 
+  -- The manager must not be able to clear a participant status.
+  caught_expected_error := false;
+  begin
+    update public.band_list_items
+    set status = null
+    where id = '50000000-0000-0000-0000-000000000003';
+  exception
+    when raise_exception then caught_expected_error := true;
+  end;
+  if not caught_expected_error then
+    raise exception 'Manager was able to clear another participant''s status.';
+  end if;
+  select status into actual_status
+  from public.band_list_items
+  where id = '50000000-0000-0000-0000-000000000003';
+  if actual_status is distinct from 'Confirmado' then
+    raise exception 'Rejected null status update changed the participant status.';
+  end if;
+
   -- Manager cannot change another participant's instruments.
   caught_expected_error := false;
   begin
