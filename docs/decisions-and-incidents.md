@@ -308,3 +308,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - PR #150 se fusionó como `67a226a0e325fffd61fd60226e7e7c4c47267c54`. El usuario confirmó en Chrome para Windows que el adjunto se inserta donde se suelta, incluso en renglón vacío o después del texto. CI #42408553067 pasó con 23 smoke tests Chromium.
 - PR #151 se fusionó como `e4a63fb65bf82c07b7fd7af00edae8603a77524e`. Reintenta refrescos fallidos de Realtime y separa el estado de vista previa de comentarios. El usuario confirmó el flujo en dos sesiones Auth; CI #42411975800 pasó con 21 smoke tests Chromium.
 - Tests de main #42417389301 y Pages #42417389142 pasaron sobre HEAD `5d00305`. Supabase permaneció ACTIVE_HEALTHY; no hay hallazgos de asesor de salud. Persisten los avisos de SECURITY DEFINER/auth, índices sin uso y políticas permisivas múltiples ya descritos en `current-state.md`; no se modificaron.
+
+
+### 2026-11-07 — política SELECT redundante de Canciones (PR #153 en revisión)
+
+- Producción contiene las políticas permisivas `songs_select_active_or_admin` y `songs_select_active_or_own_trash_or_admin`. La condición de la segunda es una superconjunción: pertenencia activa y (registro activo, papelera propia o admin). Así incluye todos los casos de la primera y agrega la papelera propia; retirar la política más estrecha no reduce acceso.
+- La migración histórica `20261007225000_allow_users_to_complete_soft_delete.sql` ya contenía el DROP de la política antigua. El hecho de que ambas sigan presentes es una divergencia de estado frente a ese SQL versionado; no se reejecuta la migración histórica. Se crea una migración nueva de limpieza explícita.
+- La regresión compara los IDs visibles antes/después para admin, dos miembros con elementos propios/ajenos en papelera, miembro de otra banda e integrante inactivo. Incluye el SQL de la migración y termina con ROLLBACK.
+- No se modifica la política SELECT restante ni datos, funciones, grants o registros de migración anteriores.
