@@ -461,12 +461,12 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
   return {
     attachment, sourceMarker, previousSpacer, nextSpacer,
     dropPlaceholder, dragImage, editor, originalStyle,
-    attachmentWidth: rect.width, spaceWidth, dropped: false
+    marginRight: style.marginRight, spaceWidth, dropped: false
   };
 }
 
 
-function updateMaterialNativeDropPreviewWidth(state, placeholder) {
+function updateMaterialNativeDropPreviewSpacing(state, placeholder) {
   if (!state || !placeholder?.parentNode) return;
 
   const next = placeholder.nextSibling;
@@ -474,8 +474,9 @@ function updateMaterialNativeDropPreviewWidth(state, placeholder) {
     next?.nodeType === Node.TEXT_NODE &&
     /^[\s\u00a0]/.test(next.nodeValue || "")
   );
-  const trailingSpaceWidth = needsTrailingSpace ? state.spaceWidth : 0;
-  placeholder.style.width = String(state.attachmentWidth + trailingSpaceWidth) + "px";
+  placeholder.style.marginRight = needsTrailingSpace
+    ? `calc(${state.marginRight} + ${state.spaceWidth}px)`
+    : state.marginRight;
 }
 
 
@@ -497,7 +498,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
       (range.startContainer !== editor && !editor.contains(range.startContainer))) {
     if (oldMarker?.parentNode) {
       oldMarker.replaceWith(placeholder);
-      updateMaterialNativeDropPreviewWidth(state, placeholder);
+      updateMaterialNativeDropPreviewSpacing(state, placeholder);
       oldParent?.normalize();
     }
     return false;
@@ -505,7 +506,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
 
   range.collapse(true);
   range.insertNode(placeholder);
-  updateMaterialNativeDropPreviewWidth(state, placeholder);
+  updateMaterialNativeDropPreviewSpacing(state, placeholder);
   oldMarker?.remove();
   oldParent?.normalize();
   return true;
