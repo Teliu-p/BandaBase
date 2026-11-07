@@ -54,7 +54,7 @@ begin
       raise exception 'Solo podés modificar los instrumentos de tu propia participación.';
     end if;
 
-    if new.status not in ('Anotado', 'Confirmado') then
+    if new.status is null or new.status not in ('Anotado', 'Confirmado') then
       raise exception 'Estado de participación inválido.';
     end if;
 
@@ -93,7 +93,7 @@ begin
       raise exception 'Los responsables solo pueden cambiar el estado de la participación.';
     end if;
 
-    if new.status not in ('Anotado', 'Confirmado') then
+    if new.status is null or new.status not in ('Anotado', 'Confirmado') then
       raise exception 'Estado de participación inválido.';
     end if;
 
