@@ -74,7 +74,7 @@ Alcance exacto: migration repair modificó solo el historial de versiones; no ej
 
 Limitación que sigue vigente: la igualdad del historial no certifica que todas las sentencias de cada SQL histórico se ejecutaran literalmente ni reconstruye por sí sola las transformaciones de datos anteriores. En particular, el estado final no prueba la secuencia histórica exacta de normalización de estados en 20261007190000 ni la conversión de valores en 20261007200000. No re-ejecutar esos archivos y no usar db push para intentar completar la historia.
 
-La PR #98 quedó obsoleta como solución directa: 20261020232312_harden_storage_and_list_item_policies.sql ya instaló en producción una única política UPDATE para band_list_items. La brecha que subsiste está en el trigger private.prevent_manager_list_item_edit(), que no restringe todos los campos editables por el propio integrante. El seguimiento actual está en PR #149; permanece en borrador y no se aplicó a producción. Ver docs/current-state.md.
+La PR #98 quedó obsoleta como solución directa: 20261020232312_harden_storage_and_list_item_policies.sql ya instaló en producción una única política UPDATE para band_list_items. La brecha que subsiste está en el trigger private.prevent_manager_list_item_edit(), que no restringe todos los campos editables por el propio integrante. PR #149 contiene la corrección trigger-only; las pruebas CI, la validación de restauración local y el E2E manual con sesiones autenticadas independientes ya pasaron. La PR está lista para revisión, pero todavía no se fusionó ni se aplicó a producción. Ver docs/current-state.md.
 
 ## Actualización 2026-11-07 — validación local de PR #149
 
