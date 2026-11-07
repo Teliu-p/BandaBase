@@ -452,7 +452,7 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
   dropPlaceholder.contentEditable = "false";
   dropPlaceholder.setAttribute("aria-hidden", "true");
   Object.assign(dropPlaceholder.style, {
-    width: String(reservedWidth) + "px",
+    width: String(rect.width) + "px",
     height: String(rect.height) + "px",
     margin: style.margin,
     verticalAlign: style.verticalAlign
@@ -460,8 +460,23 @@ function createMaterialNativeAttachmentDragState(attachment, event, editor) {
 
   return {
     attachment, sourceMarker, previousSpacer, nextSpacer,
-    dropPlaceholder, dragImage, editor, originalStyle, dropped: false
+    dropPlaceholder, dragImage, editor, originalStyle,
+    marginRight: style.marginRight, spaceWidth, dropped: false
   };
+}
+
+
+function updateMaterialNativeDropPreviewSpacing(state, placeholder) {
+  if (!state || !placeholder?.parentNode) return;
+
+  const next = placeholder.nextSibling;
+  const needsTrailingSpace = !(
+    next?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]/.test(next.nodeValue || "")
+  );
+  placeholder.style.marginRight = needsTrailingSpace
+    ? `calc(${state.marginRight} + ${state.spaceWidth}px)`
+    : state.marginRight;
 }
 
 
@@ -483,6 +498,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
       (range.startContainer !== editor && !editor.contains(range.startContainer))) {
     if (oldMarker?.parentNode) {
       oldMarker.replaceWith(placeholder);
+      updateMaterialNativeDropPreviewSpacing(state, placeholder);
       oldParent?.normalize();
     }
     return false;
@@ -490,6 +506,7 @@ function moveMaterialNativeAttachmentDropPreview(event, editor, state) {
 
   range.collapse(true);
   range.insertNode(placeholder);
+  updateMaterialNativeDropPreviewSpacing(state, placeholder);
   oldMarker?.remove();
   oldParent?.normalize();
   return true;
@@ -525,10 +542,9 @@ function commitMaterialNativeAttachmentDrop(state) {
   if (state.originalStyle === null) attachment.removeAttribute("style");
   else attachment.setAttribute("style", state.originalStyle);
 
-  const previous = attachment.previousSibling;
-  if (!(previous?.nodeType === Node.TEXT_NODE && /[\s\u00a0]$/.test(previous.nodeValue || ""))) {
-    parent.insertBefore(document.createTextNode(" "), attachment);
-  }
+  // Keep the dropped attachment's border box at the native caret.
+  // The chip's own CSS margin provides visual separation before it.
+  // Only reserve a trailing text space when the following node needs one.
   const next = attachment.nextSibling;
   if (!(next?.nodeType === Node.TEXT_NODE && /^[\s\u00a0]/.test(next.nodeValue || ""))) {
     parent.insertBefore(document.createTextNode(" "), attachment.nextSibling);
