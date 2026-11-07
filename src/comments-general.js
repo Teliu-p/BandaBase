@@ -13,7 +13,7 @@ function renderGeneralCommentCard(
     window.bandabaseIsAdmin?.();
 
   const canContextDelete =
-    canManageComment;
+    showActions && canManageComment;
 
   let html =
     '<article class="comment-card"' +
