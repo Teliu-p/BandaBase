@@ -1485,6 +1485,7 @@ test("the song metronome fits a narrow mobile viewport and accepts fractional BP
   await page.evaluate(() => {
     document.getElementById("app").classList.remove("hidden");
     document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("section-canciones").classList.remove("hidden");
     document.getElementById("songDetail").classList.remove("hidden");
   });
 
