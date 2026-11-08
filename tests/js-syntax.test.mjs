@@ -1721,6 +1721,10 @@ assert.equal(
   getMetronomeClickIntervalSeconds(120, "eighth"),
   0.25
 );
+assert.ok(
+  Math.abs(getMetronomeClickIntervalSeconds(123.45, "quarter") - 60 / 123.45) < 1e-12,
+  "El metrónomo debe calcular intervalos con BPM fraccionarios sin redondearlos."
+);
 
 assert.equal(getMetronomeManualSyncAudioZeroTime(20, 5), 15);
 assert.equal(getMetronomeManualSyncAudioZeroTime(3.5, 0.25), 3.25);
@@ -1799,6 +1803,20 @@ assert.match(
   readFileSync(indexPath, "utf8"),
   /id="metronomeSyncAudioInput" type="checkbox"/,
   "La interfaz debe permitir activar o desactivar la sincronización con audio."
+);
+
+const metronomeIndexSource = readFileSync(indexPath, "utf8");
+for (const id of ["newSongBpm", "detailBpm", "originalBpm", "metronomeBpmInput"]) {
+  assert.match(
+    metronomeIndexSource,
+    new RegExp('id="' + id + '"[\\s\\S]*?step="0\\.01"[\\s\\S]*?inputmode="decimal"'),
+    id + " debe admitir BPM con dos decimales y mostrar teclado decimal en celular."
+  );
+}
+assert.match(
+  metronomeSource,
+  /Math\.round\([\s\S]*?60000 \/ medianInterval[\s\S]*?\* 100[\s\S]*?\) \/ 100/,
+  "Tap tempo debe conservar hasta dos decimales en el resultado."
 );
 
 const {

@@ -2041,8 +2041,8 @@ function tapMetronomeTempo() {
 
       const bpm =
         Math.round(
-          60000 / medianInterval
-        );
+          (60000 / medianInterval) * 100
+        ) / 100;
 
       if (bpm >= 1 && bpm <= 400) {
 

@@ -26,6 +26,10 @@ const sqlFiles = [
   [
     "Prove redundant songs SELECT policy cleanup preserves RLS visibility",
     "tests/db/songs_select_policy_redundancy.sql"
+  ],
+  [
+    "Verify fractional song BPM migration preserves data and accepts two decimals",
+    "tests/db/songs_fractional_bpm.sql"
   ]
 ];
 

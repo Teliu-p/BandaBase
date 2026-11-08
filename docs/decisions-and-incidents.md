@@ -318,3 +318,11 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Supabase generó tracking `20261107231924`. Se renombró el archivo versionado a `20261107231924_remove_redundant_songs_select_policy.sql` para hacerlo coincidir con remoto; no se manipuló manualmente `schema_migrations` ni se ejecutó `migration repair`.
 - CI #42424616317 pasó en ambos jobs. La prueba compara las filas visibles por RLS antes/después para admin, miembros (papelera propia/ajena), otra banda e integrante inactivo y termina con ROLLBACK.
 - Verificación productiva: la única política SELECT para songs que permanece es `songs_select_active_or_own_trash_or_admin`; asesor de rendimiento redujo sus grupos permisivos de 11 a 10 y el asesor de salud no devolvió hallazgos. No se modificaron datos ni otras políticas.
+
+### 2026-11-08 — BPM con decimales y prueba de layout móvil (PR #155)
+
+- Se añade precisión de hasta dos decimales para BPM en alta, edición, BPM original y metrónomo. El HTML usa `step="0.01"` e `inputmode="decimal"`; tap tempo conserva dos decimales a partir de la mediana de intervalos.
+- La inspección de producción encontró `songs.bpm` y `songs.original_bpm` como `integer`. La migración `20261108055107_support_decimal_song_bpm.sql` los convierte a `numeric(5,2)` con `USING ...::numeric(5,2)`. El CHECK existente de 1–400 se mantiene. La conversión de los 20 valores BPM existentes y los NULLs de `original_bpm` no cambia su significado.
+- La migración se aplicó mediante Supabase y la versión generada `20261108055107` se alineó con el prefijo del archivo. La prueba SQL en PostgreSQL descartable conserva enteros/NULLs, escribe valores con dos decimales, y confirma que `400.01` sigue rechazado. En producción, una escritura temporal de `123.45`/`121.75` se leyó correctamente y se revirtió con `ROLLBACK`.
+- CI #42452516755 pasó en `test` y `database-policy`: 26 smoke tests Chromium, ESLint, sintaxis y regresión DB. El test móvil usa 360×800, verifica que los controles quedan dentro de viewport y que `123.45` fluye de la ficha al metrónomo.
+- No se hizo una prueba en un teléfono físico ni se reprodujo desde otra red. El test de viewport no debe presentarse como validación real Android/iOS. El cambio tampoco altera el modelo de sincronización: BPM sigue siendo constante y no existe detección de tempo por forma de onda.
