@@ -1807,20 +1807,15 @@ assert.match(
 
 const metronomeIndexSource = readFileSync(indexPath, "utf8");
 for (const id of ["newSongBpm", "detailBpm", "originalBpm", "metronomeBpmInput"]) {
-  const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\assert.match(
-  readFileSync(indexPath, "utf8"),
-  /id="metronomeSyncAudioInput" type="checkbox"/,
-  "La interfaz debe permitir activar o desactivar la sincronización con audio."
-);");
   assert.match(
     metronomeIndexSource,
-    new RegExp('id="' + escapedId + '"[\\s\\S]*?step="0\\.01"[\\s\\S]*?inputmode="decimal"'),
+    new RegExp('id="' + id + '"[\\s\\S]*?step="0\\.01"[\\s\\S]*?inputmode="decimal"'),
     id + " debe admitir BPM con dos decimales y mostrar teclado decimal en celular."
   );
 }
 assert.match(
   metronomeSource,
-  /Math\.round\([\\s\\S]*?60000 \/ medianInterval[\\s\\S]*?\* 100[\\s\\S]*?\) \/ 100/,
+  /Math\.round\([\s\S]*?60000 \/ medianInterval[\s\S]*?\* 100[\s\S]*?\) \/ 100/,
   "Tap tempo debe conservar hasta dos decimales en el resultado."
 );
 
