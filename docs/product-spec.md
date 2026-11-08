@@ -16,7 +16,7 @@ BandaBase organiza el trabajo musical de una banda de iglesia: catálogo, prepar
 - El selector de colores debe permanecer plegado o discreto hasta interacción; no ocupar espacio innecesario.
 - Formulario móvil en orientación vertical: Título → Artista → Género → Duración → BPM → Métrica. No alterar el orden de escritorio horizontal sin necesidad.
 - La comparación con la versión original debe mantener el panel de referencia oscuro, con duración/BPM/métrica/tonalidad a la izquierda y el editor de materiales de la versión propia siempre accesible a la derecha en escritorio.
-- Metrónomo vinculado a BPM y métrica; el BPM por defecto interpreta la negra. Permitir otras subdivisiones/valores cuando se configure, tap tempo y sincronización con valores editados. Si un metró­nomo está activo, detenerlo al salir de Canciones.
+- Metrónomo vinculado a BPM y métrica; el BPM por defecto interpreta la negra. Admitir BPM con hasta dos decimales en alta/edición de canciones, referencia original y metrónomo, también desde teclado decimal móvil; Tap tempo conserva dos decimales. Permitir otras subdivisiones, tap tempo y sincronización con valores editados. Si un metrónomo está activo, detenerlo al salir de Canciones.
 - Cambios en comparación, cantantes o metrónomo no deben hacer desaparecer Materiales ni borrar sus contenidos.
 
 ## 3. Cantantes, tonalidades y perfiles
