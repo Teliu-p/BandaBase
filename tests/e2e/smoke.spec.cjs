@@ -1478,6 +1478,64 @@ test("the login form remains within a narrow mobile viewport", async ({ page }) 
 });
 
 
+test("the song metronome fits a narrow mobile viewport and accepts fractional BPM", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const { runtimeErrors } = await openApp(page);
+
+  await page.evaluate(() => {
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("songDetail").classList.remove("hidden");
+  });
+
+  const card = page.locator("#metronomeCard");
+  await expect(card).toBeVisible();
+  await page.locator("#detailMeter").selectOption("4/4");
+  await page.locator("#detailBpm").fill("123.45");
+  await expect(page.locator("#metronomeBpmInput")).toHaveValue("123.45");
+
+  const layout = await page.evaluate(() => {
+    const detail = document.getElementById("songDetail");
+    const selectors = [
+      "#metronomeBpmInput",
+      "#metronomeTapTempoBtn",
+      "#metronomeMeterInput",
+      "#metronomeVolumeInput",
+      "#metronomeSyncAudioInput",
+      "#metronomeSyncCalibrateBtn"
+    ];
+    return {
+      detailClientWidth: detail.clientWidth,
+      detailScrollWidth: detail.scrollWidth,
+      controls: selectors.map(selector => {
+        const element = document.querySelector(selector);
+        const rect = element.getBoundingClientRect();
+        return {
+          selector,
+          left: rect.left,
+          right: rect.right,
+          visible: rect.width > 0 && rect.height > 0
+        };
+      }),
+      bpmStepMismatch: document.getElementById("detailBpm").validity.stepMismatch,
+      metronomeStepMismatch: document.getElementById("metronomeBpmInput").validity.stepMismatch,
+      parsedBpm: readMetronomeFormValues().bpm
+    };
+  });
+
+  expect(layout.detailScrollWidth).toBeLessThanOrEqual(layout.detailClientWidth + 1);
+  for (const control of layout.controls) {
+    expect(control.visible, control.selector + " should remain visible on mobile").toBe(true);
+    expect(control.left, control.selector + " should not overflow left").toBeGreaterThanOrEqual(-1);
+    expect(control.right, control.selector + " should not overflow right").toBeLessThanOrEqual(361);
+  }
+  expect(layout.bpmStepMismatch).toBe(false);
+  expect(layout.metronomeStepMismatch).toBe(false);
+  expect(layout.parsedBpm).toBe(123.45);
+  expect(runtimeErrors, "JavaScript errors in the mobile metronome view").toEqual([]);
+});
+
+
 test("pasting rich clipboard HTML preserves supported Materials formatting and markers", async ({ page }) => {
   const { runtimeErrors } = await openApp(page);
 
