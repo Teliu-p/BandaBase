@@ -9,7 +9,9 @@ const LOCAL_ATTACHMENT_TABLES = Object.freeze([
 ]);
 
 const DEFAULT_LOCAL_AUDIO_SERVER_URL = "http://127.0.0.1:8788";
-const LOCAL_AUDIO_SERVER_REQUEST_TIMEOUT_MS = 2500;
+const LOCAL_AUDIO_SERVER_REQUEST_TIMEOUT_MS = 8000;
+const LOCAL_AUDIO_SERVER_REQUEST_RETRIES = 1;
+const LOCAL_AUDIO_SERVER_RETRY_DELAY_MS = 350;
 const MAX_LOCAL_MATERIAL_AUDIO_UPLOAD_BYTES = 1024 * 1024 * 1024;
 const MATERIAL_AUDIO_MIME_BY_EXTENSION = Object.freeze({
   flac: "audio/flac",
@@ -92,36 +94,70 @@ async function requestLocalAttachmentUrl(table, attachmentId, download) {
   if (!accessToken) return null;
 
   const serverBaseUrl = getLocalAudioServerBaseUrl();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    LOCAL_AUDIO_SERVER_REQUEST_TIMEOUT_MS
-  );
+  let response = null;
 
-  let response;
-  try {
-    response = await fetch(new URL("/api/ticket", serverBaseUrl).toString(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + accessToken
-      },
-      body: JSON.stringify({
-        table,
-        attachment_id: attachmentId,
-        download
-      }),
-      signal: controller.signal
-    });
-  } catch (error) {
-    // Unavailable local access remains a Storage fallback only for the
-    // attachment tables that have not opted into local-only Materials audio.
-    if (error?.name === "AbortError" || error?.name === "TypeError") {
+  // Mobile connections may briefly lose the Funnel route while waking the
+  // host or crossing between networks. Allow a longer first response and one
+  // bounded retry for transport failures and transient server errors.
+  for (let attempt = 0; attempt <= LOCAL_AUDIO_SERVER_REQUEST_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      LOCAL_AUDIO_SERVER_REQUEST_TIMEOUT_MS
+    );
+
+    try {
+      response = await fetch(new URL("/api/ticket", serverBaseUrl).toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + accessToken
+        },
+        body: JSON.stringify({
+          table,
+          attachment_id: attachmentId,
+          download
+        }),
+        signal: controller.signal
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const retryable = error?.name === "AbortError" || error?.name === "TypeError";
+      if (!retryable) throw error;
+
+      if (attempt < LOCAL_AUDIO_SERVER_REQUEST_RETRIES) {
+        await new Promise(resolve => setTimeout(
+          resolve,
+          LOCAL_AUDIO_SERVER_RETRY_DELAY_MS * (attempt + 1)
+        ));
+        continue;
+      }
+
+      // Preserve the existing caller behavior after the bounded retry:
+      // Materials audio remains local-only; other attachment types may fall
+      // back to their existing Supabase Storage route.
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
+
+    if (
+      response.status >= 500 &&
+      attempt < LOCAL_AUDIO_SERVER_REQUEST_RETRIES
+    ) {
+      try {
+        await response.body?.cancel();
+      } catch {
+        // Discarding a small transient error response is best-effort.
+      }
+      await new Promise(resolve => setTimeout(
+        resolve,
+        LOCAL_AUDIO_SERVER_RETRY_DELAY_MS * (attempt + 1)
+      ));
+      continue;
+    }
+
+    break;
   }
 
   let payload = null;
