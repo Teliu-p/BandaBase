@@ -3553,7 +3553,7 @@ assert.match(
 );
 assert.match(
   groupedAudioSource,
-  /async function toggleMaterialAudioGroupPlayback[\s\S]*?ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)[\s\S]*?waitForMaterialAudioMetadata[\s\S]*?seekMaterialAudioPlayerToTime[\s\S]*?waitForMaterialAudioCanPlay[\s\S]*?players\.map\(player => player\.play\(\)\)/,
+  /async function toggleMaterialAudioGroupPlayback[\s\S]*?ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)[\s\S]*?waitForMaterialAudioMetadata[\s\S]*?seekMaterialAudioPlayerToTime[\s\S]*?waitForMaterialAudioCanPlay[\s\S]*?buffered\.some\(ready => !ready\)[\s\S]*?players\.forEach\(player => \{\s*player\.preload = "metadata";\s*\}\);[\s\S]*?players\.map\(player => player\.play\(\)\)/,
   "La reproducción de grupo debe precargar cada pista, alinearla, esperar datos en el playhead y lanzarlas juntas."
 );
 assert.match(
