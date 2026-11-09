@@ -547,6 +547,44 @@ function waitForMaterialAudioMetadata(player) {
 }
 
 
+function waitForMaterialAudioCanPlay(player, targetSeconds = Number(player?.currentTime) || 0, timeoutMs = 15000) {
+  if (!player) return Promise.resolve(false);
+  const isReadyAtTarget = () =>
+    !player.seeking &&
+    player.readyState >= 3 &&
+    Math.abs((Number(player.currentTime) || 0) - targetSeconds) <= 0.5;
+
+  if (isReadyAtTarget()) return Promise.resolve(true);
+
+  return new Promise(resolve => {
+    let settled = false;
+    let timeoutId = null;
+    const cleanup = () => {
+      player.removeEventListener("canplay", checkReady);
+      player.removeEventListener("seeked", checkReady);
+      player.removeEventListener("error", onError);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+    const finish = ready => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(ready);
+    };
+    const checkReady = () => {
+      if (isReadyAtTarget()) finish(true);
+    };
+    const onError = () => finish(false);
+
+    player.addEventListener("canplay", checkReady);
+    player.addEventListener("seeked", checkReady);
+    player.addEventListener("error", onError);
+    timeoutId = window.setTimeout(() => finish(isReadyAtTarget()), timeoutMs);
+    checkReady();
+  });
+}
+
+
 function disposeMaterialAudioSeekEnginePool() {
   for (const player of materialAudioSeekEnginePool.values()) {
     try {
@@ -805,7 +843,10 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
 
   try {
     if (allPlaying) {
-      players.forEach(player => player.pause());
+      players.forEach(player => {
+        player.pause();
+        player.preload = "metadata";
+      });
       return true;
     }
 
@@ -820,7 +861,9 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       if (!selectedPlayerSet.has(player) && !player.paused && !player.ended) player.pause();
     });
 
-    const loaded = await Promise.all(controls.map(control => control.ensureAudioUrl()));
+    const loaded = await Promise.all(controls.map(control =>
+      control.ensureAudioUrl({ preload: "auto" })
+    ));
     if (loaded.some(value => !value)) {
       throw new Error("No se pudieron cargar todas las pistas del grupo.");
     }
@@ -861,11 +904,20 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       throw new Error("No se pudieron alinear todas las pistas en la misma posición.");
     }
 
-    // Invoke play() in the same task, after every player is loaded and aligned.
+    // Prime every selected stream at the shared playhead before starting the group.
+    const buffered = await Promise.all(players.map(player =>
+      waitForMaterialAudioCanPlay(player, Number(player.currentTime) || startSeconds)
+    ));
+    if (buffered.some(ready => !ready)) {
+      throw new Error("La conexión no logró precargar todas las pistas del grupo. Probá de nuevo o reproducí menos pistas juntas.");
+    }
+
+    // Start only after every selected track has data available at the same position.
     await Promise.all(players.map(player => player.play()));
   } catch (error) {
     players.forEach(player => {
       if (!player.paused) player.pause();
+      player.preload = "metadata";
     });
     showNotice(
       error?.message || "No se pudieron iniciar las pistas al mismo tiempo.",
@@ -1133,6 +1185,7 @@ function bindMaterialViewEvents(root = document) {
     if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput || !speedSelect || !speedInput) return;
 
     const attachmentId = String(wrapper.dataset.materialAudioId || "");
+    let seekPreviewSeconds = null;
     setMaterialAudioPlaybackRate(
       player,
       materialAudioPlaybackRates.get(attachmentId) ?? 100
@@ -1166,7 +1219,8 @@ function bindMaterialViewEvents(root = document) {
         ? player.duration
         : null;
       const currentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
-      timeLabel.textContent = formatMaterialAudioTime(currentTime) + " / " +
+      const displayedTime = Number.isFinite(seekPreviewSeconds) ? seekPreviewSeconds : currentTime;
+      timeLabel.textContent = formatMaterialAudioTime(displayedTime) + " / " +
         (duration ? formatMaterialAudioTime(duration) : "--:--");
 
       seekInput.disabled = !duration;
@@ -1203,7 +1257,10 @@ function bindMaterialViewEvents(root = document) {
       return true;
     }
 
-    async function ensureAudioUrl() {
+    async function ensureAudioUrl(options = {}) {
+      const requestedPreload = options?.preload === "auto" ? "auto" : "metadata";
+      if (requestedPreload === "auto") player.preload = "auto";
+
       const storagePath = player.dataset.materialAudio;
       if (!storagePath) {
         showNotice("No se encontró la ruta del audio guardado.", "error");
@@ -1239,8 +1296,8 @@ function bindMaterialViewEvents(root = document) {
         const audioUrl = await getAttachmentAccessUrl("material_attachments", attachment);
         player.src = audioUrl;
         player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
-        // Obtener duración al abrir los detalles, sin precargar el audio completo.
-        player.preload = "metadata";
+        // Metadata is the default; group playback explicitly opts into ahead-of-time buffering.
+        player.preload = requestedPreload;
         player.load();
         if (player.dataset.materialAudioPendingSeek !== undefined) {
           const metadataReady = await waitForMaterialAudioMetadata(player);
@@ -1310,9 +1367,24 @@ function bindMaterialViewEvents(root = document) {
     seekInput.addEventListener("input", () => {
       const duration = Number.isFinite(player.duration) ? player.duration : 0;
       if (duration > 0) {
-        player.currentTime = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
+        seekPreviewSeconds = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
         updateAudioUi();
       }
+    });
+
+    seekInput.addEventListener("change", () => {
+      const duration = Number.isFinite(player.duration) ? player.duration : 0;
+      if (duration > 0) {
+        const targetSeconds = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
+        seekPreviewSeconds = null;
+        player.currentTime = targetSeconds;
+        updateAudioUi();
+      }
+    });
+
+    seekInput.addEventListener("blur", () => {
+      seekPreviewSeconds = null;
+      updateAudioUi();
     });
 
     speedSelect.addEventListener("change", () => {
