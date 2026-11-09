@@ -216,6 +216,6 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 ## 2026-11-09 — precarga coordinada de audio agrupado
 
 - Los reproductores inline de Materiales conservan `preload="none"` al renderizar y obtienen la URL autenticada bajo demanda. Abrir Materiales no debe iniciar descargas de audio.
-- Cuando el usuario inicia explícitamente un grupo, cada reproductor pasa a `preload="auto"`; después de alinear su `currentTime`, el coordinador espera `canplay` en esa posición para todas las pistas antes de lanzar `play()` en conjunto. La espera tiene un límite de 15 segundos y falla explícitamente si alguna pista no consigue datos suficientes.
+- Cuando el usuario inicia explícitamente un grupo, cada reproductor pasa temporalmente a `preload="auto"`; después de alinear su `currentTime`, el coordinador espera `canplay` en esa posición para todas las pistas. Al completar el buffer inicial vuelve a `metadata` justo antes de lanzar `play()` en conjunto. La espera tiene un límite de 15 segundos y falla explícitamente si alguna pista no consigue datos suficientes.
 - El control de búsqueda de posición previsualiza el tiempo mientras se arrastra y aplica `currentTime` al evento `change`, evitando emitir una sucesión de seeks/Range requests durante cada movimiento del dedo. Un blur cancela la vista previa no confirmada.
 - La precarga sólo se activa al pulsar reproducción de grupo; no se hidratan reproductores ocultos ni se descargan audios al expandir una tarjeta. No modifica tickets, permisos, RLS, Storage, archivos locales ni el servidor.
