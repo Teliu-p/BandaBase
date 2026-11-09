@@ -1688,10 +1688,13 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     }));
 
     const playCalls = [];
+    const preloadOptions = [];
     const fakePlayers = wrappers.map((wrapper, index) => ({
       paused: index !== 0,
       ended: false,
-      readyState: 1,
+      readyState: 3,
+      seeking: false,
+      preload: "none",
       duration: 120,
       currentTime: index === 0 ? 7.1234 : 0.2,
       playbackRate: index === 0 ? 1.25 : 1,
@@ -1714,8 +1717,9 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
       wrapper.__materialAudioControls = {
         wrapper,
         player: fakePlayers[index],
-        ensureAudioUrl: async () => {
+        ensureAudioUrl: async options => {
           pausedWhileLoading.push(fakePlayers[index].paused);
+          preloadOptions.push(options?.preload || null);
           return true;
         },
         updateAudioUi() {}
@@ -1730,7 +1734,7 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     }));
 
     root.remove();
-    return { selected, badges, playCalls, syncedPlayers, pausedWhileLoading };
+    return { selected, badges, playCalls, syncedPlayers, pausedWhileLoading, preloadOptions };
   });
 
   expect(result.selected.sort()).toEqual(["audio-group-original", "audio-group-split"]);
@@ -1740,6 +1744,10 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
   ]);
   expect(result.playCalls).toEqual(["audio-group-original", "audio-group-split"]);
   expect(result.pausedWhileLoading).toEqual([true, true]);
+  expect(result.preloadOptions).toEqual(["auto", "auto"]);
+  expect(result.syncedPlayers.map(player => player.paused)).toEqual([false, false]);
+  expect(result.syncedPlayers.map(player => player.time)).toEqual([7.123, 7.123]);
+  expect(result.syncedPlayers.map(player => player.rate)).toEqual([1.25, 1.25]);
   expect(result.syncedPlayers).toEqual([
     { time: 7.123, rate: 1.25, paused: false },
     { time: 7.123, rate: 1.25, paused: false }
