@@ -495,9 +495,6 @@ async function runAttachmentAccessRegressionTests() {
   assert.equal(recoveredServerCalls, 2);
   assert.equal(storageCalls.length, previousStorageCount);
 
-  fetchBehavior = async () => {
-    throw new TypeError("Servidor local no disponible");
-  };
   let failedNetworkCalls = 0;
   fetchBehavior = async () => {
     failedNetworkCalls += 1;
