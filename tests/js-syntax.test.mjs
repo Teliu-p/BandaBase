@@ -443,14 +443,69 @@ async function runAttachmentAccessRegressionTests() {
     "Los audios de Materiales no deben consultar Storage ante HTTP 5xx."
   );
 
+  let recoveredNetworkCalls = 0;
   fetchBehavior = async () => {
+    recoveredNetworkCalls += 1;
+    if (recoveredNetworkCalls === 1) {
+      throw new TypeError("Corte momentáneo de conexión");
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ url: "/api/media/recovered-ticket" })
+    };
+  };
+  const recoveredNetworkUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    audioAttachment
+  );
+  assert.equal(
+    recoveredNetworkUrl,
+    "https://laptop-2pepu3jl.tail831d95.ts.net/api/media/recovered-ticket",
+    "Una desconexión transitoria debe recuperarse con un único reintento."
+  );
+  assert.equal(recoveredNetworkCalls, 2);
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  let recoveredServerCalls = 0;
+  fetchBehavior = async () => {
+    recoveredServerCalls += 1;
+    if (recoveredServerCalls === 1) {
+      return {
+        ok: false,
+        status: 503,
+        body: { cancel: async () => {} },
+        json: async () => ({ error: "Funnel momentáneamente no disponible." })
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ url: "/api/media/recovered-after-503" })
+    };
+  };
+  const recoveredServerUrl = await getAttachmentAccessUrl(
+    "material_attachments",
+    audioAttachment
+  );
+  assert.equal(
+    recoveredServerUrl,
+    "https://laptop-2pepu3jl.tail831d95.ts.net/api/media/recovered-after-503"
+  );
+  assert.equal(recoveredServerCalls, 2);
+  assert.equal(storageCalls.length, previousStorageCount);
+
+  let failedNetworkCalls = 0;
+  fetchBehavior = async () => {
+    failedNetworkCalls += 1;
     throw new TypeError("Servidor local no disponible");
   };
   await assert.rejects(
     getAttachmentAccessUrl("material_attachments", audioAttachment),
     /únicamente en la biblioteca local/,
-    "La desconexión del host tampoco debe habilitar Storage para audios de Materiales."
+    "Dos fallos consecutivos deben terminar con un error visible, sin recurrir a Storage."
   );
+  assert.equal(failedNetworkCalls, 2);
   assert.equal(storageCalls.length, previousStorageCount);
 
   fetchBehavior = async () => ({
