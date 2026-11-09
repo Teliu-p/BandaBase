@@ -1720,6 +1720,7 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
         ensureAudioUrl: async options => {
           pausedWhileLoading.push(fakePlayers[index].paused);
           preloadOptions.push(options?.preload || null);
+          fakePlayers[index].preload = options?.preload || "metadata";
           return true;
         },
         updateAudioUi() {}
@@ -1730,7 +1731,8 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     const syncedPlayers = fakePlayers.map(player => ({
       time: player.currentTime,
       rate: player.playbackRate,
-      paused: player.paused
+      paused: player.paused,
+      preload: player.preload
     }));
 
     root.remove();
@@ -1748,9 +1750,10 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
   expect(result.syncedPlayers.map(player => player.paused)).toEqual([false, false]);
   expect(result.syncedPlayers.map(player => player.time)).toEqual([7.123, 7.123]);
   expect(result.syncedPlayers.map(player => player.rate)).toEqual([1.25, 1.25]);
+  expect(result.syncedPlayers.map(player => player.preload)).toEqual(["metadata", "metadata"]);
   expect(result.syncedPlayers).toEqual([
-    { time: 7.123, rate: 1.25, paused: false },
-    { time: 7.123, rate: 1.25, paused: false }
+    { time: 7.123, rate: 1.25, paused: false, preload: "metadata" },
+    { time: 7.123, rate: 1.25, paused: false, preload: "metadata" }
   ]);
   expect(runtimeErrors, "JavaScript errors while selecting and starting audio tracks").toEqual([]);
 });
