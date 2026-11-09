@@ -332,6 +332,6 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 
 - El reproductor inline sólo solicita URL/metadata bajo demanda. El grupo esperaba metadata, alineaba todas las pistas y ejecutaba `play()` inmediatamente, sin comprobar que hubiese datos disponibles en el nuevo playhead.
 - El deslizador aplicaba `currentTime` en cada evento `input`, lo que puede cancelar y reemplazar solicitudes Range durante el arrastre en pantallas táctiles.
-- Cambio propuesto: el arrastre sólo actualiza una vista previa; el evento `change` confirma un seek. Para grupos, `preload="auto"` se activa únicamente tras el clic explícito de reproducción, y se espera `canplay` en la posición común antes de iniciar todas las pistas. Timeout de espera: 15 s.
+- Cambio propuesto: el arrastre sólo actualiza una vista previa; el evento `change` confirma un seek. Para grupos, `preload="auto"` se activa únicamente tras el clic explícito de reproducción, se espera `canplay` en la posición común y luego se revierte a `metadata` antes de iniciar todas las pistas. Timeout de espera: 15 s.
 - Los logs de servidor muestran interrupciones client-disconnected y respuestas parciales lentas; un cierre de Range tras un seek puede ser normal. La precarga no aumenta la velocidad de subida del host ni elimina el coste de transmitir pistas distintas en paralelo: su objetivo es evitar empezar a reproducir sin buffer y aprovechar la descarga anticipada durante la reproducción.
 - La CI y la prueba física siguen pendientes al registrar esta decisión.
