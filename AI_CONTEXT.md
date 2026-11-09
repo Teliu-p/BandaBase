@@ -253,5 +253,5 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 
 - Main parte de `2fd706581c40ada7a724ed674167c8e18e7268a0` (PR #156 integrada). Rama de trabajo: `fix/material-audio-group-prebuffer-20261109`.
 - Se investiga el buffering de audios locales al saltar de posición y durante grupos. El coordinador actual esperaba sólo metadata antes de iniciar todos los reproductores; el deslizador hacía seek en cada evento `input`.
-- La rama propone precarga bajo demanda (`preload=auto` sólo al reproducir un grupo), espera de `canplay` en el playhead de todas las pistas y commit de seek al soltar el deslizador. No se modifica servidor, tickets, Auth, RLS, Storage, datos ni migraciones.
+- La rama propone precarga temporal bajo demanda (`preload=auto` mientras se prepara un grupo, vuelve a `metadata` antes de Play), espera de `canplay` en el playhead de todas las pistas y commit de seek al soltar el deslizador. No se modifica servidor, tickets, Auth, RLS, Storage, datos ni migraciones.
 - Pendiente: CI y prueba real en móvil; comparar grupos de 2–4 pistas, saltos largos, pausa/reanudación y uso individual. No asumir que la precarga corrige el ancho de banda limitado del host.
