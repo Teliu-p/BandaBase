@@ -211,3 +211,11 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - El servidor entregado por separado como versión 0.5 usa HTTP/1.1 con longitudes explícitas, conexiones persistentes, cola de aceptación ampliada para solicitudes concurrentes, `Range`/`If-Range` con validadores `ETag` y `Last-Modified`, y caché privada de 60 segundos para respuestas de audio. Los rangos múltiples o malformados se ignoran y reciben el recurso completo en vez de fallar con 416; los rangos válidos no satisfechos sí devuelven 416.
 - Cada transferencia registra en la consola estado HTTP, rango solicitado, bytes enviados/esperados, duración, velocidad observada y resultado (`complete`, `client-disconnected`, `short-read` o `stream-io-error`), sin imprimir el ticket secreto de la URL.
 - El servidor Python no forma parte del despliegue de Pages: debe instalarse manualmente en el equipo anfitrión y reiniciarse. La ruta de audio desde una red móvil real sigue pendiente de verificación física; las pruebas locales no demuestran el ancho de banda de subida del host ni la calidad de Tailscale Funnel.
+
+
+## 2026-11-09 — precarga coordinada de audio agrupado
+
+- Los reproductores inline de Materiales conservan `preload="none"` al renderizar y obtienen la URL autenticada bajo demanda. Abrir Materiales no debe iniciar descargas de audio.
+- Cuando el usuario inicia explícitamente un grupo, cada reproductor pasa a `preload="auto"`; después de alinear su `currentTime`, el coordinador espera `canplay` en esa posición para todas las pistas antes de lanzar `play()` en conjunto. La espera tiene un límite de 15 segundos y falla explícitamente si alguna pista no consigue datos suficientes.
+- El control de búsqueda de posición previsualiza el tiempo mientras se arrastra y aplica `currentTime` al evento `change`, evitando emitir una sucesión de seeks/Range requests durante cada movimiento del dedo. Un blur cancela la vista previa no confirmada.
+- La precarga sólo se activa al pulsar reproducción de grupo; no se hidratan reproductores ocultos ni se descargan audios al expandir una tarjeta. No modifica tickets, permisos, RLS, Storage, archivos locales ni el servidor.
