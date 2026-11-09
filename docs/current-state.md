@@ -385,6 +385,6 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 ## 2026-11-09 — precarga de reproducción agrupada (rama en validación)
 
 - Rama `fix/material-audio-group-prebuffer-20261109`, basada en `2fd706581c40ada7a724ed674167c8e18e7268a0`.
-- Cambios propuestos: precarga `auto` sólo al iniciar reproducción agrupada, espera de `readyState >= HAVE_FUTURE_DATA` (`canplay`) en el playhead alineado, timeout de 15 s y búsqueda con previsualización durante el arrastre / seek al soltar.
+- Cambios propuestos: precarga temporal `auto` sólo al iniciar reproducción agrupada, espera de `readyState >= HAVE_FUTURE_DATA` (`canplay`) en el playhead alineado, vuelta a `metadata` antes de Play, timeout de 15 s y búsqueda con previsualización durante el arrastre / seek al soltar.
 - Objetivo: evitar que los grupos comiencen antes de que todas las pistas tengan datos y reducir solicitudes Range canceladas por sucesivos eventos `input` del deslizador.
 - Todavía no verificado en CI ni manualmente en teléfono. La reproducción real debe comprobarse con un grupo de 2–4 pistas y saltos largos.
