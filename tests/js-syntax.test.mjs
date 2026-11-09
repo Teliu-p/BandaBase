@@ -3568,7 +3568,7 @@ assert.match(
 );
 assert.match(
   groupedAudioSource,
-  /players\.forEach\(player => \{\s*if \(!player\.paused && !player\.ended\) player\.pause\(\);\s*\}\);[\s\S]*?controls\.map\(control =>\s*control\.ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)\)/,
+  /players\.forEach\(player => \{\s*if \(!player\.paused && !player\.ended\) player\.pause\(\);\s*\}\);[\s\S]*?controls\.map\(control =>[\s\S]*?control\.ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)/,
   "Una pista que ya sonaba debe pausarse mientras se preparan las demás para que el grupo comience alineado."
 );
 assert.match(
