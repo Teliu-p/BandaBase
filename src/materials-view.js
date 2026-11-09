@@ -912,6 +912,11 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       throw new Error("La conexión no logró precargar todas las pistas del grupo. Probá de nuevo o reproducí menos pistas juntas.");
     }
 
+    // Stop explicit preloading after every selected stream has an initial buffer.
+    players.forEach(player => {
+      player.preload = "metadata";
+    });
+
     // Start only after every selected track has data available at the same position.
     await Promise.all(players.map(player => player.play()));
   } catch (error) {
