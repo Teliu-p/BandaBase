@@ -1,0 +1,2581 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="bandabase-preview" content="pr-159">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="bandabase-build" content="{{ site.github.build_revision }}">
+
+  <title>BandaBase</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+  <script src="src/utils.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/app-state.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/storage-quota.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/audio-server-config.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/attachment-access.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-data.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-singers.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-view.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-filters.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-color.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/songs-forms.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/materials-data.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/comments-data.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/lists-data.js?v={{ site.github.build_revision }}"></script>
+  <script src="src/lists-view.js?v={{ site.github.build_revision }}"></script>
+<script src="src/lists-form.js?v={{ site.github.build_revision }}"></script>
+
+    <link rel="stylesheet" href="src/styles.css?v={{ site.github.build_revision }}">
+
+</head>
+
+<body>
+<div id="bandabase-preview-warning" role="status" style="position:sticky;top:0;z-index:99999;padding:10px 14px;background:#fff1bf;color:#5b4300;border-bottom:1px solid #e3c65e;text-align:center;font:600 13px/1.4 system-ui,sans-serif;">
+  VISTA DE PRUEBA · PR #159. Esta vista usa la base REAL de BandaBase. No crees, edites ni elimines canciones, listas, comentarios, propuestas ni archivos reales. La cuota se controla en este proyecto; usá esta vista solo para revisar la pantalla y el comportamiento preventivo.
+</div>
+
+<div id="loginScreen">
+
+  <div class="login-card">
+
+    <h1>BandaBase</h1>
+
+    <p>
+      Gestión de canciones, banda, listas y decisiones.
+    </p>
+
+    <form id="loginForm">
+
+      <div class="form-group">
+        <label for="loginEmail">Email</label>
+        <input
+          id="loginEmail"
+          type="email"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group" style="margin-top:14px;">
+        <label for="loginPassword">Contraseña</label>
+        <input
+          id="loginPassword"
+          type="password"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        style="width:100%; margin-top:18px;"
+      >
+        Iniciar sesión
+      </button>
+
+    </form>
+
+    <div class="login-signup-divider"></div>
+
+    <h2 style="font-size:18px; margin:22px 0 8px;">¿Primera vez en BandaBase?</h2>
+    <p style="margin-bottom:16px;">Creá tu cuenta para ingresar como integrante de la banda.</p>
+
+    <form id="signupForm">
+
+      <div class="form-group">
+        <label for="signupName">Nombre</label>
+        <input
+          id="signupName"
+          type="text"
+          required
+          maxlength="80"
+          autocomplete="name"
+        >
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label for="signupEmail">Email</label>
+        <input
+          id="signupEmail"
+          type="email"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label for="signupPassword">Contraseña (mínimo 8 caracteres)</label>
+        <input
+          id="signupPassword"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+        >
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label for="signupPasswordConfirm">Repetir contraseña</label>
+        <input
+          id="signupPasswordConfirm"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        style="width:100%; margin-top:18px;"
+      >
+        Crear cuenta e ingresar
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+
+    <div class="topbar-inner">
+
+      <div class="brand">
+        BandaBase
+      </div>
+
+      <div class="user-area">
+
+        <span id="currentUserName">
+          Usuario
+        </span>
+
+        <button
+          id="logoutBtn"
+          class="btn btn-subtle"
+          type="button"
+        >
+          Cerrar sesión
+        </button>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <nav class="nav">
+
+    <div class="nav-inner">
+
+      <button
+        type="button"
+        class="nav-btn active"
+        data-section="inicio"
+      >
+        Inicio
+      </button>
+
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="banda"
+      >
+        Banda
+      </button>
+
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="canciones"
+      >
+        Canciones
+      </button>
+
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="listas"
+      >
+        Listas
+      </button>
+
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="propuestas"
+      >
+        Propuestas
+      </button>
+
+      <button
+        type="button"
+        class="nav-btn"
+        data-section="comentarios"
+      >
+        Comentarios
+      </button>
+
+      <button
+        id="adminNavBtn"
+        type="button"
+        class="nav-btn hidden"
+        data-section="administracion"
+      >
+        Administración
+      </button>
+
+    </div>
+
+  </nav>
+
+
+  <main>
+
+    <!-- =========================
+         INICIO
+    ========================== -->
+
+    <section
+      id="section-inicio"
+      class="app-section"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Inicio</h2>
+
+          <p>
+            Bienvenido a BandaBase.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div class="home-recent-grid">
+
+        <section class="home-recent-panel">
+
+          <div class="form-card">
+
+            <div class="section-header" style="margin-bottom:18px;">
+
+              <div>
+
+                <h3 style="margin:0;">
+                  Listas recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimas listas creadas en la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentListsPreview"
+              class="comment-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <section class="home-recent-panel">
+
+          <div class="form-card">
+
+            <div class="section-header" style="margin-bottom:18px;">
+
+              <div>
+
+                <h3 style="margin:0;">
+                  Propuestas recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimas propuestas de la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentProposalsPreview"
+              class="comment-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <section class="home-recent-panel">
+
+          <div class="form-card">
+
+            <div class="section-header" style="margin-bottom:18px;">
+
+              <div>
+
+                <h3 style="margin:0;">
+                  Comentarios recientes
+                </h3>
+
+                <p style="margin-top:4px;">
+                  Últimos comentarios generales de la banda.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              id="recentCommentsList"
+              class="comment-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         BANDA
+    ========================== -->
+
+    <section
+      id="section-banda"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Banda</h2>
+
+          <p>
+            Integrantes y datos de la banda.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="form-card profile-card">
+
+        <div class="profile-card-header">
+
+          <h3>Mi perfil</h3>
+
+          <button
+            id="profileEditBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            Editar perfil
+          </button>
+
+        </div>
+
+
+        <div id="profileSummary">
+
+          <div class="profile-summary-name" id="resumenPerfilNombre"></div>
+
+          <div class="profile-summary-info" id="resumenPerfilInfo"></div>
+
+        </div>
+
+
+        <form
+          id="profileForm"
+          class="hidden"
+        >
+
+          <div class="form-grid">
+
+            <div class="form-group">
+
+              <label for="profileName">
+                Nombre
+              </label>
+
+              <input
+                id="profileName"
+                type="text"
+                placeholder="Tu nombre"
+              >
+
+            </div>
+
+
+            <div class="form-group full">
+              <label>Instrumentos</label>
+              <div class="list-form-help">Elegí los instrumentos o funciones que sabés hacer. En cada lista después podés elegir cuáles querés hacer ese día.</div>
+              <div id="profileInstrumentPicker" class="profile-instrument-picker"></div>
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="profileRole">
+                Rol
+              </label>
+
+              <input
+                id="profileRole"
+                type="text"
+                placeholder="Ej. Músico"
+              >
+
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+
+            <button
+              type="submit"
+              class="btn btn-primary"
+            >
+              Guardar perfil
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+
+      <div class="form-card">
+
+        <h3>Integrantes</h3>
+
+        <div
+          id="membersList"
+          class="member-list"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         CANCIONES
+    ========================== -->
+
+    <section
+      id="section-canciones"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Canciones</h2>
+
+          <p>
+            Canciones utilizadas por la banda.
+          </p>
+
+        </div>
+
+        <div class="detail-actions">
+
+          <button
+            id="toggleSongsViewBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            Vista compacta
+          </button>
+
+          <button
+            id="showCreateSongBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            + Agregar canción
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- CREATE SONG -->
+
+      <div
+        id="createSongCard"
+        class="form-card hidden"
+      >
+
+        <div class="section-header" style="margin-bottom:18px;">
+
+          <div>
+
+            <h3 style="margin:0;">
+              Nueva canción
+            </h3>
+
+            <p style="margin-top:4px;">
+              Agregá los datos que usa la banda.
+            </p>
+
+          </div>
+
+          <button
+            id="cancelCreateSongBtn"
+            type="button"
+            class="btn btn-subtle"
+          >
+            Cerrar
+          </button>
+
+        </div>
+
+
+        <form id="createSongForm">
+
+          <div class="form-grid">
+
+            <div class="form-group">
+
+              <label for="newSongName">
+                Título
+              </label>
+
+              <input
+                id="newSongName"
+                type="text"
+                required
+                placeholder="Nombre de la canción"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongDuration">
+                Duración
+              </label>
+
+              <input
+                id="newSongDuration"
+                type="text"
+                placeholder="Ej. 4:35"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongArtist">
+                Artista
+              </label>
+
+              <input
+                id="newSongArtist"
+                type="text"
+                placeholder="Artista / grupo"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongBpm">
+                BPM
+              </label>
+
+              <input
+                id="newSongBpm"
+                type="number"
+                min="1"
+                max="400"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="Ej. 120,5"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongGenre">
+                Género
+              </label>
+
+              <input
+                id="newSongGenre"
+                type="text"
+                placeholder="Ej. Rock, Balada, Ska..."
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongMeter">
+                Métrica
+              </label>
+
+              <select id="newSongMeter">
+
+                <option value="">
+                  —
+                </option>
+
+                <option value="4/4">
+                  4/4
+                </option>
+
+                <option value="3/4">
+                  3/4
+                </option>
+
+                <option value="6/8">
+                  6/8
+                </option>
+
+                <option value="12/8">
+                  12/8
+                </option>
+
+                <option value="2/4">
+                  2/4
+                </option>
+
+                <option value="5/4">
+                  5/4
+                </option>
+
+                <option value="7/8">
+                  7/8
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label>
+                Color
+              </label>
+
+              <div
+                id="newSongColorPicker"
+                class="color-picker"
+              ></div>
+
+              <div class="color-help">
+                El color se mostrará en el borde de la canción.
+              </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongRepertoire">Repertorio</label>
+
+              <label class="inline-check">
+                <input
+                  id="newSongRepertoire"
+                  type="checkbox"
+                  disabled
+                >
+                <span>Se activa automáticamente al agregar la canción a una lista</span>
+              </label>
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongActiveStatus">
+                Estado
+              </label>
+
+              <select id="newSongActiveStatus">
+
+                <option value="Activa">
+                  Activa
+                </option>
+
+                <option value="Inactiva">
+                  Inactiva
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="newSongListStatus">
+                Preparación
+              </label>
+
+              <select id="newSongListStatus">
+
+                <option value="Pendiente">
+                  Pendiente
+                </option>
+
+                <option value="Lista">
+                  Lista
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div class="singers-section">
+
+            <div class="singers-header">
+
+              <strong>
+                Cantantes y tonalidades
+              </strong>
+
+              <button
+                id="addNewSingerBtn"
+                type="button"
+                class="btn btn-subtle"
+              >
+                + Agregar cantante
+              </button>
+
+            </div>
+
+            <div id="newSingersContainer"></div>
+
+          </div>
+
+
+          <div class="form-actions">
+
+            <button
+              type="button"
+              id="cancelCreateSongBtn2"
+              class="btn"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-primary"
+            >
+              Crear canción
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+
+      <!-- FILTERS -->
+
+      <div
+        id="songsBrowser"
+      >
+
+        <div class="filters">
+
+          <div
+            id="filterColor"
+            class="filter-multi"
+          >
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los colores
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
+
+
+          <div
+            id="filterGenre"
+            class="filter-multi"
+          >
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los géneros
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
+
+
+          <div
+            id="filterArtist"
+            class="filter-multi"
+          >
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los artistas
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
+
+
+          <div
+            id="filterSinger"
+            class="filter-multi"
+          >
+            <button
+              type="button"
+              class="filter-multi-toggle"
+            >
+              <span class="filter-multi-label">
+                Todos los cantantes
+              </span>
+              <span class="filter-multi-arrow">▾</span>
+            </button>
+            <div class="filter-multi-menu"></div>
+          </div>
+
+
+          <select
+            id="filterListStatus"
+            class="filter-select"
+          >
+
+            <option value="">
+              Lista / Pendiente
+            </option>
+
+            <option value="Lista">
+              Lista
+            </option>
+
+            <option value="Pendiente">
+              Pendiente
+            </option>
+
+          </select>
+
+
+          <select
+            id="filterActiveStatus"
+            class="filter-select"
+          >
+
+            <option value="">
+              Activa / Inactiva
+            </option>
+
+            <option value="Activa">
+              Activa
+            </option>
+
+            <option value="Inactiva">
+              Inactiva
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div
+          id="songsList"
+          class="songs-list"
+        ></div>
+
+      </div>
+
+
+      <!-- SONG DETAIL -->
+
+      <div
+        id="songDetail"
+        class="hidden"
+      >
+
+        <div class="detail-top">
+
+          <div>
+
+            <h2 id="detailTitle">
+              Canción
+            </h2>
+
+            <p
+              id="detailSubtitle"
+              style="margin:5px 0 0; color:var(--muted);"
+            ></p>
+
+          </div>
+
+
+          <div class="detail-actions">
+
+            <button
+              id="backToSongsBtn"
+              type="button"
+              class="btn"
+            >
+              ← Volver
+            </button>
+
+            <button
+              id="toggleComparisonBtn"
+              type="button"
+              class="btn"
+            >
+              Comparar con original
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-card">
+
+          <form id="songDetailForm">
+
+            <div class="form-grid song-detail-grid">
+
+              <div class="form-group">
+
+                <label for="detailName">
+                  Título
+                </label>
+
+                <input
+                  id="detailName"
+                  type="text"
+                  required
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailDuration">
+                  Duración
+                </label>
+
+                <input
+                  id="detailDuration"
+                  type="text"
+                  placeholder="Ej. 4:35"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailArtist">
+                  Artista
+                </label>
+
+                <input
+                  id="detailArtist"
+                  type="text"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailBpm">
+                  BPM
+                </label>
+
+                <input
+                  id="detailBpm"
+                  type="number"
+                  min="1"
+                  max="400"
+                  step="0.01"
+                  inputmode="decimal"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailGenre">
+                  Género
+                </label>
+
+                <input
+                  id="detailGenre"
+                  type="text"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailMeter">
+                  Métrica
+                </label>
+
+                <select id="detailMeter">
+
+                  <option value="">
+                    —
+                  </option>
+
+                  <option value="4/4">
+                    4/4
+                  </option>
+
+                  <option value="3/4">
+                    3/4
+                  </option>
+
+                  <option value="6/8">
+                    6/8
+                  </option>
+
+                  <option value="12/8">
+                    12/8
+                  </option>
+
+                  <option value="2/4">
+                    2/4
+                  </option>
+
+                  <option value="5/4">
+                    5/4
+                  </option>
+
+                  <option value="7/8">
+                    7/8
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Color
+                </label>
+
+                <div
+                  id="detailColorPicker"
+                  class="color-picker"
+                ></div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailRepertoire">Repertorio</label>
+
+                <label class="inline-check">
+                  <input
+                    id="detailRepertoire"
+                    type="checkbox"
+                    disabled
+                  >
+                  <span>En repertorio · automático según las listas</span>
+                </label>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailActiveStatus">
+                  Estado
+                </label>
+
+                <select id="detailActiveStatus">
+
+                  <option value="Activa">
+                    Activa
+                  </option>
+
+                  <option value="Inactiva">
+                    Inactiva
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="detailListStatus">
+                  Preparación
+                </label>
+
+                <select id="detailListStatus">
+
+                  <option value="Pendiente">
+                    Pendiente
+                  </option>
+
+                  <option value="Lista">
+                    Lista
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <div class="singers-section">
+
+              <div class="singers-header">
+
+                <strong>
+                  Cantantes y tonalidades
+                </strong>
+
+                <button
+                  id="addDetailSingerBtn"
+                  type="button"
+                  class="btn btn-subtle"
+                >
+                  + Agregar cantante
+                </button>
+
+              </div>
+
+              <div id="detailSingersContainer"></div>
+
+            </div>
+
+
+            <div class="form-actions">
+
+              <button
+                type="submit"
+                class="btn btn-primary"
+              >
+                Guardar cambios
+              </button>
+
+            </div>
+
+          </form>
+
+
+          <!-- ORIGINAL COMPARISON -->
+
+          <div
+            id="comparisonSection"
+            class="comparison hidden"
+          >
+
+            <h3>
+              Comparación con original
+            </h3>
+
+
+            <div class="comparison-grid">
+
+              <div class="comparison-card">
+
+                <h4>
+                  Original
+                </h4>
+
+
+                <div class="comparison-row">
+
+                  <div class="form-group">
+
+                    <label for="originalDuration">
+                      Duración
+                    </label>
+
+                    <input
+                      id="originalDuration"
+                      type="text"
+                      placeholder="Ej. 4:35"
+                    >
+
+                  </div>
+
+
+                  <div class="form-group">
+
+                    <label for="originalBpm">
+                      BPM
+                    </label>
+
+                    <input
+                      id="originalBpm"
+                      type="number"
+                      min="1"
+                      max="400"
+                      step="0.01"
+                      inputmode="decimal"
+                    >
+
+                  </div>
+
+                </div>
+
+
+                <div class="comparison-row">
+
+                  <div class="form-group">
+
+                    <label for="originalMeter">
+                      Métrica
+                    </label>
+
+                    <input
+                      id="originalMeter"
+                      type="text"
+                    >
+
+                  </div>
+
+
+                  <div class="form-group">
+
+                    <label for="originalKey">
+                      Tonalidad
+                    </label>
+
+                    <input
+                      id="originalKey"
+                      type="text"
+                    >
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div class="comparison-card">
+
+                <h4>
+                  Diferencias con la original
+                </h4>
+
+                <div
+                  id="originalComparisonMaterialView"
+                  class="material-comparison-view"
+                >
+                  <div class="empty-state">
+                    Todavía no hay diferencias anotadas.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  id="editOriginalComparisonBtn"
+                  class="btn btn-primary"
+                >
+                  Añadir diferencias
+                </button>
+
+                <!-- Se conserva el formulario anterior oculto para evitar
+                     romper sus inicializadores mientras esta vista usa el
+                     editor único de Materiales. -->
+                <form
+                  id="originalComparisonForm"
+                  class="comparison-composer-form hidden"
+                  aria-hidden="true"
+                >
+
+                  <label for="comparisonComposerEditor">
+                    Contenido
+                  </label>
+
+                  <div class="comment-composer-toolbar">
+
+                    <button
+                      type="button"
+                      id="insertComparisonFileBtn"
+                      class="btn btn-subtle"
+                    >
+                      📎 Adjuntar archivo
+                    </button>
+
+                    <button
+                      type="button"
+                      id="insertComparisonLinkBtn"
+                      class="btn btn-subtle"
+                    >
+                      🔗 Añadir enlace
+                    </button>
+
+                  </div>
+
+                  <div
+                    id="comparisonComposerEditor"
+                    class="comment-composer-editor"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    spellcheck="true"
+                  ></div>
+
+                  <input
+                    id="comparisonPendingFile"
+                    type="file"
+                    class="hidden"
+                  >
+
+                  <div class="form-actions">
+
+                    <button
+                      type="submit"
+                      id="saveOriginalComparisonBtn"
+                      class="btn btn-primary"
+                    >
+                      Guardar diferencias
+                    </button>
+
+                  </div>
+
+                </form>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="metronomeCard"
+          class="form-card metronome-card"
+        >
+
+          <div class="section-header metronome-header">
+
+            <div>
+
+              <h3>
+                Metrónomo
+              </h3>
+
+              <p>
+                Usa el BPM y la métrica de esta canción.
+              </p>
+
+            </div>
+
+            <button
+              id="metronomePlayBtn"
+              type="button"
+              class="btn btn-primary"
+              aria-pressed="false"
+              disabled
+            >
+              ▶ Reproducir
+            </button>
+
+          </div>
+
+
+          <div class="metronome-summary">
+
+            <div class="metronome-summary-field metronome-bpm-field">
+              <label for="metronomeBpmInput">BPM</label>
+              <div class="metronome-bpm-editor">
+                <input
+                  id="metronomeBpmInput"
+                  type="number"
+                  min="1"
+                  max="400"
+                  step="0.01"
+                  inputmode="decimal"
+                  placeholder="—"
+                  aria-label="BPM del metrónomo"
+                >
+                <span aria-hidden="true">♩</span>
+                <button
+                  id="metronomeTapTempoBtn"
+                  type="button"
+                  class="btn btn-subtle metronome-tap-button"
+                  aria-label="Calcular BPM tocando al pulso"
+                >
+                  Tap tempo
+                </button>
+              </div>
+              <span
+                id="metronomeTapTempoStatus"
+                class="metronome-tap-status"
+                aria-live="polite"
+              >Tocá al pulso</span>
+            </div>
+
+            <div class="metronome-summary-field metronome-meter-field">
+              <label for="metronomeMeterInput">Métrica</label>
+              <select id="metronomeMeterInput" aria-label="Métrica del metrónomo">
+                <option value="">—</option>
+                <option value="2/4">2/4</option>
+                <option value="3/4">3/4</option>
+                <option value="4/4">4/4</option>
+                <option value="5/4">5/4</option>
+                <option value="6/8">6/8</option>
+                <option value="7/8">7/8</option>
+                <option value="12/8">12/8</option>
+              </select>
+            </div>
+
+            <div class="metronome-summary-field metronome-volume-field">
+              <label for="metronomeVolumeInput">Volumen del metrónomo</label>
+              <input id="metronomeVolumeInput" type="range" min="50" max="200" step="10" value="150" aria-label="Volumen del metrónomo">
+              <output id="metronomeVolumeValue" for="metronomeVolumeInput" aria-live="polite">150%</output>
+            </div>
+
+          </div>
+
+
+          <div class="metronome-controls">
+
+            <div class="form-group">
+
+              <label for="metronomeSubdivision">
+                Pulso del clic
+              </label>
+
+              <select id="metronomeSubdivision">
+
+                <option value="quarter">
+                  Negra (♩) · BPM
+                </option>
+
+                <option value="white">
+                  Blanca (𝅗𝅥)
+                </option>
+
+                <option value="eighth">
+                  Corchea (♪)
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="metronome-sync-option">
+              <label for="metronomeSyncAudioInput">
+                <input id="metronomeSyncAudioInput" type="checkbox">
+                Sincronizar con audio
+              </label>
+              <p>El metrónomo sigue el BPM y la posición de cualquier pista de esta canción. El ajuste manual se comparte con los originales y sus splits alineados.</p>
+              <button type="button" id="metronomeSyncCalibrateBtn" class="btn btn-subtle">Guardar ajuste manual</button>
+              <p id="metronomeSyncCalibrationStatus" class="metronome-sync-calibration-status" role="status" aria-live="polite">Reproducí un audio y el metrónomo normal, alinealos de oído y guardá el ajuste. Después activá «Sincronizar con audio».</p>
+            </div>
+
+          </div>
+
+
+          <div
+            id="metronomeBeats"
+            class="metronome-beats"
+            aria-label="Compás del metrónomo"
+          ></div>
+
+        </div>
+
+
+        <div class="form-card">
+
+          <div class="section-header" style="margin-bottom:18px;">
+
+            <div>
+
+              <h3 style="margin:0;">
+                Materiales
+              </h3>
+
+              <p style="margin-top:4px;">
+                Textos que pueden incluir archivos, audios y enlaces. Clic derecho sobre pistas de audio para seleccionarlas; reproducí una seleccionada para iniciar el grupo.
+              </p>
+
+            </div>
+
+            <button
+              id="showMaterialFormBtn"
+              type="button"
+              class="btn btn-subtle"
+            >
+              + Añadir material
+            </button>
+
+          </div>
+
+
+          <form
+            id="materialForm"
+            class="materials-form hidden"
+          >
+
+            <div class="form-grid">
+
+              <div class="form-group full">
+
+                <label for="materialName">
+                  Título
+                </label>
+
+                <input
+                  id="materialName"
+                  type="text"
+                  required
+                  placeholder="Ej. Estructura del tema"
+                >
+
+              </div>
+
+            </div>
+
+
+            <div style="margin-top:14px;">
+
+              <strong style="font-size:14px;">
+                Contenido
+              </strong>
+
+              <div class="list-textarea-help">
+                Podés escribir la letra o las indicaciones y meter archivos o enlaces exactamente donde quieras.
+              </div>
+
+              <div class="material-composer-toolbar">
+
+                <div
+                  class="material-format-group"
+                  aria-label="Formato del texto"
+                >
+
+                  <button
+                    type="button"
+                    id="materialBoldBtn"
+                    class="material-format-btn"
+                    title="Negrita"
+                    aria-pressed="false"
+                    aria-label="Negrita"
+                  >
+                    <strong>B</strong>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialItalicBtn"
+                    class="material-format-btn"
+                    title="Cursiva"
+                    aria-pressed="false"
+                    aria-label="Cursiva"
+                  >
+                    <em>I</em>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialParenthesesBtn"
+                    class="material-format-btn"
+                    title="Encerrar entre paréntesis"
+                    aria-label="Encerrar entre paréntesis"
+                  >
+                    ( )
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialBracketsBtn"
+                    class="material-format-btn"
+                    title="Encerrar entre corchetes"
+                    aria-label="Encerrar entre corchetes"
+                  >
+                    [ ]
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialSize1Btn"
+                    class="material-format-btn material-size-btn"
+                    title="Agrandar una vez"
+                    aria-pressed="false"
+                    aria-label="Agrandar una vez"
+                  >
+                    A+
+                  </button>
+
+                  <button
+                    type="button"
+                    id="materialSize2Btn"
+                    class="material-format-btn material-size-btn"
+                    title="Agrandar dos veces"
+                    aria-pressed="false"
+                    aria-label="Agrandar dos veces"
+                  >
+                    A++
+                  </button>
+
+                </div>
+
+                <div
+                  class="material-music-group"
+                  aria-label="Figuras musicales"
+                >
+                  <button type="button" id="materialNoteSixteenthBtn" class="material-format-btn material-note-btn" title="Insertar semicorchea (Alt+Q)" aria-label="Insertar figura musical: semicorchea">𝅘𝅥𝅯</button>
+                  <button type="button" id="materialNoteEighthBtn" class="material-format-btn material-note-btn" title="Insertar corchea (Alt+W)" aria-label="Insertar figura musical: corchea">𝅘𝅥𝅮</button>
+                  <button type="button" id="materialNoteQuarterBtn" class="material-format-btn material-note-btn" title="Insertar negra (Alt+E)" aria-label="Insertar figura musical: negra">𝅘𝅥</button>
+                  <button type="button" id="materialNoteHalfBtn" class="material-format-btn material-note-btn" title="Insertar blanca (Alt+R)" aria-label="Insertar figura musical: blanca">𝅗𝅥</button>
+                  <button type="button" id="materialNoteWholeBtn" class="material-format-btn material-note-btn" title="Insertar redonda (Alt+T)" aria-label="Insertar figura musical: redonda">𝅝</button>
+                </div>
+
+                <div
+                  class="material-music-group"
+                  aria-label="Silencios musicales"
+                >
+                  <button type="button" id="materialRestSixteenthBtn" class="material-format-btn material-note-btn" title="Insertar silencio de semicorchea (Alt+A)" aria-label="Insertar silencio de semicorchea">𝄿</button>
+                  <button type="button" id="materialRestEighthBtn" class="material-format-btn material-note-btn" title="Insertar silencio de corchea (Alt+S)" aria-label="Insertar silencio de corchea">𝄾</button>
+                  <button type="button" id="materialRestQuarterBtn" class="material-format-btn material-note-btn" title="Insertar silencio de negra (Alt+D)" aria-label="Insertar silencio de negra">𝄽</button>
+                  <button type="button" id="materialRestHalfBtn" class="material-format-btn material-note-btn" title="Insertar silencio de blanca (Alt+F)" aria-label="Insertar silencio de blanca">𝄼</button>
+                  <button type="button" id="materialRestWholeBtn" class="material-format-btn material-note-btn" title="Insertar silencio de redonda (Alt+G)" aria-label="Insertar silencio de redonda">𝄻</button>
+                </div>
+
+                <div
+                  class="material-music-group"
+                  aria-label="Puntillo y marcador de audio"
+                >
+                  <button type="button" id="materialNotationDotBtn" class="material-format-btn material-note-btn" title="Alternar puntillo para la próxima figura o silencio (Alt+Z)" aria-label="Puntillo para la próxima figura o silencio" aria-pressed="false">·</button>
+                  <button type="button" id="materialAudioMarkerBtn" class="material-format-btn material-note-btn" title="Insertar la posición actual del audio activo (Alt+X); si no hay uno claro, permite ingresar el tiempo" aria-label="Insertar marcador con el tiempo actual del audio">⏱</button>
+                </div>
+
+                <div
+                  class="material-indent-group"
+                  aria-label="Sangría"
+                >
+                  <button type="button" id="materialIndentBtn" class="material-format-btn" title="Agregar sangría (Alt+C); mantener presionado para repetir" aria-label="Agregar un espacio de sangría">⇥</button>
+                  <button type="button" id="materialOutdentBtn" class="material-format-btn" title="Quitar sangría (Alt+V); mantener presionado para repetir" aria-label="Quitar un espacio de sangría">⇤</button>
+                </div>
+
+                <div
+                  class="material-resource-group"
+                  aria-label="Recursos"
+                >
+
+                  <button
+                    type="button"
+                    id="insertMaterialFileBtn"
+                    class="btn btn-subtle"
+                  >
+                    📎 Adjuntar archivo
+                  </button>
+
+                  <button
+                    type="button"
+                    id="insertMaterialLinkBtn"
+                    class="btn btn-subtle"
+                  >
+                    🔗 Enlazar texto
+                  </button>
+
+                </div>
+
+              </div>
+
+              <div class="material-keyboard-shortcuts" aria-label="Atajos de teclado">
+                Atajos (Alt + tecla): 1–6 formato · Q/W/E/R/T figuras · A/S/D/F/G silencios · Z puntillo · X marcador · C/V sangría · 0 formato normal. Mantené ⇥ o ⇤ para repetir la sangría.
+              </div>
+
+              <div
+                id="materialComposerEditor"
+                class="material-composer-editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+                spellcheck="true"
+                title="Doble clic en el lugar deseado para forzar la posición del cursor."
+              ></div>
+
+              <input
+                id="materialPendingFile"
+                type="file"
+                class="hidden"
+                multiple
+                aria-label="Seleccionar uno o varios archivos para Materiales"
+              >
+
+            </div>
+
+
+            <div class="form-actions">
+
+              <button
+                type="button"
+                id="cancelMaterialBtn"
+                class="btn"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                class="btn btn-primary"
+              >
+                Guardar material
+              </button>
+
+            </div>
+
+          </form>
+
+
+          <div id="materialsList"></div>
+
+        </div>
+
+
+        <div class="form-card">
+
+          <div class="section-header" style="margin-bottom:18px;">
+
+            <div>
+
+              <h3 style="margin:0;">
+                Comentarios
+              </h3>
+
+              <p style="margin-top:4px;">
+                Comentarios sobre esta canción.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <form
+            id="commentForm"
+            class="comments-form"
+          >
+            <div class="form-group">
+              <label for="commentComposerEditor">
+                Comentario
+              </label>
+
+              <div class="list-textarea-help">
+                Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+              </div>
+
+              <div class="comment-composer-toolbar">
+                <button
+                  type="button"
+                  id="insertCommentFileBtn"
+                  class="btn btn-subtle"
+                >
+                  📎 Adjuntar archivo
+                </button>
+
+                <button
+                  type="button"
+                  id="insertCommentLinkBtn"
+                  class="btn btn-subtle"
+                >
+                  🔗 Añadir enlace
+                </button>
+              </div>
+
+              <div
+                id="commentComposerEditor"
+                class="comment-composer-editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+                spellcheck="true"
+              ></div>
+
+              <input
+                id="commentPendingFile"
+                type="file"
+                class="hidden"
+              >
+            </div>
+
+            <div class="form-actions">
+              <button
+                id="cancelCommentBtn"
+                type="button"
+                class="btn hidden"
+              >
+                Cancelar
+              </button>
+
+              <button
+                id="saveCommentBtn"
+                type="submit"
+                class="btn btn-primary"
+              >
+                Publicar comentario
+              </button>
+            </div>
+          </form>
+
+
+          <div
+            id="commentsList"
+            class="comment-list"
+          ></div>
+
+        </div>
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         OTRAS SECCIONES
+    ========================== -->
+
+    <section
+      id="section-listas"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+          <h2>Listas</h2>
+          <p>
+            Organizá una fecha con sus datos, repertorio e integrantes.
+          </p>
+        </div>
+
+        <button
+          id="showListFormBtn"
+          type="button"
+          class="btn btn-subtle"
+        >
+          + Nueva lista
+        </button>
+
+      </div>
+
+
+      <form
+        id="bandListForm"
+        class="lists-form hidden"
+      >
+
+        <div class="form-grid">
+
+          <div class="form-group full">
+            <label for="bandListTitle">Título</label>
+            <input
+              id="bandListTitle"
+              type="text"
+              required
+              placeholder="Ej. Domingo 12 de octubre · Culto"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="bandListStatus">Estado</label>
+            <select id="bandListStatus">
+              <option value="Planificada">Planificada</option>
+              <option value="Confirmada">Confirmada</option>
+            </select>
+          </div>
+
+          <div class="form-group full">
+            <label for="bandListNotes">Notas generales</label>
+            <textarea
+              id="bandListNotes"
+              placeholder="Detalles generales de la fecha..."
+            ></textarea>
+          </div>
+
+        </div>
+
+
+        <div class="list-detail-section" style="margin-top:16px;">
+          <h3>Cupos por función</h3>
+          <p class="list-form-help">
+            Definí cuántas personas pueden participar en cada función para esta fecha. Podés cambiar estos cupos cuando quieras.
+          </p>
+          <div id="bandListSlotsPicker" class="list-instrument-slots"></div>
+        </div>
+
+        <div class="list-detail-section" style="margin-top:16px;">
+          <h3>Responsables</h3>
+          <p class="list-form-help">
+            Solo vos editás la lista. Podés designar a otros integrantes para decidir quién queda participando cuando no alcanza un cupo.
+          </p>
+          <div id="bandListManagersPicker" class="list-check-grid"></div>
+        </div>
+
+
+        <div class="form-actions">
+          <button
+            id="cancelBandListBtn"
+            type="button"
+            class="btn"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Guardar lista
+          </button>
+        </div>
+
+      </form>
+
+
+      <div id="listsBrowser">
+        <div id="listsList" class="lists-list"></div>
+      </div>
+
+
+      <div id="listDetail" class="hidden">
+
+        <div class="detail-top">
+
+          <div>
+            <h2 id="listDetailTitle">Lista</h2>
+            <p
+              id="listDetailSubtitle"
+              style="margin:5px 0 0; color:var(--muted);"
+            ></p>
+          </div>
+
+          <div class="detail-actions">
+
+            <span
+              id="listDetailStatus"
+              class="status pending"
+            >
+              Planificada
+            </span>
+
+            <button
+              id="backToListsBtn"
+              type="button"
+              class="btn"
+            >
+              ← Volver
+            </button>
+
+            <button
+              id="editListFromDetailBtn"
+              type="button"
+              class="btn"
+            >
+              Editar lista
+            </button>
+
+          </div>
+
+        </div>
+
+        <div id="listDetailContent" class="list-detail"></div>
+
+      </div>
+
+    </section>
+
+
+    <section
+      id="section-comentarios"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Comentarios</h2>
+
+          <p>
+            Comentarios generales de la banda.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <button
+        id="showGeneralCommentFormBtn"
+        type="button"
+        class="btn btn-primary comment-compose-trigger"
+      >
+        ✎ Escribir un comentario
+      </button>
+
+      <form
+        id="generalCommentForm"
+        class="comments-form hidden"
+      >
+        <div class="form-group">
+          <label for="generalCommentComposerEditor">
+            Comentario
+          </label>
+
+          <div class="list-textarea-help">
+            Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+          </div>
+
+          <div class="comment-composer-toolbar">
+            <button
+              type="button"
+              id="insertGeneralCommentFileBtn"
+              class="btn btn-subtle"
+            >
+              📎 Adjuntar archivo
+            </button>
+
+            <button
+              type="button"
+              id="insertGeneralCommentLinkBtn"
+              class="btn btn-subtle"
+            >
+              🔗 Añadir enlace
+            </button>
+          </div>
+
+          <div
+            id="generalCommentComposerEditor"
+            class="comment-composer-editor"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            spellcheck="true"
+          ></div>
+
+          <input
+            id="generalCommentPendingFile"
+            type="file"
+            class="hidden"
+          >
+        </div>
+
+        <div class="form-actions">
+          <button
+            id="cancelGeneralCommentBtn"
+            type="button"
+            class="btn hidden"
+          >
+            Cancelar
+          </button>
+
+          <button
+            id="saveGeneralCommentBtn"
+            type="submit"
+            class="btn btn-primary"
+          >
+            Publicar comentario
+          </button>
+        </div>
+      </form>
+
+
+      <div
+        id="generalCommentsList"
+        class="comment-list"
+      ></div>
+
+    </section>
+
+
+
+    <section
+      id="section-propuestas"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>Propuestas</h2>
+
+          <p>
+            Planteá decisiones para que la banda las vote.
+          </p>
+
+        </div>
+
+        <button
+          id="showProposalFormBtn"
+          type="button"
+          class="btn btn-subtle"
+        >
+          + Nueva propuesta
+        </button>
+
+      </div>
+
+
+      <form
+        id="proposalForm"
+        class="form-card hidden"
+      >
+
+        <div class="section-header" style="margin-bottom:18px;">
+
+          <div>
+
+            <h3 id="proposalFormTitle" style="margin:0;">
+              Nueva propuesta
+            </h3>
+
+            <p style="margin-top:4px;">
+              Una propuesta puede ser Sí / No, una opción o varias opciones.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-grid">
+
+          <div class="form-group full">
+
+            <label for="proposalTitle">
+              Título
+            </label>
+
+            <input
+              id="proposalTitle"
+              type="text"
+              maxlength="160"
+              required
+              placeholder="Ej. Cambiar el horario del ensayo"
+            >
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label for="proposalComposerEditor">
+              Descripción
+            </label>
+
+            <div class="list-textarea-help">
+              Podés escribir el texto y meter archivos o enlaces exactamente donde quieras.
+            </div>
+
+            <div class="proposal-composer-toolbar">
+
+              <button
+                type="button"
+                id="insertProposalFileBtn"
+                class="btn btn-subtle"
+              >
+                📎 Adjuntar archivo
+              </button>
+
+              <button
+                type="button"
+                id="insertProposalLinkBtn"
+                class="btn btn-subtle"
+              >
+                🔗 Añadir enlace
+              </button>
+
+            </div>
+
+            <div
+              id="proposalComposerEditor"
+              class="proposal-composer-editor"
+              contenteditable="true"
+              role="textbox"
+              aria-multiline="true"
+              spellcheck="true"
+            ></div>
+
+            <input
+              id="proposalPendingFile"
+              type="file"
+              class="hidden"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="proposalVotingType">
+              Tipo de votación
+            </label>
+
+            <select id="proposalVotingType">
+
+              <option value="yes_no">
+                Sí / No
+              </option>
+
+              <option value="single" selected>
+                Una opción
+              </option>
+
+              <option value="multiple">
+                Varias opciones
+              </option>
+
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label for="proposalVotingVisibility">
+              Visibilidad de los votos
+            </label>
+
+            <select id="proposalVotingVisibility">
+              <option value="public" selected>
+                Pública
+              </option>
+              <option value="anonymous">
+                Anónima
+              </option>
+            </select>
+
+            <p
+              id="proposalVisibilityHelp"
+              class="proposal-visibility-note"
+            >
+              Se muestran los nombres de quienes votan en cada opción.
+            </p>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <div class="proposal-options-heading">
+
+              <label>
+                Opciones
+              </label>
+
+              <button
+                id="addProposalOptionBtn"
+                type="button"
+                class="btn btn-subtle"
+              >
+                + Agregar opción
+              </button>
+
+            </div>
+
+            <div
+              id="proposalOptionsInputs"
+              class="proposal-options-inputs"
+            ></div>
+
+            <p
+              id="proposalOptionsHelp"
+              class="form-help"
+            ></p>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-actions">
+
+          <button
+            id="cancelProposalBtn"
+            type="button"
+            class="btn"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Publicar propuesta
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div
+        id="proposalsList"
+        class="proposals-list"
+      >
+        <div class="empty-state">
+          Cargando propuestas...
+        </div>
+      </div>
+
+    </section>
+
+
+
+
+
+
+    <section
+      id="section-administracion"
+      class="app-section hidden"
+    >
+
+      <div class="section-header">
+
+        <div>
+          <h2>Administración</h2>
+          <p>
+            Control de permisos, cambios y recuperación.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="form-card admin-storage-quota-card">
+        <h3>Almacenamiento de Supabase</h3>
+        <p class="admin-section-intro">
+          Límite preventivo para los archivos guardados en los buckets de este proyecto.
+        </p>
+        <div id="adminStorageQuota" aria-live="polite">
+          <div class="admin-empty">Consultando almacenamiento…</div>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+
+        <div class="form-card">
+          <h3>Integrantes y permisos</h3>
+          <p class="admin-section-intro">
+            El Owner puede designar o quitar Administradores. Los Administradores pueden gestionar el contenido de la banda, pero no cambiar roles.
+          </p>
+
+          <div
+            id="adminMemberRoles"
+            class="admin-list"
+          ></div>
+        </div>
+
+
+        <div class="form-card">
+          <h3>Historial de cambios</h3>
+          <p class="admin-section-intro">
+            Se registran los cambios relevantes realizados en la banda.
+          </p>
+
+          <div
+            id="adminHistoryList"
+            class="admin-list"
+          ></div>
+        </div>
+
+
+        <div class="form-card">
+          <h3>Papelera</h3>
+          <p class="admin-section-intro">
+            Los elementos enviados a la papelera se conservan y se pueden restaurar.
+          </p>
+
+          <div
+            id="adminTrashList"
+            class="admin-list"
+          ></div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+  </main>
+
+</div>
+
+
+<dialog
+  id="songListsDialog"
+  class="song-lists-dialog"
+  aria-labelledby="songListsDialogTitle"
+>
+  <div class="song-lists-dialog-inner">
+    <div class="song-lists-dialog-header">
+      <h3 id="songListsDialogTitle" class="song-lists-dialog-title">
+        Agregar a lista
+      </h3>
+      <button
+        id="closeSongListsBtn"
+        type="button"
+        class="btn btn-subtle"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
+    </div>
+
+    <p id="songListsDialogSong" class="song-lists-dialog-song"></p>
+
+    <div
+      id="songListsPicker"
+      class="song-lists-picker"
+    ></div>
+
+    <div class="song-lists-dialog-actions">
+      <button
+        id="cancelSongListsBtn"
+        type="button"
+        class="btn"
+      >
+        Cancelar
+      </button>
+
+      <button
+        id="saveSongListsBtn"
+        type="button"
+        class="btn btn-primary"
+      >
+        Guardar
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<div id="notice"></div>
+
+<div
+  id="contextDeleteMenu"
+  class="context-delete-menu hidden"
+>
+  <div
+    id="contextDeleteSummary"
+    class="context-delete-summary"
+  >
+    0 seleccionados
+  </div>
+
+  <button
+    id="contextDeleteAction"
+    type="button"
+  >
+    Enviar a papelera
+  </button>
+
+  <button
+    id="contextDeleteCancel"
+    type="button"
+    class="context-delete-cancel"
+  >
+    Cancelar selección
+  </button>
+</div>
+
+
+<script src="src/app-dom.js?v={{ site.github.build_revision }}"></script>
+<script src="src/rich-text-composer.js?v={{ site.github.build_revision }}"></script>
+<script src="src/comments-view.js?v={{ site.github.build_revision }}"></script>
+<script src="src/comments-save.js?v={{ site.github.build_revision }}"></script>
+<script src="src/comments-general.js?v={{ site.github.build_revision }}"></script>
+<script src="src/context-menu.js?v={{ site.github.build_revision }}"></script>
+<script src="src/proposals-data.js?v={{ site.github.build_revision }}"></script>
+<script src="src/proposals-content.js?v={{ site.github.build_revision }}"></script>
+<script src="src/proposals-view.js?v={{ site.github.build_revision }}"></script>
+<script src="src/proposals-form-ui.js?v={{ site.github.build_revision }}"></script>
+<script src="src/admin-data.js?v={{ site.github.build_revision }}"></script>
+<script src="src/admin-view.js?v={{ site.github.build_revision }}"></script>
+
+<script src="src/app-shell.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-band.js?v={{ site.github.build_revision }}"></script>
+<script src="src/materials-formatting.js?v={{ site.github.build_revision }}"></script>
+<script src="src/materials-view.js?v={{ site.github.build_revision }}"></script>
+<script src="src/materials-editor.js?v={{ site.github.build_revision }}"></script>
+<script src="src/materials-save.js?v={{ site.github.build_revision }}"></script>
+<script src="src/songs-comparison.js?v={{ site.github.build_revision }}"></script>
+<script src="src/songs-controller.js?v={{ site.github.build_revision }}"></script>
+<script src="src/metronome.js?v={{ site.github.build_revision }}"></script>
+<script src="src/songs-detail.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-navigation.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-auth.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-realtime.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-update-state.js?v={{ site.github.build_revision }}"></script>
+<script src="src/app-update.js?v={{ site.github.build_revision }}"></script>
+
+</body>
+</html>
