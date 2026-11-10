@@ -1705,7 +1705,7 @@ function bindMaterialViewEvents(root = document) {
       closeMaterialAudioPopovers(panel);
       const bounds = detailsButton.getBoundingClientRect();
       const panelWidth = Math.min(280, Math.max(190, window.innerWidth - 24));
-      const estimatedHeight = 150;
+      const estimatedHeight = 230;
       const left = Math.max(12, Math.min(bounds.left, window.innerWidth - panelWidth - 12));
       let top = bounds.bottom + 6;
       if (top + estimatedHeight > window.innerHeight - 12) {
