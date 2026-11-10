@@ -2007,6 +2007,9 @@ test("prepared local tracks retain shared markers, group alignment and metronome
         wrappers.map(wrapper => wrapper.__materialAudioControls.ensureAudioUrl())
       );
       const metadataResults = await Promise.all(players.map(waitForMaterialAudioMetadata));
+      const blobMimeType = players[0].src.startsWith("blob:")
+        ? (await originalFetch(players[0].src)).headers.get("content-type")
+        : null;
       const beforeMarker = players.map(player => player.currentTime);
 
       await selectMaterialAudioMarker(1);
@@ -2022,6 +2025,7 @@ test("prepared local tracks retain shared markers, group alignment and metronome
         sourceResults,
         metadataResults,
         allLocal: players.every(player => player.dataset.materialAudioPrepared === "true" && player.src.startsWith("blob:")),
+        blobMimeType,
         beforeMarker,
         afterMarker,
         groupTimes: players.map(player => player.currentTime),
@@ -2052,6 +2056,7 @@ test("prepared local tracks retain shared markers, group alignment and metronome
   expect(result.sourceResults).toEqual([true, true]);
   expect(result.metadataResults).toEqual([true, true]);
   expect(result.allLocal).toBe(true);
+  expect(result.blobMimeType).toBe("audio/wav");
   expect(result.beforeMarker.every(value => value === 0)).toBe(true);
   expect(result.afterMarker).toEqual([1, 1]);
   expect(result.groupTimes).toEqual([1, 1]);
