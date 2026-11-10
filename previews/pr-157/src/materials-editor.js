@@ -1,0 +1,3271 @@
+/* Editor y compositor de Materiales. */
+
+let materialIndentRepeatTimer = null;
+let materialIndentRepeatButton = null;
+let materialIndentRepeatDirection = 0;
+let materialIndentRepeatCount = 0;
+let materialIndentPointerHandled = false;
+let materialIndentPointerResetTimer = null;
+let materialNotationDotPending = false;
+let editingMaterialType = null;
+let materialNativeAttachmentDragState = null;
+
+/*
+ * Doble clic: fija el punto de escritura en espacios vacíos.
+ * El clic simple conserva el posicionamiento nativo.
+ */
+function getMaterialRangeCaretPoint(sourceRange, editor, targetY = null) {
+  const range = sourceRange.cloneRange();
+  range.collapse(true);
+  const rect = range.getBoundingClientRect();
+  if (rect?.height) return { x: rect.left, y: rect.top + rect.height / 2, height: rect.height };
+
+  const node = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    const offset = range.startOffset;
+    const charRect = index => {
+      if (index < 0 || index >= value.length || value[index] === "\n") return null;
+      const r = document.createRange();
+      r.setStart(node, index);
+      r.setEnd(node, index + 1);
+      const box = r.getBoundingClientRect();
+      return box?.height ? box : null;
+    };
+    let before = offset - 1;
+    let after = offset;
+    while (before >= 0 && value[before] === "\n") before--;
+    while (after < value.length && value[after] === "\n") after++;
+    const left = charRect(before);
+    const right = charRect(after);
+    if (left && right) {
+      const y1 = left.top + left.height / 2;
+      const y2 = right.top + right.height / 2;
+      const height = Math.max(left.height, right.height);
+      const style = getComputedStyle(editor);
+      const x0 = editor.getBoundingClientRect().left + editor.clientLeft +
+        (parseFloat(style.paddingLeft) || 0);
+      if (y2 - y1 >= height * 1.5) return { x: x0, y: y1 + height, height };
+      if (value[offset - 1] === "\n" && y2 > y1) return { x: right.left, y: y2, height: right.height };
+      return { x: left.right, y: y1, height: left.height };
+    }
+    if (right) return { x: right.left, y: right.top + right.height / 2, height: right.height };
+    if (left) return { x: left.right, y: left.top + left.height / 2, height: left.height };
+  }
+
+  const style = getComputedStyle(editor);
+  const box = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  return {
+    x: box.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0),
+    y: Number.isFinite(targetY) ? targetY : box.top + editor.clientTop +
+      (parseFloat(style.paddingTop) || 0) + font * 0.75,
+    height: font * 1.5
+  };
+}
+
+function getMaterialSpaceWidth(range, editor) {
+  const node = range.startContainer;
+  const target = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement || editor;
+  const style = getComputedStyle(target);
+  const probe = document.createElement("span");
+  Object.assign(probe.style, {
+    position: "absolute", visibility: "hidden", whiteSpace: "pre",
+    fontFamily: style.fontFamily, fontSize: style.fontSize,
+    fontWeight: style.fontWeight, fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing
+  });
+  probe.textContent = "          ";
+  document.body.appendChild(probe);
+  const width = probe.getBoundingClientRect().width / 10;
+  probe.remove();
+  return width || (parseFloat(style.fontSize) || 16) * 0.3;
+}
+
+function hasMaterialTextAtOrAfterPointOnLine(editor, targetX, targetY, lineHeight) {
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.parentElement?.closest(
+      ".material-inline-attachment, .material-attachment-drop-placeholder, .material-attachment-origin-placeholder"
+    )) continue;
+    const value = node.nodeValue || "";
+    for (let index = 0; index < value.length; index++) {
+      if (value[index] === "\n" || value[index] === "\r") continue;
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + 1);
+      const box = range.getBoundingClientRect();
+      if (!box?.height) continue;
+      const center = box.top + box.height / 2;
+      if (Math.abs(center - targetY) <= Math.max(box.height, lineHeight) * 0.55 &&
+          box.right > targetX + 1) return true;
+    }
+  }
+  return false;
+}
+
+function moveMaterialCaretAboveBlankLine(range, editor) {
+  const node = range.startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    let index = range.startOffset - 1;
+    while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+    if (index >= 0 && value[index] === "\n") {
+      range.setStart(node, index);
+      range.collapse(true);
+      return true;
+    }
+    if (range.startOffset > 0) return false;
+  }
+
+  let current = node;
+  while (current && current !== editor) {
+    if (!current.previousSibling) {
+      current = current.parentNode;
+      continue;
+    }
+    current = current.previousSibling;
+    while (current.nodeType === Node.ELEMENT_NODE && current.lastChild &&
+           !current.classList?.contains("material-inline-attachment")) current = current.lastChild;
+    if (current.nodeType === Node.TEXT_NODE) {
+      const value = current.nodeValue || "";
+      let index = value.length - 1;
+      while (index >= 0 && /[ \t\u00a0]/.test(value[index])) index--;
+      if (index >= 0 && value[index] === "\n") {
+        range.setStart(current, index);
+        range.collapse(true);
+        return true;
+      }
+      if (value.trim()) return false;
+    } else if (current.nodeType === Node.ELEMENT_NODE) {
+      if (current.tagName === "BR") {
+        range.setStartBefore(current);
+        range.collapse(true);
+        return true;
+      }
+      if (current.classList?.contains("material-inline-attachment")) return false;
+    }
+  }
+  return false;
+}
+
+function placeMaterialCaretAtDoubleClick(event) {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor || !editor.contains(event.target) ||
+      event.target.closest?.(".material-inline-attachment")) return;
+
+  event.preventDefault();
+  let range = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.offsetNode)) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
+      range.collapse(true);
+    }
+  }
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(event.clientX, event.clientY);
+    if (point && editor.contains(point.startContainer) && editor.contains(point.endContainer)) {
+      range = point.cloneRange();
+      range.collapse(true);
+    }
+  }
+  if (!range) {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+
+  editor.focus();
+  const selection = window.getSelection();
+  if (!selection) return;
+  const style = getComputedStyle(editor);
+  const bounds = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  const lineHeight = parseFloat(style.lineHeight) || font * 1.5;
+  let caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+
+  // Si el navegador eligió el renglón de abajo, retroceder por el salto anterior.
+  const linesAbove = Math.max(0, Math.round((caret.y - event.clientY) / lineHeight));
+  for (let i = 0; i < linesAbove; i++) {
+    if (!moveMaterialCaretAboveBlankLine(range, editor)) break;
+    caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+    if (Math.abs(event.clientY - caret.y) < lineHeight * 0.45) break;
+  }
+
+  const spaceWidth = getMaterialSpaceWidth(range, editor);
+  const startX = bounds.left + editor.clientLeft + (parseFloat(style.paddingLeft) || 0);
+  const padding = calculateMaterialForcedCaretPadding(
+    caret.x, caret.y, event.clientX, event.clientY,
+    lineHeight, spaceWidth, startX
+  );
+  let prefix = "\n".repeat(padding.lineBreaks);
+  if (padding.lineBreaks > 0) {
+    prefix += " ".repeat(padding.spaces);
+  } else if (event.clientX > caret.x &&
+             !hasMaterialTextAtOrAfterPointOnLine(editor, event.clientX, event.clientY, lineHeight)) {
+    prefix += " ".repeat(padding.spaces);
+  }
+  if (prefix) {
+    const filler = document.createTextNode(prefix);
+    range.insertNode(filler);
+    range.setStart(filler, filler.length);
+    range.collapse(true);
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
+  updateMaterialFormattingButtonStates();
+}
+
+
+
+function rememberMaterialSelection() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  if (
+    editor.contains(
+      range.startContainer
+    ) &&
+    editor.contains(
+      range.endContainer
+    )
+  ) {
+
+    materialSelectionRange =
+      range.cloneRange();
+
+    updateMaterialFormattingButtonStates();
+
+  }
+
+}
+
+
+function restoreMaterialSelection(
+  rangeToRestore = materialSelectionRange
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (
+    !editor ||
+    !rangeToRestore ||
+    !editor.contains(rangeToRestore.startContainer) ||
+    !editor.contains(rangeToRestore.endContainer)
+  ) {
+    return false;
+  }
+
+  const selection =
+    window.getSelection();
+
+  if (!selection) {
+    return false;
+  }
+
+  try {
+
+    selection.removeAllRanges();
+
+    selection.addRange(
+      rangeToRestore
+    );
+
+    materialSelectionRange =
+      rangeToRestore.cloneRange();
+
+    updateMaterialFormattingButtonStates();
+
+    return true;
+
+  } catch (error) {
+
+    return false;
+
+  }
+
+}
+
+
+function getMaterialNativeDropRangeAtPoint(clientX, clientY, editor) {
+  if (!editor) return null;
+
+  const hit = document.elementFromPoint(clientX, clientY);
+  const hitChip = hit?.closest?.(
+    ".material-inline-attachment:not(.material-attachment-origin-placeholder), .material-attachment-drop-placeholder"
+  );
+  if (hitChip && editor.contains(hitChip)) {
+    const rect = hitChip.getBoundingClientRect();
+    const range = document.createRange();
+    if (clientX < rect.left + rect.width / 2) range.setStartBefore(hitChip);
+    else range.setStartAfter(hitChip);
+    range.collapse(true);
+    return range;
+  }
+
+  let range = null;
+  if (typeof document.caretPositionFromPoint === "function") {
+    const point = document.caretPositionFromPoint(clientX, clientY);
+    if (point && (point.offsetNode === editor || editor.contains(point.offsetNode))) {
+      range = document.createRange();
+      range.setStart(point.offsetNode, point.offset);
+      range.collapse(true);
+    }
+  }
+
+  if (!range && typeof document.caretRangeFromPoint === "function") {
+    const point = document.caretRangeFromPoint(clientX, clientY);
+    if (point &&
+        (point.startContainer === editor || editor.contains(point.startContainer)) &&
+        (point.endContainer === editor || editor.contains(point.endContainer))) {
+      range = point.cloneRange();
+      range.collapse(true);
+    }
+  }
+
+  if (!range) return null;
+
+  const node = range.startContainer;
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  const forbidden = element?.closest?.(
+    ".material-inline-attachment, .material-attachment-drop-placeholder, .material-attachment-origin-placeholder"
+  );
+  if (forbidden && editor.contains(forbidden)) {
+    const rect = forbidden.getBoundingClientRect();
+    if (!rect?.height) return null;
+    if (clientX < rect.left + rect.width / 2) range.setStartBefore(forbidden);
+    else range.setStartAfter(forbidden);
+    range.collapse(true);
+  }
+  return range;
+}
+
+
+function insertMaterialNativeDropPadding(range, event, editor) {
+  if (!range || !event || !editor) return false;
+
+  const hit = document.elementFromPoint(event.clientX, event.clientY);
+  if (hit?.closest?.(
+    ".material-inline-attachment, .material-attachment-drop-placeholder"
+  )) return false;
+
+  const caret = getMaterialRangeCaretPoint(range, editor, event.clientY);
+  const style = getComputedStyle(editor);
+  const bounds = editor.getBoundingClientRect();
+  const font = parseFloat(style.fontSize) || 16;
+  const lineHeight = parseFloat(style.lineHeight) || font * 1.5;
+  const spaceWidth = getMaterialSpaceWidth(range, editor);
+  const contentStartX = bounds.left + editor.clientLeft +
+    (parseFloat(style.paddingLeft) || 0);
+  const padding = calculateMaterialForcedCaretPadding(
+    caret.x, caret.y, event.clientX, event.clientY,
+    lineHeight, spaceWidth, contentStartX
+  );
+
+  let prefix = "\n".repeat(padding.lineBreaks);
+  if (padding.lineBreaks > 0) {
+    prefix += " ".repeat(padding.spaces);
+  } else if (event.clientX > caret.x &&
+             !hasMaterialTextAtOrAfterPointOnLine(
+               editor, event.clientX, event.clientY, lineHeight
+             )) {
+    prefix += " ".repeat(padding.spaces);
+  }
+
+  if (!prefix) return false;
+
+  const filler = document.createTextNode(prefix);
+  range.insertNode(filler);
+  range.setStartAfter(filler);
+  range.collapse(true);
+  return true;
+}
+
+
+function createMaterialNativeAttachmentDragState(attachment, event, editor) {
+  const dataTransfer = event.dataTransfer;
+  if (!attachment?.parentNode || !dataTransfer) return null;
+
+  const rect = attachment.getBoundingClientRect();
+  const style = getComputedStyle(attachment);
+  const previousSpacer = attachment.previousSibling?.nodeType === Node.TEXT_NODE &&
+    attachment.previousSibling.nodeValue === " " ? attachment.previousSibling : null;
+  const nextSpacer = attachment.nextSibling?.nodeType === Node.TEXT_NODE &&
+    attachment.nextSibling.nodeValue === " " ? attachment.nextSibling : null;
+
+  const editorRange = document.createRange();
+  editorRange.selectNodeContents(editor);
+  editorRange.collapse(true);
+  const spaceWidth = getMaterialSpaceWidth(editorRange, editor);
+  const reservedSpaces = Number(Boolean(previousSpacer)) + Number(Boolean(nextSpacer));
+  const reservedWidth = rect.width + (spaceWidth * reservedSpaces);
+
+  const dragImage = attachment.cloneNode(true);
+  dragImage.classList.remove("is-dragging");
+  dragImage.classList.add("material-attachment-drag-image");
+  dragImage.querySelectorAll(".inline-remove").forEach(button => button.remove());
+  dragImage.removeAttribute("data-attachment-id");
+  dragImage.removeAttribute("data-pending-key");
+  dragImage.removeAttribute("data-material-draggable-attachment");
+  dragImage.removeAttribute("data-material-draggable-audio");
+  dragImage.removeAttribute("draggable");
+  Object.assign(dragImage.style, {
+    position: "fixed",
+    left: "-10000px",
+    top: "-10000px",
+    width: String(rect.width) + "px",
+    height: String(rect.height) + "px",
+    margin: "0",
+    pointerEvents: "none"
+  });
+  document.body.appendChild(dragImage);
+
+  try {
+    dataTransfer.setData("text/plain", "BandaBase material attachment");
+    dataTransfer.effectAllowed = "move";
+    dataTransfer.setDragImage(
+      dragImage,
+      Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+      Math.max(0, Math.min(rect.height, event.clientY - rect.top))
+    );
+  } catch (error) {
+    // The browser's default drag image remains a valid fallback.
+  }
+  window.setTimeout(() => dragImage.remove(), 0);
+
+  const sourceMarker = attachment.cloneNode(true);
+  sourceMarker.classList.remove("is-dragging");
+  sourceMarker.classList.add("material-attachment-origin-placeholder");
+  sourceMarker.querySelectorAll(".inline-remove").forEach(button => button.remove());
+  sourceMarker.removeAttribute("data-attachment-id");
+  sourceMarker.removeAttribute("data-pending-key");
+  sourceMarker.removeAttribute("data-material-draggable-attachment");
+  sourceMarker.removeAttribute("data-material-draggable-audio");
+  sourceMarker.removeAttribute("draggable");
+  sourceMarker.setAttribute("aria-hidden", "true");
+  sourceMarker.setAttribute("contenteditable", "false");
+  Object.assign(sourceMarker.style, {
+    visibility: "hidden",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+    width: String(reservedWidth) + "px",
+    height: String(rect.height) + "px",
+    margin: style.margin
+  });
+  const originalStyle = attachment.getAttribute("style");
+  // Keep the actual draggable element connected for the browser's native
+  // drag lifecycle, but take it out of document flow at its reserved origin.
+  attachment.before(sourceMarker);
+  Object.assign(attachment.style, {
+    position: "fixed",
+    left: "-10000px",
+    top: "-10000px",
+    opacity: "0",
+    pointerEvents: "none",
+    margin: "0"
+  });
+  previousSpacer?.remove();
+  nextSpacer?.remove();
+
+  const dropPlaceholder = document.createElement("span");
+  dropPlaceholder.className = "material-attachment-drop-placeholder";
+  dropPlaceholder.contentEditable = "false";
+  dropPlaceholder.setAttribute("aria-hidden", "true");
+  Object.assign(dropPlaceholder.style, {
+    width: String(rect.width) + "px",
+    height: String(rect.height) + "px",
+    margin: style.margin,
+    verticalAlign: style.verticalAlign
+  });
+
+  return {
+    attachment, sourceMarker, previousSpacer, nextSpacer,
+    dropPlaceholder, dragImage, editor, originalStyle,
+    marginRight: style.marginRight, spaceWidth, dropped: false
+  };
+}
+
+
+function updateMaterialNativeDropPreviewSpacing(state, placeholder) {
+  if (!state || !placeholder?.parentNode) return;
+
+  const next = placeholder.nextSibling;
+  const needsTrailingSpace = !(
+    next?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]/.test(next.nodeValue || "")
+  );
+  placeholder.style.marginRight = needsTrailingSpace
+    ? `calc(${state.marginRight} + ${state.spaceWidth}px)`
+    : state.marginRight;
+}
+
+
+function moveMaterialNativeAttachmentDropPreview(event, editor, state, applyPointerPadding = false) {
+  const placeholder = state?.dropPlaceholder;
+  if (!placeholder || !editor || !event) return false;
+
+  let oldMarker = null;
+  let oldParent = null;
+  if (placeholder.isConnected) {
+    oldMarker = document.createComment("material-drop-preview-position");
+    placeholder.before(oldMarker);
+    oldParent = oldMarker.parentNode;
+    placeholder.remove();
+  }
+
+  const range = getMaterialNativeDropRangeAtPoint(event.clientX, event.clientY, editor);
+  if (!range ||
+      (range.startContainer !== editor && !editor.contains(range.startContainer))) {
+    if (oldMarker?.parentNode) {
+      oldMarker.replaceWith(placeholder);
+      updateMaterialNativeDropPreviewSpacing(state, placeholder);
+      oldParent?.normalize();
+    }
+    return false;
+  }
+
+  range.collapse(true);
+  if (applyPointerPadding) {
+    insertMaterialNativeDropPadding(range, event, editor);
+  }
+  range.insertNode(placeholder);
+  updateMaterialNativeDropPreviewSpacing(state, placeholder);
+  oldMarker?.remove();
+  oldParent?.normalize();
+  return true;
+}
+
+
+function restoreMaterialNativeAttachmentDrag(state) {
+  if (!state) return false;
+  const { attachment, sourceMarker, previousSpacer, nextSpacer } = state;
+  if (!sourceMarker?.parentNode) return false;
+
+  state.dropPlaceholder?.remove();
+  sourceMarker.replaceWith(attachment);
+  if (state.originalStyle === null) attachment.removeAttribute("style");
+  else attachment.setAttribute("style", state.originalStyle);
+  const parent = attachment.parentNode;
+  if (previousSpacer) parent.insertBefore(previousSpacer, attachment);
+  if (nextSpacer) parent.insertBefore(nextSpacer, attachment.nextSibling);
+  state.dragImage?.remove();
+  return true;
+}
+
+
+function commitMaterialNativeAttachmentDrop(state) {
+  const placeholder = state?.dropPlaceholder;
+  if (!state?.attachment || !placeholder?.parentNode) return false;
+
+  const { attachment, sourceMarker, dragImage } = state;
+  const parent = placeholder.parentNode;
+  parent.insertBefore(attachment, placeholder);
+  placeholder.remove();
+  sourceMarker?.remove();
+  if (state.originalStyle === null) attachment.removeAttribute("style");
+  else attachment.setAttribute("style", state.originalStyle);
+
+  // Keep the dropped attachment's border box at the native caret.
+  // The chip's own CSS margin provides visual separation before it.
+  // Only reserve a trailing text space when the following node needs one.
+  const next = attachment.nextSibling;
+  if (!(next?.nodeType === Node.TEXT_NODE && /^[\s\u00a0]/.test(next.nodeValue || ""))) {
+    parent.insertBefore(document.createTextNode(" "), attachment.nextSibling);
+  }
+
+  dragImage?.remove();
+  return true;
+}
+
+
+function finishMaterialNativeAttachmentDrag(state, shouldRestore = true) {
+  if (!state || materialNativeAttachmentDragState !== state) return;
+  if (shouldRestore) restoreMaterialNativeAttachmentDrag(state);
+  state.dragImage?.remove();
+  state.dropPlaceholder?.remove();
+  materialNativeAttachmentDragState = null;
+}
+
+function createMaterialInlineAttachment(
+  attachment,
+  pendingKey = null
+) {
+
+  const wrapper =
+    document.createElement("span");
+
+  wrapper.className =
+    "material-inline-attachment";
+
+  wrapper.contentEditable =
+    "false";
+
+  if (attachment?.kind === "file") {
+    wrapper.dataset.materialDraggableAttachment = "true";
+    wrapper.draggable = true;
+    wrapper.title = "Mantené presionado y arrastrá este archivo para cambiar su posición.";
+
+    if (
+      String(attachment.storage_path || "").startsWith("local:") ||
+      isMaterialAudioFile({
+        name: attachment.name || attachment.file_name || "",
+        type: attachment.mime_type || ""
+      })
+    ) {
+      wrapper.dataset.materialDraggableAudio = "true";
+    }
+  }
+
+  if (attachment?.id) {
+
+    wrapper.dataset.attachmentId =
+      attachment.id;
+
+  }
+
+  if (pendingKey) {
+
+    wrapper.dataset.pendingKey =
+      pendingKey;
+
+  }
+
+  const icon =
+    getMaterialAttachmentIcon(
+      attachment
+    );
+
+  const name =
+    attachment?.name ||
+    "Archivo";
+
+  const label =
+    document.createElement("span");
+
+  label.className =
+    "material-inline-attachment-label";
+
+  label.textContent =
+    icon +
+    " " +
+    name +
+    " ";
+
+  wrapper.appendChild(
+    label
+  );
+
+  const removeButton =
+    document.createElement(
+      "button"
+    );
+
+  removeButton.type =
+    "button";
+
+  removeButton.className =
+    "inline-remove";
+
+  removeButton.textContent =
+    "×";
+
+  removeButton.title =
+    "Quitar";
+
+  removeButton.setAttribute(
+    "aria-label",
+    "Quitar " + name
+  );
+
+  removeButton.addEventListener(
+    "mousedown",
+    function(event) {
+
+      event.preventDefault();
+
+    }
+  );
+
+  removeButton.addEventListener(
+    "click",
+    function(event) {
+
+      event.preventDefault();
+
+      wrapper.remove();
+
+    }
+  );
+
+  wrapper.appendChild(
+    removeButton
+  );
+
+  return wrapper;
+
+}
+
+
+
+function setMaterialNotationDotPending(isPending) {
+  materialNotationDotPending = Boolean(isPending);
+  const button = document.getElementById("materialNotationDotBtn");
+  button?.classList.toggle("is-active", materialNotationDotPending);
+  button?.setAttribute("aria-pressed", String(materialNotationDotPending));
+}
+
+
+function getAdjacentMaterialNotationSibling(node, direction) {
+  let sibling = node?.[direction === "previous" ? "previousSibling" : "nextSibling"];
+  while (
+    sibling?.nodeType === Node.TEXT_NODE &&
+    /^[\s\u00a0]*$/.test(sibling.nodeValue || "")
+  ) {
+    sibling = sibling[direction === "previous" ? "previousSibling" : "nextSibling"];
+  }
+  return sibling?.classList?.contains("material-notation-symbol") ? sibling : null;
+}
+
+
+function combineAdjacentMaterialNotationPairsAtCaret(editor, insertedNotation) {
+  if (
+    !editor ||
+    !insertedNotation?.classList?.contains("material-notation-symbol") ||
+    !insertedNotation.isConnected
+  ) {
+    return false;
+  }
+
+  const notationKey = insertedNotation.getAttribute("data-material-notation");
+  const dotted = insertedNotation.getAttribute("data-material-dotted") === "true";
+  if (dotted || (notationKey !== "noteEighth" && notationKey !== "noteSixteenth")) {
+    return false;
+  }
+
+  let first = null;
+  let second = null;
+  const previous = getAdjacentMaterialNotationSibling(insertedNotation, "previous");
+  const next = getAdjacentMaterialNotationSibling(insertedNotation, "next");
+
+  if (
+    previous?.getAttribute("data-material-notation") === notationKey &&
+    previous.getAttribute("data-material-dotted") !== "true"
+  ) {
+    first = previous;
+    second = insertedNotation;
+  } else if (
+    next?.getAttribute("data-material-notation") === notationKey &&
+    next.getAttribute("data-material-dotted") !== "true"
+  ) {
+    first = insertedNotation;
+    second = next;
+  }
+
+  if (!first || !second || first.parentNode !== second.parentNode) {
+    return false;
+  }
+
+  const parent = first.parentNode;
+  const pairKey = notationKey === "noteEighth" ? "noteEighthPair" : "noteSixteenthPair";
+  const pair = createMaterialNotationElement(pairKey, false);
+  if (!pair) return false;
+
+  parent.insertBefore(pair, first);
+  let current = first;
+  while (current && current !== second) {
+    const following = current.nextSibling;
+    current.remove();
+    current = following;
+  }
+  second.remove();
+
+  return true;
+}
+
+
+function insertMaterialNotation(notationKey, button = null) {
+  const dotWasPending = materialNotationDotPending;
+  const notation = createMaterialNotationElement(
+    notationKey,
+    dotWasPending
+  );
+
+  if (!notation || !focusMaterialEditorForFormatting()) {
+    return false;
+  }
+
+  const insertedNotation = insertMaterialNodeAtSelection(notation);
+  const editor = document.getElementById("materialComposerEditor");
+  combineAdjacentMaterialNotationPairsAtCaret(editor, insertedNotation);
+
+  if (dotWasPending) {
+    setMaterialNotationDotPending(false);
+  }
+
+  if (button) {
+    showMaterialFormatActionFeedback(button);
+  }
+
+  editor?.focus();
+  rememberMaterialSelection();
+  return true;
+}
+
+
+function getCurrentMaterialAudioMarkerSeconds() {
+  // Prefer the audio control that still has focus (including a paused player).
+  const activeAudioWrapper = document.activeElement?.closest?.("[data-material-inline-audio]");
+  const activePlayer = activeAudioWrapper?.querySelector?.("[data-material-audio]");
+  const activeSeconds = getMaterialAudioMarkerSecondsFromPlaybackTime(activePlayer?.currentTime);
+  if (activeSeconds !== null) return activeSeconds;
+
+  // If a group is playing, its tracks share the same playhead. Prefer the
+  // metronome reference when it is among them; otherwise use the first active
+  // track only if every active playhead is closely aligned.
+  const playingPlayers = Array.from(
+    document.querySelectorAll("[data-material-inline-audio] audio[data-material-audio]")
+  ).filter(player =>
+    !player.paused &&
+    !player.ended &&
+    Number.isFinite(player.currentTime)
+  );
+
+  if (!playingPlayers.length) return null;
+
+  const metronomeReference = window.bandabaseGetMetronomeSyncAudioPlayer?.();
+  const reference = metronomeReference && playingPlayers.includes(metronomeReference)
+    ? metronomeReference
+    : playingPlayers[0];
+  if (playingPlayers.some(player => Math.abs(player.currentTime - reference.currentTime) > 0.25)) {
+    return null;
+  }
+
+  return getMaterialAudioMarkerSecondsFromPlaybackTime(reference.currentTime);
+}
+
+
+function insertMaterialAudioMarker(button = null) {
+  let seconds = getCurrentMaterialAudioMarkerSeconds();
+
+  // Keep manual entry available if playback does not identify one audio position.
+  if (seconds === null) {
+    const input = window.prompt(
+      "No se detectó una posición de audio clara. Ingresá el tiempo del marcador (mm:ss, hh:mm:ss o segundos):",
+      "0:30"
+    );
+    if (input === null) return false;
+
+    seconds = parseMaterialAudioMarkerTime(input);
+    if (seconds === null) {
+      showNotice("Tiempo inválido. Usá mm:ss, hh:mm:ss o un número de segundos (máximo 24 horas).", "error");
+      return false;
+    }
+  }
+
+  const marker = document.createElement("span");
+  marker.className = "material-audio-marker";
+  marker.dataset.audioMarkerSeconds = String(seconds);
+  marker.setAttribute("contenteditable", "false");
+  marker.setAttribute("role", "button");
+  marker.setAttribute("tabindex", "0");
+  marker.textContent = formatMaterialAudioMarkerLabel(seconds);
+  marker.setAttribute("aria-label", "Ir a " + marker.textContent);
+
+  insertMaterialNodeAtSelection(marker);
+
+  if (button) showMaterialFormatActionFeedback(button);
+  document.getElementById("materialComposerEditor")?.focus();
+  rememberMaterialSelection();
+  return true;
+}
+
+
+function findLastMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: value.length - 1 } : null;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = node.childNodes.length - 1; index >= 0; index--) {
+    const found = findLastMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
+  return null;
+}
+
+
+function findFirstMaterialTextCharacter(node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const value = node.nodeValue || "";
+    return value.length ? { node, offset: 0 } : null;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+  if (node.tagName === "BR" || node.classList?.contains("material-inline-attachment")) {
+    return { blocked: true };
+  }
+  for (let index = 0; index < node.childNodes.length; index++) {
+    const found = findFirstMaterialTextCharacter(node.childNodes[index]);
+    if (found) return found;
+  }
+  return null;
+}
+
+
+function findNextMaterialTextCharacterAfter(node, editor) {
+  let cursor = node;
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.nextSibling;
+    while (sibling) {
+      const found = findFirstMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.nextSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
+
+
+function getSelectedMaterialLineBreaks(range, editor) {
+  const breaks = [];
+  const walker = document.createTreeWalker(
+    editor,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+  );
+
+  let node = walker.nextNode();
+  while (node) {
+    if (
+      node.nodeType === Node.TEXT_NODE &&
+      !node.parentElement?.closest(".material-inline-attachment")
+    ) {
+      const value = node.nodeValue || "";
+      for (let offset = 0; offset < value.length; offset++) {
+        if (value[offset] === "\n" && range.comparePoint(node, offset + 1) === 0) {
+          breaks.push({ kind: "text", node, offset: offset + 1 });
+        }
+      }
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName === "BR" &&
+      range.intersectsNode(node)
+    ) {
+      breaks.push({ kind: "br", node });
+    }
+    node = walker.nextNode();
+  }
+
+  return breaks;
+}
+
+
+function findPreviousMaterialTextCharacter(range, editor) {
+  const container = range.startContainer;
+  const offset = range.startOffset;
+  if (container.nodeType === Node.TEXT_NODE && offset > 0) {
+    return { node: container, offset: offset - 1 };
+  }
+
+  let cursor = container;
+  if (container.nodeType === Node.ELEMENT_NODE) {
+    for (let index = Math.min(offset, container.childNodes.length) - 1; index >= 0; index--) {
+      const found = findLastMaterialTextCharacter(container.childNodes[index]);
+      if (found) return found.blocked ? null : found;
+    }
+  }
+
+  while (cursor && cursor !== editor) {
+    let sibling = cursor.previousSibling;
+    while (sibling) {
+      const found = findLastMaterialTextCharacter(sibling);
+      if (found) return found.blocked ? null : found;
+      sibling = sibling.previousSibling;
+    }
+    cursor = cursor.parentNode;
+  }
+  return null;
+}
+
+
+function changeMaterialIndentSpaces(direction) {
+  const editor = document.getElementById("materialComposerEditor");
+  const selection = window.getSelection();
+  if (!editor || !selection) return false;
+
+  let range = null;
+  if (
+    selection.rangeCount &&
+    editor.contains(selection.getRangeAt(0).startContainer) &&
+    editor.contains(selection.getRangeAt(0).endContainer)
+  ) {
+    range = selection.getRangeAt(0).cloneRange();
+  } else if (
+    materialSelectionRange &&
+    editor.contains(materialSelectionRange.startContainer) &&
+    editor.contains(materialSelectionRange.endContainer)
+  ) {
+    range = materialSelectionRange.cloneRange();
+  }
+  if (!range) return false;
+
+  const isCollapsed = range.collapsed;
+  const lineBreaks = isCollapsed
+    ? []
+    : getSelectedMaterialLineBreaks(range, editor);
+
+  if (direction > 0) {
+    // If a selection spans several explicit lines, prefix each selected line
+    // with one real, persistent space. Insert from the end backward so offsets
+    // in earlier text nodes remain valid.
+    for (let index = lineBreaks.length - 1; index >= 0; index--) {
+      const lineBreak = lineBreaks[index];
+      const insertionRange = document.createRange();
+      if (lineBreak.kind === "text") {
+        insertionRange.setStart(lineBreak.node, lineBreak.offset);
+      } else {
+        insertionRange.setStartAfter(lineBreak.node);
+      }
+      insertionRange.collapse(true);
+      insertionRange.insertNode(document.createTextNode("\u00a0"));
+    }
+
+    const insertionRange = range.cloneRange();
+    insertionRange.collapse(true);
+    const space = document.createTextNode("\u00a0");
+    insertionRange.insertNode(space);
+    range.setStartAfter(space);
+    if (isCollapsed) range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    materialSelectionRange = range.cloneRange();
+    updateMaterialFormattingButtonStates();
+    return true;
+  }
+
+  // Remove one character from each selected line, beginning with the last
+  // line so DOM offsets stay stable. Only actual leading spaces are removed.
+  for (let index = lineBreaks.length - 1; index >= 0; index--) {
+    const lineBreak = lineBreaks[index];
+    let character = null;
+    if (lineBreak.kind === "text") {
+      const value = lineBreak.node.nodeValue || "";
+      if (value[lineBreak.offset] === " " || value[lineBreak.offset] === "\u00a0") {
+        character = { node: lineBreak.node, offset: lineBreak.offset };
+      } else if (lineBreak.offset >= value.length) {
+        // Inserting indentation splits the original text node at this newline.
+        // The leading space is then in the next sibling text node, not at offset
+        // lineBreak.offset in the original node.
+        const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
+        if (found) {
+          const nextValue = found.node.nodeValue || "";
+          if (nextValue[found.offset] === " " || nextValue[found.offset] === "\u00a0") {
+            character = found;
+          }
+        }
+      }
+    } else {
+      const found = findNextMaterialTextCharacterAfter(lineBreak.node, editor);
+      if (found) {
+        const value = found.node.nodeValue || "";
+        if (value[found.offset] === " " || value[found.offset] === "\u00a0") {
+          character = found;
+        }
+      }
+    }
+
+    if (character) {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(character.node, character.offset);
+      deletionRange.setEnd(character.node, character.offset + 1);
+      deletionRange.deleteContents();
+    }
+  }
+
+  const previous = findPreviousMaterialTextCharacter(range, editor);
+  if (previous) {
+    const value = previous.node.nodeValue || "";
+    const character = value[previous.offset];
+    if (character === " " || character === "\u00a0") {
+      const deletionRange = document.createRange();
+      deletionRange.setStart(previous.node, previous.offset);
+      deletionRange.setEnd(previous.node, previous.offset + 1);
+      deletionRange.deleteContents();
+    } else if (isCollapsed) {
+      return false;
+    } else {
+      const current = range.startContainer;
+      if (current.nodeType === Node.TEXT_NODE) {
+        const valueAtStart = current.nodeValue || "";
+        if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+          const deletionRange = document.createRange();
+          deletionRange.setStart(current, range.startOffset);
+          deletionRange.setEnd(current, range.startOffset + 1);
+          deletionRange.deleteContents();
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  } else {
+    if (!isCollapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+      const current = range.startContainer;
+      const valueAtStart = current.nodeValue || "";
+      if (valueAtStart[range.startOffset] === " " || valueAtStart[range.startOffset] === "\u00a0") {
+        const deletionRange = document.createRange();
+        deletionRange.setStart(current, range.startOffset);
+        deletionRange.setEnd(current, range.startOffset + 1);
+        deletionRange.deleteContents();
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+  materialSelectionRange = range.cloneRange();
+  updateMaterialFormattingButtonStates();
+  return true;
+}
+
+
+function stopMaterialIndentRepeat() {
+  if (materialIndentRepeatTimer !== null) {
+    window.clearTimeout(materialIndentRepeatTimer);
+  }
+  materialIndentRepeatTimer = null;
+  materialIndentRepeatButton = null;
+  materialIndentRepeatDirection = 0;
+  materialIndentRepeatCount = 0;
+}
+
+
+function scheduleMaterialIndentRepeat() {
+  if (!materialIndentRepeatButton) return;
+  const delay =
+    materialIndentRepeatCount === 0
+      ? 320
+      : getMaterialIndentRepeatDelay(materialIndentRepeatCount);
+  materialIndentRepeatTimer = window.setTimeout(() => {
+    if (!materialIndentRepeatButton) return;
+    changeMaterialIndentSpaces(materialIndentRepeatDirection);
+    materialIndentRepeatCount += 1;
+    scheduleMaterialIndentRepeat();
+  }, delay);
+}
+
+
+function startMaterialIndentRepeat(event, button, direction) {
+  if (event.button !== undefined && event.button !== 0) return;
+  event.preventDefault();
+  stopMaterialIndentRepeat();
+  rememberMaterialSelection();
+  materialIndentPointerHandled = true;
+  materialIndentRepeatButton = button;
+  materialIndentRepeatDirection = direction;
+  materialIndentRepeatCount = 0;
+  changeMaterialIndentSpaces(direction);
+  scheduleMaterialIndentRepeat();
+}
+
+
+function bindMaterialIndentRepeatButton(button, direction) {
+  if (!button) return;
+  button.addEventListener("pointerdown", event => {
+    startMaterialIndentRepeat(event, button, direction);
+  });
+  button.addEventListener("click", () => {
+    if (materialIndentPointerHandled) {
+      materialIndentPointerHandled = false;
+      return;
+    }
+    changeMaterialIndentSpaces(direction);
+  });
+}
+
+
+function toggleMaterialIndent(forceIndent = true) {
+  return changeMaterialIndentSpaces(forceIndent === false ? -1 : 1);
+}
+
+
+function clearMaterialFormatting() {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor || !focusMaterialEditorForFormatting()) return false;
+
+  setMaterialNotationDotPending(false);
+
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return false;
+
+  try {
+    if (document.queryCommandState("bold")) {
+      document.execCommand("bold", false, null);
+    }
+    if (document.queryCommandState("italic")) {
+      document.execCommand("italic", false, null);
+    }
+    document.execCommand("removeFormat", false, null);
+    document.execCommand("fontSize", false, "3");
+  } catch (error) {
+    console.error("No se pudo restablecer el formato de Materiales:", error);
+  }
+
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) {
+    const sizeElement = getMaterialTextSizeElementForRange(range, editor);
+    if (sizeElement) {
+      sizeElement.classList.remove(
+        "material-text-size-1",
+        "material-text-size-2"
+      );
+    }
+  } else {
+    const exactSizeElement = getMaterialTextSizeElementForRange(
+      range,
+      editor,
+      true
+    );
+    if (exactSizeElement) {
+      exactSizeElement.className = "material-text-size-normal";
+    }
+  }
+
+  updateMaterialFormattingButtonStates();
+  rememberMaterialSelection();
+  return true;
+}
+
+
+function executeMaterialKeyboardShortcut(action) {
+  const editor = document.getElementById("materialComposerEditor");
+  if (!editor) return false;
+
+  if (action === "clearFormatting") {
+    return clearMaterialFormatting();
+  }
+  if (action === "indentMore") {
+    return toggleMaterialIndent(true);
+  }
+  if (action === "indentLess") {
+    return toggleMaterialIndent(false);
+  }
+
+  const buttonId = getMaterialKeyboardShortcutButtonId(action);
+  if (!buttonId) return false;
+  const button = document.getElementById(buttonId);
+  if (!button) return false;
+  button.click();
+  return true;
+}
+
+
+function insertMaterialNodeAtSelection(
+  node
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
+  editor.focus();
+
+  const hasSelection =
+    restoreMaterialSelection(savedRange);
+
+  let range =
+    hasSelection
+      ? materialSelectionRange
+      : null;
+
+  if (
+    !hasSelection
+  ) {
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(
+      false
+    );
+
+  }
+
+  range.deleteContents();
+
+  const spacerBefore =
+    document.createTextNode(
+      " "
+    );
+
+  const spacerAfter =
+    document.createTextNode(
+      " "
+    );
+
+  range.insertNode(
+    spacerAfter
+  );
+
+  range.insertNode(
+    node
+  );
+
+  range.insertNode(
+    spacerBefore
+  );
+
+  range.setStartAfter(
+    spacerAfter
+  );
+
+  range.collapse(
+    true
+  );
+
+  const selection =
+    window.getSelection();
+
+  selection.removeAllRanges();
+  selection.addRange(
+    range
+  );
+
+  materialSelectionRange =
+    range.cloneRange();
+
+  return node;
+}
+
+
+function renderMaterialComposer(
+  blocks
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  editor.innerHTML =
+    "";
+
+  const safeBlocks =
+    blocks?.length
+      ? blocks
+      : [
+          {
+            block_type:
+              "text",
+            content:
+              ""
+          }
+        ];
+
+  safeBlocks.forEach(
+    block => {
+
+      if (
+        block.block_type ===
+        "text"
+      ) {
+
+        const richFragment =
+          createMaterialRichTextFragment(
+            block.content || ""
+          );
+
+        if (richFragment) {
+
+          editor.appendChild(
+            richFragment
+          );
+
+        } else {
+
+          editor.appendChild(
+            createMaterialAutoLinkFragment(
+              block.content || ""
+            )
+          );
+
+        }
+
+        return;
+
+      }
+
+      if (
+        block.block_type ===
+        "attachment"
+      ) {
+
+        const attachment =
+          block.attachment ||
+          block.pending;
+
+        if (!attachment) {
+          return;
+        }
+
+        const inline =
+          createMaterialInlineAttachment(
+            attachment,
+            block.pendingKey || null
+          );
+
+        editor.appendChild(
+          inline
+        );
+
+      }
+
+    }
+  );
+
+  if (
+    !editor.childNodes.length
+  ) {
+
+    editor.appendChild(
+      document.createTextNode("")
+    );
+
+  }
+
+}
+
+
+function createMaterialComposerSerializationRoot(editor) {
+  const root = document.createElement("div");
+
+  function appendNormalizedChildren(source, target) {
+    const children = Array.from(source.childNodes || []);
+    let isFirstSourceNode = true;
+
+    let previousWasBlock = false;
+
+    children.forEach(node => {
+      const hasPreviousSourceNode = !isFirstSourceNode;
+      isFirstSourceNode = false;
+      const isBlock = node.nodeType === Node.ELEMENT_NODE &&
+        ["DIV", "P"].includes(node.tagName);
+
+      if (hasPreviousSourceNode && (previousWasBlock || isBlock)) {
+        // Normalize boundaries both before and after DIV/P blocks. Empty blocks
+        // still count, so consecutive empty lines never collapse together.
+        target.appendChild(document.createElement("br"));
+      }
+
+      if (isBlock) {
+        const blockChildren = Array.from(node.childNodes || []);
+        const isEditorPlaceholder = blockChildren.length === 1 &&
+          blockChildren[0].nodeType === Node.ELEMENT_NODE &&
+          blockChildren[0].tagName === "BR";
+
+        // Browsers often represent Enter as sibling DIVs. Flatten them to BR
+        // so saved text, indentation, and inline attachments share one layout.
+        // A lone BR inside an empty DIV is only the browser's caret placeholder.
+        if (!isEditorPlaceholder) {
+          appendNormalizedChildren(node, target);
+        }
+        previousWasBlock = true;
+        return;
+      }
+
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.querySelector?.("div, p")
+      ) {
+        const wrapper = node.cloneNode(false);
+        appendNormalizedChildren(node, wrapper);
+        target.appendChild(wrapper);
+        previousWasBlock = false;
+        return;
+      }
+
+      target.appendChild(node.cloneNode(true));
+      previousWasBlock = false;
+    });
+  }
+
+  appendNormalizedChildren(editor, root);
+  return root;
+}
+
+
+function collectMaterialComposerBlocks() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return [];
+  }
+
+  const serializationRoot =
+    createMaterialComposerSerializationRoot(editor);
+
+  const blocks = [];
+  let textNodes = [];
+
+  function flushText() {
+
+    if (!textNodes.length) {
+      return;
+    }
+
+    const html =
+      serializeMaterialRichTextChildren(
+        textNodes
+      );
+
+    blocks.push({
+      block_type:
+        "text",
+      content:
+        makeMaterialStoredText(
+          html
+        )
+    });
+
+    textNodes =
+      [];
+
+  }
+
+  function appendAttachmentBlock(
+    element
+  ) {
+
+    blocks.push({
+      block_type:
+        "attachment",
+      attachment_id:
+        element.dataset.attachmentId ||
+        null,
+      pendingKey:
+        element.dataset.pendingKey ||
+        null
+    });
+
+  }
+
+  Array.from(
+    serializationRoot.childNodes
+  ).forEach(
+    node => {
+
+      splitMaterialComposerNodeByAttachments(
+        node
+      ).forEach(
+        segment => {
+
+          if (segment.attachment) {
+
+            flushText();
+
+            appendAttachmentBlock(
+              segment.attachment
+            );
+
+            return;
+
+          }
+
+          if (segment.node) {
+
+            textNodes.push(
+              segment.node
+            );
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+  flushText();
+
+  if (!blocks.length) {
+
+    blocks.push({
+      block_type:
+        "text",
+      content:
+        ""
+    });
+
+  }
+
+  return blocks;
+
+}
+
+
+function collectMaterialLegacyText(
+  blocks
+) {
+
+  return blocks
+    .filter(
+      block =>
+        block.block_type ===
+        "text"
+    )
+    .map(
+      block =>
+        block.content || ""
+    )
+    .join("\n\n")
+    .trim();
+
+}
+
+function openMaterialEditor(
+  material = null,
+  materialType = null
+) {
+
+  editingMaterialId =
+    material?.id ||
+    null;
+
+  editingMaterialType =
+    material?.type === COMPARISON_MATERIAL_TYPE
+      ? COMPARISON_MATERIAL_TYPE
+      : materialType;
+
+  // Evitar que la vista expandida y el formulario de edición muestren
+  // simultáneamente el mismo contenido como si fueran dos materiales.
+  if (editingMaterialId) {
+
+    openMaterialIds.delete(
+      editingMaterialId
+    );
+
+    renderMaterials();
+
+  }
+
+  materialDraftInitialAttachmentIds =
+    new Set(
+      (
+        material?.attachments ||
+        []
+      ).map(
+        attachment =>
+          attachment.id
+      )
+    );
+
+  materialPendingAttachments = {};
+
+  document.getElementById(
+    "materialName"
+  ).value =
+    material?.name ||
+    (
+      editingMaterialType === COMPARISON_MATERIAL_TYPE
+        ? "Diferencias con la original"
+        : ""
+    );
+
+  renderMaterialComposer(
+    material?.blocks ||
+    [
+      {
+        block_type:
+          "text",
+        content:
+          material?.content ||
+          ""
+      }
+    ]
+  );
+
+  rememberMaterialSelection();
+
+  document.getElementById(
+    "materialForm"
+  ).classList.remove(
+    "hidden"
+  );
+
+  document.getElementById(
+    "showMaterialFormBtn"
+  ).textContent =
+    editingMaterialType === COMPARISON_MATERIAL_TYPE
+      ? "Editando diferencias con la original"
+      : material
+        ? "Editando material"
+        : "+ Añadir material";
+
+  document.getElementById(
+    "materialName"
+  ).focus();
+
+}
+
+
+function showMaterialForm() {
+
+  openMaterialEditor();
+
+}
+
+
+function hideMaterialForm() {
+
+  editingMaterialId =
+    null;
+
+  editingMaterialType =
+    null;
+
+  materialDraftInitialAttachmentIds =
+    new Set();
+
+  materialSelectionRange =
+    null;
+
+  materialPendingAttachments =
+    {};
+
+  const form =
+    document.getElementById(
+      "materialForm"
+    );
+
+  form.classList.add(
+    "hidden"
+  );
+
+  form.reset();
+
+  document.getElementById(
+    "materialComposerEditor"
+  ).innerHTML =
+    "";
+
+  document.getElementById(
+    "showMaterialFormBtn"
+  ).textContent =
+    "+ Añadir material";
+
+  if (typeof window.bandabaseFlushRealtimeRefreshes === "function") {
+    void window.bandabaseFlushRealtimeRefreshes();
+  }
+
+}
+
+
+bindMaterialFormattingControls();
+
+
+document
+  .getElementById(
+    "showMaterialFormBtn"
+  )
+  .addEventListener(
+    "click",
+    showMaterialForm
+  );
+
+
+document
+  .getElementById(
+    "cancelMaterialBtn"
+  )
+  .addEventListener(
+    "click",
+    hideMaterialForm
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "keydown",
+    function(event) {
+
+      const shortcutAction =
+        getMaterialShortcutAction(event);
+
+      if (shortcutAction) {
+        event.preventDefault();
+        rememberMaterialSelection();
+        executeMaterialKeyboardShortcut(shortcutAction);
+        return;
+      }
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        event.preventDefault();
+
+        rememberMaterialSelection();
+
+        const textNode =
+          document.createTextNode(
+            "\n"
+          );
+
+        insertMaterialNodeAtSelection(
+          textNode
+        );
+
+        return;
+
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+
+        event.preventDefault();
+
+        const textNode =
+          document.createTextNode(
+            "  "
+          );
+
+        insertMaterialNodeAtSelection(
+          textNode
+        );
+
+      }
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "keyup",
+    rememberMaterialSelection
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "mouseup",
+    rememberMaterialSelection
+  );
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "focus",
+    rememberMaterialSelection
+  );
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "dblclick",
+    placeMaterialCaretAtDoubleClick
+  );
+
+
+function focusMaterialEditorForFormatting() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return false;
+  }
+
+  // El evento focus puede intentar guardar la selección actual
+  // mientras el navegador mueve el foco desde el toolbar.
+  // Conservamos una copia anterior y la restauramos después.
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
+  editor.focus();
+
+  return restoreMaterialSelection(savedRange);
+
+}
+
+
+function executeMaterialTextCommand(
+  command,
+  value = null
+) {
+
+  if (
+    !focusMaterialEditorForFormatting()
+  ) {
+    return;
+  }
+
+  try {
+
+    document.execCommand(
+      command,
+      false,
+      value
+    );
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+  }
+
+  rememberMaterialSelection();
+
+}
+
+
+function getMaterialCurrentFontSizeCommandValue() {
+
+  try {
+
+    return String(
+      document.queryCommandValue(
+        "fontSize"
+      ) || ""
+    );
+
+  } catch (error) {
+
+    return "";
+
+  }
+
+}
+
+
+function getMaterialTextSizeClassFromElement(
+  element
+) {
+
+  if (!element) {
+    return null;
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-normal"
+    )
+  ) {
+    return "material-text-size-normal";
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-1"
+    )
+  ) {
+    return "material-text-size-1";
+  }
+
+  if (
+    element.classList?.contains(
+      "material-text-size-2"
+    )
+  ) {
+    return "material-text-size-2";
+  }
+
+  if (element.tagName === "FONT") {
+
+    const size =
+      element.getAttribute("size");
+
+    if (size === "3") {
+      return "material-text-size-normal";
+    }
+
+    if (size === "5") {
+      return "material-text-size-1";
+    }
+
+    if (size === "7") {
+      return "material-text-size-2";
+    }
+
+  }
+
+  return null;
+
+}
+
+
+function getMaterialTextSizeElementForRange(
+  range,
+  editor,
+  exactContentsOnly = false
+) {
+
+  if (!range || !editor) {
+    return null;
+  }
+
+  const selectedText =
+    range.toString();
+
+  let element =
+    range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentElement;
+
+  while (
+    element &&
+    element !== editor
+  ) {
+
+    const sizeClass =
+      getMaterialTextSizeClassFromElement(
+        element
+      );
+
+    if (
+      sizeClass &&
+      element.contains(
+        range.endContainer
+      )
+    ) {
+
+      if (
+        !exactContentsOnly ||
+        selectedText === element.textContent
+      ) {
+        return element;
+      }
+
+    }
+
+    element =
+      element.parentElement;
+
+  }
+
+  return null;
+
+}
+
+
+function unwrapMaterialTextSizeElement(
+  element
+) {
+
+  const parent =
+    element?.parentNode;
+
+  if (!parent) {
+    return;
+  }
+
+  while (
+    element.firstChild
+  ) {
+
+    parent.insertBefore(
+      element.firstChild,
+      element
+    );
+
+  }
+
+  parent.removeChild(
+    element
+  );
+
+}
+
+
+function clearMaterialTextSizeDescendants(
+  root
+) {
+
+  if (!root?.querySelectorAll) {
+    return;
+  }
+
+  const sizeElements =
+    Array.from(
+      root.querySelectorAll(
+        [
+          "span.material-text-size-normal",
+          "span.material-text-size-1",
+          "span.material-text-size-2",
+          'font[size="3"]',
+          'font[size="5"]',
+          'font[size="7"]'
+        ].join(",")
+      )
+    ).reverse();
+
+  sizeElements.forEach(
+    unwrapMaterialTextSizeElement
+  );
+
+}
+
+
+function convertMaterialTextSizeElementToSpan(
+  element
+) {
+
+  if (
+    !element ||
+    element.tagName !== "FONT"
+  ) {
+    return element;
+  }
+
+  const span =
+    document.createElement("span");
+
+  while (
+    element.firstChild
+  ) {
+    span.appendChild(
+      element.firstChild
+    );
+  }
+
+  element.replaceWith(
+    span
+  );
+
+  return span;
+
+}
+
+
+function setMaterialFormattingButtonState(
+  button,
+  active
+) {
+
+  if (!button) {
+    return;
+  }
+
+  const isActive =
+    Boolean(active);
+
+  button.classList.toggle(
+    "is-active",
+    isActive
+  );
+
+  button.setAttribute(
+    "aria-pressed",
+    String(isActive)
+  );
+
+}
+
+
+function updateMaterialFormattingButtonStates() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  if (
+    !editor.contains(range.startContainer) ||
+    !editor.contains(range.endContainer)
+  ) {
+    return;
+  }
+
+  function isCommandActive(command) {
+
+    try {
+
+      return document.queryCommandState(command);
+
+    } catch (error) {
+
+      return false;
+
+    }
+
+  }
+
+  const sizeElement =
+    getMaterialTextSizeElementForRange(
+      range,
+      editor
+    );
+
+  const sizeClass =
+    getMaterialTextSizeClassFromElement(
+      sizeElement
+    );
+
+  const fontSize =
+    getMaterialCurrentFontSizeCommandValue();
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialBoldBtn"),
+    isCommandActive("bold")
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialItalicBtn"),
+    isCommandActive("italic")
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialSize1Btn"),
+    sizeClass === "material-text-size-1" ||
+      (!sizeClass && fontSize === "5")
+  );
+
+  setMaterialFormattingButtonState(
+    document.getElementById("materialSize2Btn"),
+    sizeClass === "material-text-size-2" ||
+      (!sizeClass && fontSize === "7")
+  );
+
+}
+
+function showMaterialFormatActionFeedback(button) {
+
+  if (!button) {
+    return;
+  }
+
+  const timer =
+    Number(button.dataset.feedbackTimer || 0);
+
+  if (timer) {
+    window.clearTimeout(timer);
+  }
+
+  button.classList.add(
+    "is-action-feedback"
+  );
+
+  button.dataset.feedbackTimer =
+    String(window.setTimeout(
+      function() {
+
+        button.classList.remove(
+          "is-action-feedback"
+        );
+
+        delete button.dataset.feedbackTimer;
+
+      },
+      650
+    ));
+
+}
+
+
+function toggleMaterialTextSize(
+  sizeValue
+) {
+
+  if (
+    !focusMaterialEditorForFormatting()
+  ) {
+    return;
+  }
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !editor ||
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const range =
+    selection.getRangeAt(0);
+
+  const targetClass =
+    String(sizeValue) === "5"
+      ? "material-text-size-1"
+      : "material-text-size-2";
+
+  // El cursor sin texto seleccionado sigue usando el modo de escritura
+  // nativo del navegador. Para texto seleccionado usamos clases propias,
+  // que sí reconocemos después de guardar y volver a abrir el material.
+  if (range.collapsed) {
+
+    const currentSizeElement =
+      getMaterialTextSizeElementForRange(
+        range,
+        editor
+      );
+
+    const currentClass =
+      getMaterialTextSizeClassFromElement(
+        currentSizeElement
+      );
+
+    const currentSize =
+      currentClass === "material-text-size-1"
+        ? "5"
+        : currentClass === "material-text-size-2"
+          ? "7"
+          : currentClass === "material-text-size-normal"
+            ? "3"
+            : getMaterialCurrentFontSizeCommandValue();
+
+    const nextSize =
+      currentSize === String(sizeValue)
+        ? "3"
+        : String(sizeValue);
+
+    try {
+
+      document.execCommand(
+        "fontSize",
+        false,
+        nextSize
+      );
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+    }
+
+    rememberMaterialSelection();
+    return;
+
+  }
+
+  const exactSizeElement =
+    getMaterialTextSizeElementForRange(
+      range,
+      editor,
+      true
+    );
+
+  const containingSizeElement =
+    exactSizeElement ||
+    getMaterialTextSizeElementForRange(
+      range,
+      editor
+    );
+
+  const currentClass =
+    getMaterialTextSizeClassFromElement(
+      containingSizeElement
+    );
+
+  const nextClass =
+    getNextMaterialTextSizeClass(
+      currentClass,
+      targetClass
+    );
+
+  if (exactSizeElement) {
+
+    clearMaterialTextSizeDescendants(
+      exactSizeElement
+    );
+
+    const wrapper =
+      convertMaterialTextSizeElementToSpan(
+        exactSizeElement
+      );
+
+    wrapper.className =
+      nextClass;
+
+    const updatedRange =
+      document.createRange();
+
+    updatedRange.selectNodeContents(
+      wrapper
+    );
+
+    selection.removeAllRanges();
+    selection.addRange(
+      updatedRange
+    );
+
+    materialSelectionRange =
+      updatedRange.cloneRange();
+
+    updateMaterialFormattingButtonStates();
+
+    return;
+
+  }
+
+  // Al cambiar solo una parte de un texto ya formateado, el contenido
+  // extraído puede traer copias de sus tamaños anteriores. Quitamos esos
+  // tamaños antes de aplicar uno solo al fragmento seleccionado.
+  const contents =
+    range.extractContents();
+
+  clearMaterialTextSizeDescendants(
+    contents
+  );
+
+  const wrapper =
+    document.createElement("span");
+
+  wrapper.className =
+    nextClass;
+
+  wrapper.appendChild(
+    contents
+  );
+
+  range.insertNode(
+    wrapper
+  );
+
+  const updatedRange =
+    document.createRange();
+
+  updatedRange.selectNodeContents(
+    wrapper
+  );
+
+  selection.removeAllRanges();
+  selection.addRange(
+    updatedRange
+  );
+
+  materialSelectionRange =
+    updatedRange.cloneRange();
+
+  updateMaterialFormattingButtonStates();
+
+}
+
+function insertMaterialWrapper(
+  left,
+  right
+) {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  const savedRange =
+    materialSelectionRange?.cloneRange() || null;
+
+  editor.focus();
+
+  const restored =
+    restoreMaterialSelection(savedRange);
+
+  let range =
+    restored
+      ? materialSelectionRange
+      : null;
+
+  if (!range) {
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      editor
+    );
+
+    range.collapse(
+      false
+    );
+
+  }
+
+  const selection =
+    window.getSelection();
+
+  if (
+    !selection ||
+    !selection.rangeCount
+  ) {
+    return;
+  }
+
+  const hasSelection =
+    !range.collapsed;
+
+  if (hasSelection) {
+
+    const contents =
+      range.extractContents();
+
+    const fragment =
+      document.createDocumentFragment();
+
+    const opening =
+      document.createTextNode(
+        left
+      );
+
+    const closing =
+      document.createTextNode(
+        right
+      );
+
+    fragment.appendChild(
+      opening
+    );
+
+    fragment.appendChild(
+      contents
+    );
+
+    fragment.appendChild(
+      closing
+    );
+
+    range.insertNode(
+      fragment
+    );
+
+    // Dejar el cursor después del paréntesis/corchete de cierre
+    // evita que la siguiente acción actúe sobre el rango anterior.
+    range.setStartAfter(
+      closing
+    );
+
+    range.collapse(
+      true
+    );
+
+  } else {
+
+    const opening =
+      document.createTextNode(
+        left
+      );
+
+    const closing =
+      document.createTextNode(
+        right
+      );
+
+    range.insertNode(
+      closing
+    );
+
+    range.insertNode(
+      opening
+    );
+
+    range.setStartAfter(
+      opening
+    );
+
+    range.collapse(
+      true
+    );
+
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(
+    range
+  );
+
+  materialSelectionRange =
+    range.cloneRange();
+
+}
+
+
+function insertMaterialComposerLineBreak(editor) {
+  if (!editor) return false;
+
+  const selection = window.getSelection();
+  let range = null;
+
+  if (selection?.rangeCount) {
+    const activeRange = selection.getRangeAt(0);
+    if (editor.contains(activeRange.commonAncestorContainer)) {
+      range = activeRange.cloneRange();
+    }
+  }
+
+  if (!range && materialSelectionRange) {
+    range = materialSelectionRange.cloneRange();
+  }
+
+  if (!range || !editor.contains(range.commonAncestorContainer)) {
+    return false;
+  }
+
+  range.deleteContents();
+  const lineBreak = document.createElement("br");
+  range.insertNode(lineBreak);
+
+  const caret = document.createRange();
+  caret.setStartAfter(lineBreak);
+  caret.collapse(true);
+
+  if (selection) {
+    selection.removeAllRanges();
+    selection.addRange(caret);
+  }
+
+  materialSelectionRange = caret.cloneRange();
+  return true;
+}
+
+
+function bindMaterialFormattingControls() {
+
+  const editor =
+    document.getElementById(
+      "materialComposerEditor"
+    );
+
+  if (!editor) {
+    return;
+  }
+
+  const boldButton =
+    document.getElementById(
+      "materialBoldBtn"
+    );
+
+  const italicButton =
+    document.getElementById(
+      "materialItalicBtn"
+    );
+
+  const parenthesesButton =
+    document.getElementById(
+      "materialParenthesesBtn"
+    );
+
+  const bracketsButton =
+    document.getElementById(
+      "materialBracketsBtn"
+    );
+
+  const size1Button =
+    document.getElementById(
+      "materialSize1Btn"
+    );
+
+  const size2Button =
+    document.getElementById(
+      "materialSize2Btn"
+    );
+
+  const notationButtonBindings = [
+    ["materialNoteSixteenthBtn", "noteSixteenth"],
+    ["materialNoteEighthBtn", "noteEighth"],
+    ["materialNoteQuarterBtn", "noteQuarter"],
+    ["materialNoteHalfBtn", "noteHalf"],
+    ["materialNoteWholeBtn", "noteWhole"],
+    ["materialRestSixteenthBtn", "restSixteenth"],
+    ["materialRestEighthBtn", "restEighth"],
+    ["materialRestQuarterBtn", "restQuarter"],
+    ["materialRestHalfBtn", "restHalf"],
+    ["materialRestWholeBtn", "restWhole"]
+  ];
+  const notationDotButton = document.getElementById("materialNotationDotBtn");
+  const audioMarkerButton = document.getElementById("materialAudioMarkerBtn");
+  const indentButton = document.getElementById("materialIndentBtn");
+  const outdentButton = document.getElementById("materialOutdentBtn");
+
+
+  const remember =
+    () =>
+      rememberMaterialSelection();
+
+
+  editor.addEventListener(
+    "mouseup",
+    remember
+  );
+
+  editor.addEventListener(
+    "keyup",
+    remember
+  );
+
+  editor.addEventListener(
+    "input",
+    remember
+  );
+
+  editor.addEventListener(
+    "beforeinput",
+    function(event) {
+      if (
+        event.isComposing ||
+        (event.inputType !== "insertParagraph" &&
+          event.inputType !== "insertLineBreak")
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (insertMaterialComposerLineBreak(editor)) {
+        rememberMaterialSelection();
+      }
+    }
+  );
+
+  editor.addEventListener(
+    "focus",
+    remember
+  );
+
+
+  boldButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  boldButton?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "bold"
+      );
+    }
+  );
+
+
+  italicButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  italicButton?.addEventListener(
+    "click",
+    function() {
+      executeMaterialTextCommand(
+        "italic"
+      );
+    }
+  );
+
+
+  size1Button?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  size1Button?.addEventListener(
+    "click",
+    function() {
+      toggleMaterialTextSize(
+        "5"
+      );
+    }
+  );
+
+
+  size2Button?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  size2Button?.addEventListener(
+    "click",
+    function() {
+      toggleMaterialTextSize(
+        "7"
+      );
+    }
+  );
+
+
+  parenthesesButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  parenthesesButton?.addEventListener(
+    "click",
+    function() {
+      insertMaterialWrapper(
+        "(",
+        ")"
+      );
+      showMaterialFormatActionFeedback(parenthesesButton);
+      editor.focus();
+    }
+  );
+
+
+  bracketsButton?.addEventListener(
+    "mousedown",
+    event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    }
+  );
+
+  bracketsButton?.addEventListener(
+    "click",
+    function() {
+      insertMaterialWrapper(
+        "[",
+        "]"
+      );
+      showMaterialFormatActionFeedback(bracketsButton);
+      editor.focus();
+    }
+  );
+
+  notationButtonBindings.forEach(([buttonId, notationKey]) => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      button.innerHTML =
+        '<span class="material-notation-button-icon">' +
+        getMaterialNotationSvgMarkup(notationKey, false) +
+        "</span>";
+    }
+    button?.addEventListener("mousedown", event => {
+      event.preventDefault();
+      rememberMaterialSelection();
+    });
+    button?.addEventListener("click", () => insertMaterialNotation(notationKey, button));
+  });
+
+  notationDotButton?.addEventListener("mousedown", event => {
+    event.preventDefault();
+    rememberMaterialSelection();
+  });
+  notationDotButton?.addEventListener("click", () => {
+    setMaterialNotationDotPending(!materialNotationDotPending);
+  });
+
+  audioMarkerButton?.addEventListener("mousedown", event => {
+    event.preventDefault();
+    rememberMaterialSelection();
+  });
+  audioMarkerButton?.addEventListener("click", () => insertMaterialAudioMarker(audioMarkerButton));
+
+  bindMaterialIndentRepeatButton(indentButton, 1);
+  bindMaterialIndentRepeatButton(outdentButton, -1);
+
+  const stopRepeat = () => {
+    stopMaterialIndentRepeat();
+    if (materialIndentPointerResetTimer !== null) {
+      window.clearTimeout(materialIndentPointerResetTimer);
+    }
+    materialIndentPointerResetTimer = window.setTimeout(() => {
+      materialIndentPointerHandled = false;
+      materialIndentPointerResetTimer = null;
+    }, 0);
+  };
+
+  document.addEventListener("pointerup", stopRepeat, true);
+  document.addEventListener("pointercancel", stopRepeat, true);
+  window.addEventListener("blur", stopRepeat);
+
+}
+
+
+document
+  .getElementById(
+    "materialComposerEditor"
+  )
+  .addEventListener(
+    "paste",
+    function(event) {
+
+      event.preventDefault();
+
+      const clipboard =
+        event.clipboardData;
+
+      const html =
+        clipboard?.getData("text/html") ||
+        "";
+
+      const text =
+        clipboard?.getData("text/plain") ||
+        "";
+
+      rememberMaterialSelection();
+
+      insertMaterialNodeAtSelection(
+        createMaterialClipboardFragment(
+          html,
+          text
+        )
+      );
+
+    }
+  );
+
+const materialComposerEditor = document.getElementById("materialComposerEditor");
+
+materialComposerEditor.addEventListener("dragstart", event => {
+  const attachment = event.target.closest?.(
+    '.material-inline-attachment[data-material-draggable-attachment="true"]'
+  );
+  if (!attachment || !materialComposerEditor.contains(attachment)) return;
+
+  if (event.target.closest?.("button, a, input")) {
+    event.preventDefault();
+    return;
+  }
+
+  const state = createMaterialNativeAttachmentDragState(
+    attachment,
+    event,
+    materialComposerEditor
+  );
+  if (!state) {
+    event.preventDefault();
+    return;
+  }
+
+  materialNativeAttachmentDragState = state;
+  attachment.addEventListener("dragend", () => {
+    finishMaterialNativeAttachmentDrag(state, !state.dropped);
+  }, { once: true });
+});
+
+materialComposerEditor.addEventListener("dragover", event => {
+  const state = materialNativeAttachmentDragState;
+  if (!state) return;
+
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  moveMaterialNativeAttachmentDropPreview(event, materialComposerEditor, state);
+});
+
+materialComposerEditor.addEventListener("drop", event => {
+  const state = materialNativeAttachmentDragState;
+  if (!state) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  const hasPreview = moveMaterialNativeAttachmentDropPreview(
+    event,
+    materialComposerEditor,
+    state,
+    true
+  );
+  const committed = hasPreview && commitMaterialNativeAttachmentDrop(state);
+
+  if (committed) {
+    state.dropped = true;
+    state.dragImage?.remove();
+    state.dropPlaceholder?.remove();
+    materialNativeAttachmentDragState = null;
+    rememberMaterialSelection();
+  } else {
+    finishMaterialNativeAttachmentDrag(state, true);
+  }
+});
+
+
+document
+  .getElementById(
+    "insertMaterialFileBtn"
+  )
+  .addEventListener(
+    "mousedown",
+    function() {
+
+      rememberMaterialSelection();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialFileBtn"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      const input =
+        document.getElementById(
+          "materialPendingFile"
+        );
+
+      input.value =
+        "";
+
+      input.click();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "materialPendingFile"
+  )
+  .addEventListener(
+    "change",
+    function() {
+
+      const files = Array.from(this.files || []);
+      if (!files.length) return;
+
+      // Validate the entire selection before inserting any chip.
+      const invalidFile = files
+        .map(file => {
+          const localAudio = isMaterialAudioFile(file);
+          const error = localAudio
+            ? getLocalMaterialAudioUploadSizeError(file)
+            : getStorageUploadSizeError(file);
+          return error ? { file, error } : null;
+        })
+        .find(Boolean);
+
+      if (invalidFile) {
+        this.value = "";
+        showNotice(
+          invalidFile.file.name + ": " + invalidFile.error +
+            " No se agregó ningún archivo de esta selección.",
+          "error"
+        );
+        return;
+      }
+
+      files.forEach(file => {
+        const pendingKey = crypto.randomUUID();
+        materialPendingAttachments[pendingKey] = {
+          kind: "file",
+          name: file.name,
+          mime_type: file.type || null,
+          file
+        };
+
+        const node = createMaterialInlineAttachment(
+          materialPendingAttachments[pendingKey],
+          pendingKey
+        );
+        insertMaterialNodeAtSelection(node);
+      });
+
+      this.value = "";
+
+      if (files.length > 1) {
+        showNotice(
+          files.length + " archivos agregados al borrador. Guardá el material para conservarlos.",
+          "success"
+        );
+      }
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialLinkBtn"
+  )
+  .addEventListener(
+    "mousedown",
+    function() {
+
+      rememberMaterialSelection();
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "insertMaterialLinkBtn"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      const url =
+        window.prompt(
+          "Pegá la URL",
+          "https://"
+        );
+
+      if (
+        url === null
+      ) {
+        return;
+      }
+
+      const safeUrl =
+        getSafeMaterialUrl(
+          url
+        );
+
+      if (!safeUrl) {
+
+        showNotice(
+          "La URL debe comenzar con http:// o https://.",
+          "error"
+        );
+
+        return;
+
+      }
+
+      const editor =
+        document.getElementById(
+          "materialComposerEditor"
+        );
+
+      if (
+        !editor ||
+        !focusMaterialEditorForFormatting()
+      ) {
+        return;
+      }
+
+      const selection =
+        window.getSelection();
+
+      if (
+        selection &&
+        selection.rangeCount &&
+        !selection
+          .getRangeAt(0)
+          .collapsed
+      ) {
+
+        document.execCommand(
+          "createLink",
+          false,
+          safeUrl
+        );
+
+      } else {
+
+        insertMaterialNodeAtSelection(
+          createMaterialAutoLinkFragment(
+            safeUrl
+          )
+        );
+
+      }
+
+      rememberMaterialSelection();
+
+    }
+  );
