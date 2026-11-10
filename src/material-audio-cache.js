@@ -142,18 +142,22 @@ async function prepareMaterialAudioAttachment(attachment, onProgress) {
 
   const rawLength = Number(response.headers.get("content-length"));
   const totalBytes = Number.isSafeInteger(rawLength) && rawLength > 0 ? rawLength : null;
-  if (totalBytes !== null && navigator.storage?.estimate) {
+  let insufficientSpace = false;
+  if (totalBytes !== null && typeof navigator.storage?.estimate === "function") {
     try {
       const estimate = await navigator.storage.estimate();
-      const availableBytes = Number(estimate?.quota || 0) - Number(estimate?.usage || 0);
-      if (availableBytes > 0 && availableBytes < totalBytes) {
-        await response.body.cancel();
-        throw new Error("No hay espacio suficiente en el almacenamiento del navegador para preparar este audio. Liberá espacio o quitá copias preparadas que ya no uses.");
+      const quota = Number(estimate?.quota);
+      const usage = Number(estimate?.usage);
+      if (Number.isFinite(quota) && quota > 0 && Number.isFinite(usage)) {
+        insufficientSpace = quota - usage < totalBytes;
       }
-    } catch (error) {
-      if (error instanceof Error && /No hay espacio suficiente/.test(error.message)) throw error;
+    } catch {
       // A failed estimate should not prevent an otherwise valid download.
     }
+  }
+  if (insufficientSpace) {
+    try { await response.body.cancel(); } catch {}
+    throw new Error("No hay espacio suficiente en el almacenamiento del navegador para preparar este audio. Liberá espacio o quitá copias preparadas que ya no uses.");
   }
 
   // Old incomplete files are never treated as prepared because the JSON
