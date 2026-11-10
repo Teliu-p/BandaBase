@@ -67,6 +67,7 @@ async function readMaterialAudioPreparedFile(attachment) {
     if (
       metadata?.attachmentId !== String(attachment.id) ||
       metadata?.storagePath !== String(attachment.storage_path) ||
+      metadata?.ownerUserId !== String(currentUser?.id || "") ||
       !Number.isSafeInteger(metadata?.sizeBytes) ||
       metadata.sizeBytes <= 0 ||
       file.size !== metadata.sizeBytes
@@ -88,7 +89,7 @@ async function getMaterialAudioPreparedUrl(attachment) {
   const prepared = await readMaterialAudioPreparedFile(attachment);
   if (!prepared) return null;
 
-  const cacheKey = String(attachment.id) + "|" + String(attachment.storage_path);
+  const cacheKey = String(currentUser?.id || "") + "|" + String(attachment.id) + "|" + String(attachment.storage_path);
   const existingUrl = materialAudioCacheObjectUrls.get(cacheKey);
   if (existingUrl) return existingUrl;
 
@@ -202,6 +203,7 @@ async function prepareMaterialAudioAttachment(attachment, onProgress) {
     const metadata = {
       attachmentId: String(attachment.id),
       storagePath: String(attachment.storage_path),
+      ownerUserId: String(currentUser?.id || ""),
       sizeBytes: savedFile.size,
       contentType: response.headers.get("content-type") || attachment.mime_type || "application/octet-stream",
       etag: response.headers.get("etag") || null,
@@ -236,7 +238,7 @@ async function prepareMaterialAudioAttachment(attachment, onProgress) {
 async function clearMaterialAudioPrepared(attachment) {
   if (!attachment?.id) return false;
   const stem = getMaterialAudioCacheFileStem(attachment);
-  const cacheKey = String(attachment.id) + "|" + String(attachment.storage_path || "");
+  const cacheKey = String(currentUser?.id || "") + "|" + String(attachment.id) + "|" + String(attachment.storage_path || "");
   const objectUrl = materialAudioCacheObjectUrls.get(cacheKey);
   if (objectUrl) {
     URL.revokeObjectURL(objectUrl);
