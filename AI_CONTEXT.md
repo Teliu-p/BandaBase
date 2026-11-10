@@ -247,3 +247,12 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - Supabase aplicó `DROP POLICY IF EXISTS songs_select_active_or_admin ON public.songs`. La consulta posterior confirmó que la única política SELECT restante es `songs_select_active_or_own_trash_or_admin`; no se cambió su expresión. La visibilidad efectiva de admin, miembros con papelera propia/ajena, otra banda e integrante inactivo se comparó antes/después en PostgreSQL 17 y quedó idéntica.
 - Supabase asignó automáticamente la versión `20261107231924`; el archivo en main se renombró para usar ese prefijo: `supabase/migrations/20261107231924_remove_redundant_songs_select_policy.sql`. La entrada de tracking y el archivo deben coincidir; no se necesitó `migration repair` ni se alteró manualmente `schema_migrations`.
 - El asesor de rendimiento redujo `multiple_permissive_policies` de 11 a 10; los 33 índices sin uso observado no cambiaron. El asesor de salud devolvió cero hallazgos. No se modificaron otras políticas, funciones, datos ni grants.
+
+
+## Cuota preventiva de Supabase Storage (2026-11-10, rama de trabajo)
+
+- Main inspeccionado: `cbefb667aff1e303358aa61ed091eb9937fcdaeb`; proyecto `evuwcikuxptrgzdzejov` consultado solo en lectura, un proyecto y bucket `materials`.
+- Rama `feat/storage-quota-guard-20261110` propone límite acumulado de 700.000.000 bytes en todos los buckets del proyecto. Materiales no-audio, Comentarios y Propuestas llevan precheck y tamaño hint `user_metadata.bandabase_upload_size`; Storage RLS prioriza `metadata.size` real al confirmar y serializa con advisory xact lock. Audio de Materiales `local:` continúa fuera del bucket.
+- La UI se muestra en Administración. RPC de lectura requiere integrante activo. No aplicar migración remota ni modificar producción hasta CI y prueba manual.
+- Las políticas de cuota son RESTRICTIVE para no reemplazar permisos existentes. No dar permisos directos de escritura en `storage.objects`; operar archivos solo por Storage API.
+- La cuota no protege service_role, Studio/Dashboard ni proyectos extra creados manualmente en la organización.

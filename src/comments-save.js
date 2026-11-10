@@ -198,6 +198,8 @@ async function saveCommentComposer(type) {
 
       if (!file) continue;
 
+      await assertStorageQuotaCanUpload(file.size);
+
       const storagePath =
         currentBand.id +
         "/comments/" +
@@ -222,16 +224,20 @@ async function saveCommentComposer(type) {
               upsert: false,
               contentType:
                 file.type ||
-                undefined
+                undefined,
+              metadata: {
+                bandabase_upload_size: String(file.size)
+              }
             }
           );
 
       if (uploadError) {
         throw new Error(
-          "No se pudo subir " +
-          file.name +
-          ": " +
-          uploadError.message
+          getStorageQuotaUploadErrorMessage(uploadError) ||
+            ("No se pudo subir " +
+            file.name +
+            ": " +
+            uploadError.message)
         );
       }
 

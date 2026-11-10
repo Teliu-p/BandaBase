@@ -211,3 +211,13 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - El servidor entregado por separado como versión 0.5 usa HTTP/1.1 con longitudes explícitas, conexiones persistentes, cola de aceptación ampliada para solicitudes concurrentes, `Range`/`If-Range` con validadores `ETag` y `Last-Modified`, y caché privada de 60 segundos para respuestas de audio. Los rangos múltiples o malformados se ignoran y reciben el recurso completo en vez de fallar con 416; los rangos válidos no satisfechos sí devuelven 416.
 - Cada transferencia registra en la consola estado HTTP, rango solicitado, bytes enviados/esperados, duración, velocidad observada y resultado (`complete`, `client-disconnected`, `short-read` o `stream-io-error`), sin imprimir el ticket secreto de la URL.
 - El servidor Python no forma parte del despliegue de Pages: debe instalarse manualmente en el equipo anfitrión y reiniciarse. La ruta de audio desde una red móvil real sigue pendiente de verificación física; las pruebas locales no demuestran el ancho de banda de subida del host ni la calidad de Tailscale Funnel.
+
+
+## 2026-11-10 — cuota preventiva de Supabase Storage (PR en revisión)
+
+- `src/storage-quota.js` consulta los bytes del proyecto mediante `public.get_storage_quota_status` y comprueba espacio antes de subir. Administración muestra bytes usados, disponibles, archivos y umbrales.
+- Materiales no-audio, Comentarios y Propuestas usan el bucket privado `materials`. Audio de Materiales con `storage_path = local:...` sigue en la biblioteca local y no consume esta cuota.
+- La migración `20261110045910_enforce_storage_quota.sql` agrega políticas RESTRICTIVE INSERT/UPDATE, combinadas con los permisos de banda/propiedad ya existentes. Usa advisory transaction lock para serializar subidas simultáneas. El tamaño enviado por el cliente solo ayuda al rechazo previo; al confirmar se prioriza `metadata.size` medido por Storage.
+- Límite inicial: 700.000.000 bytes (700 MB decimales), advertencia 70 %, crítico 85 %. Abarca todos los buckets del proyecto. No protege operaciones privilegiadas con service_role ni nuevos proyectos agregados manualmente a la organización.
+- `storage.objects` se consulta en solo lectura; nunca se modifican sus filas directamente. Las operaciones siguen pasando por Storage API.
+- No aplicar migración remota desde CI/PR. Primero correr pruebas PostgreSQL aisladas, revisar CI/asesores y probar Materiales, Comentarios y Propuestas en preview.

@@ -3636,3 +3636,57 @@ await createMaterialForTypeTest(materialTypeTestClient, {
 });
 assert.equal(materialInsertCalls.at(-1).type, "Texto");
 
+
+
+const storageQuotaSource = readFileSync(
+  join(srcDir, "storage-quota.js"),
+  "utf8"
+);
+const materialsSaveSource = readFileSync(
+  join(srcDir, "materials-save.js"),
+  "utf8"
+);
+const commentsSaveSource = readFileSync(
+  join(srcDir, "comments-save.js"),
+  "utf8"
+);
+const proposalsContentSourceForQuota = readFileSync(
+  join(srcDir, "proposals-content.js"),
+  "utf8"
+);
+
+assert.match(storageQuotaSource, /rpc\(\s*"get_storage_quota_status"/);
+assert.match(storageQuotaSource, /async function assertStorageQuotaCanUpload/);
+
+for (const [name, source] of [
+  ["Materiales", materialsSaveSource],
+  ["Comentarios", commentsSaveSource],
+  ["Propuestas", proposalsContentSourceForQuota]
+]) {
+  assert.match(
+    source,
+    /assertStorageQuotaCanUpload\(file\.size\)/,
+    name + " debe consultar la cuota antes de subir cada archivo."
+  );
+  assert.match(
+    source,
+    /bandabase_upload_size:\s*String\(file\.size\)/,
+    name + " debe pasar el tamaño esperado para el chequeo previo."
+  );
+}
+
+const storageQuotaSql = readFileSync(
+  join(root, "supabase/migrations/20261110045910_enforce_storage_quota.sql"),
+  "utf8"
+);
+assert.match(storageQuotaSql, /AS RESTRICTIVE[\s\S]*FOR INSERT/);
+assert.match(storageQuotaSql, /AS RESTRICTIVE[\s\S]*FOR UPDATE/);
+assert.match(storageQuotaSql, /pg_advisory_xact_lock/);
+assert.match(storageQuotaSql, /metadata ->> 'size'/);
+assert.match(storageQuotaSql, /bandabase_upload_size/);
+assert.match(storageQuotaSql, /700000000/);
+assertScriptBefore(
+  readFileSync(indexPath, "utf8"),
+  "src/app-state.js",
+  "src/storage-quota.js"
+);
