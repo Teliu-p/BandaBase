@@ -93,7 +93,10 @@ async function getMaterialAudioPreparedUrl(attachment) {
   const existingUrl = materialAudioCacheObjectUrls.get(cacheKey);
   if (existingUrl) return existingUrl;
 
-  const objectUrl = URL.createObjectURL(prepared.file);
+  const mediaBlob = prepared.metadata.contentType
+    ? new Blob([prepared.file], { type: prepared.metadata.contentType })
+    : prepared.file;
+  const objectUrl = URL.createObjectURL(mediaBlob);
   materialAudioCacheObjectUrls.set(cacheKey, objectUrl);
   return objectUrl;
 }
