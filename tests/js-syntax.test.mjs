@@ -3646,3 +3646,45 @@ await createMaterialForTypeTest(materialTypeTestClient, {
 });
 assert.equal(materialInsertCalls.at(-1).type, "Texto");
 
+
+
+const materialAudioCacheSource = readFileSync(
+  join(srcDir, "material-audio-cache.js"),
+  "utf8"
+);
+const materialAudioCacheHtml = readFileSync(indexPath, "utf8");
+assertScriptBefore(
+  materialAudioCacheHtml,
+  "src/material-audio-cache.js",
+  "src/materials-view.js"
+);
+assert.match(
+  materialAudioCacheSource,
+  /response\.status !== 200/,
+  "La preparación debe rechazar respuestas parciales HTTP y conservar solo archivos completos."
+);
+assert.match(
+  materialAudioCacheSource,
+  /loadedBytes !== totalBytes/,
+  "La preparación debe comparar los bytes descargados con Content-Length cuando está disponible."
+);
+assert.match(
+  materialAudioCacheSource,
+  /metadataHandle\.createWritable/,
+  "El registro de finalización debe escribirse después de cerrar el archivo de audio."
+);
+assert.match(
+  materialsViewSource,
+  /getMaterialAudioPreparedUrl\(attachment\)[\s\S]*?player\.src = preparedUrl/,
+  "El reproductor normal de Materiales debe usar la copia local preparada."
+);
+assert.match(
+  materialsViewSource,
+  /async function ensureMaterialAudioSourceForMarker[\s\S]*?getMaterialAudioPreparedUrl\(attachment\)/,
+  "Los marcadores deben resolver primero la copia local preparada."
+);
+assert.match(
+  materialsViewSource,
+  /prepareMaterialAudioAttachment\(attachment, progress =>/,
+  "El control de preparación debe descargar el audio completo e informar el progreso."
+);
