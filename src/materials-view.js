@@ -835,6 +835,7 @@ function updateMaterialAudioGroupSelectionUi(root = document) {
       badge.hidden = !selected;
       badge.textContent = selected ? "Grupo " + count : "";
     }
+    wrapper.__materialAudioControls?.updateCacheControls?.();
   });
 }
 
