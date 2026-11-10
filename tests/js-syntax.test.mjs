@@ -2816,6 +2816,13 @@ async function runMaterialSaveScenario(options = {}) {
     },
     sanitizeStorageFileName: name => name.replaceAll(" ", "_"),
     getMaterialFileMimeType: file => file.type || null,
+    assertStorageQuotaCanUpload: async () => {},
+    getStorageQuotaUploadErrorMessage: error => {
+      const message = String(error?.message || error || "");
+      return /BandaBase (?:alcanzó|bloqueó)|límite de almacenamiento/i.test(message)
+        ? message
+        : "";
+    },
     isMaterialAudioFile: file => String(file.type || "").startsWith("audio/"),
     uploadLocalMaterialAudio: async (id, file, mimeType) => {
       calls.push(["uploadLocalAudio", id, file.name, mimeType]);
