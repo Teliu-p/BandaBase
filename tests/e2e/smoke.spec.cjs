@@ -1757,3 +1757,89 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
   ]);
   expect(runtimeErrors, "JavaScript errors while selecting and starting audio tracks").toEqual([]);
 });
+
+
+test("Materials audio preparation stores a complete local copy and rejects truncated downloads", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const attachment = {
+      id: "offline-cache-regression-track",
+      kind: "file",
+      name: "Ensayo.mp3",
+      mime_type: "audio/mpeg",
+      storage_path: "local:offline-cache-regression-track"
+    };
+    const originalResolver = getAttachmentAccessUrl;
+    const originalFetch = window.fetch;
+    let responseBytes = new Uint8Array([1, 2, 3, 4]);
+    let declaredLength = 8;
+    let partialRejected = false;
+    let partialError = "";
+    const progress = [];
+
+    getAttachmentAccessUrl = async () => "https://audio-cache.test/track";
+    window.fetch = async () => new Response(responseBytes, {
+      status: 200,
+      headers: {
+        "Content-Length": String(declaredLength),
+        "Content-Type": "audio/mpeg"
+      }
+    });
+
+    try {
+      const available = isMaterialAudioOfflineCacheAvailable();
+      if (!available) {
+        return { available, reason: "OPFS unavailable in this browser" };
+      }
+
+      try {
+        await prepareMaterialAudioAttachment(attachment);
+      } catch (error) {
+        partialRejected = true;
+        partialError = error.message;
+      }
+      const partialWasNotCached = !(await isMaterialAudioPrepared(attachment));
+
+      responseBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      declaredLength = 8;
+      const prepared = await prepareMaterialAudioAttachment(attachment, value => progress.push(value));
+      const cached = await isMaterialAudioPrepared(attachment);
+      const objectUrl = await getMaterialAudioPreparedUrl(attachment);
+      const localResponse = objectUrl ? await originalFetch(objectUrl) : null;
+      const storedBytes = localResponse ? Array.from(new Uint8Array(await localResponse.arrayBuffer())) : [];
+      await clearMaterialAudioPrepared(attachment);
+      const cleared = !(await isMaterialAudioPrepared(attachment));
+
+      return {
+        available,
+        partialRejected,
+        partialError,
+        partialWasNotCached,
+        prepared,
+        cached,
+        hasBlobUrl: Boolean(objectUrl?.startsWith("blob:")),
+        storedBytes,
+        expectedBytes: Array.from(responseBytes),
+        progressReached100: progress.some(value => value.percent === 100),
+        cleared
+      };
+    } finally {
+      try { await clearMaterialAudioPrepared(attachment); } catch {}
+      getAttachmentAccessUrl = originalResolver;
+      window.fetch = originalFetch;
+    }
+  });
+
+  expect(result.available).toBe(true);
+  expect(result.partialRejected).toBe(true);
+  expect(result.partialError).toContain("descarga quedó incompleta");
+  expect(result.partialWasNotCached).toBe(true);
+  expect(result.prepared.alreadyPrepared).toBe(false);
+  expect(result.cached).toBe(true);
+  expect(result.hasBlobUrl).toBe(true);
+  expect(result.storedBytes).toEqual(result.expectedBytes);
+  expect(result.progressReached100).toBe(true);
+  expect(result.cleared).toBe(true);
+  expect(runtimeErrors, "Audio cache preparation should not cause runtime errors").toEqual([]);
+});
