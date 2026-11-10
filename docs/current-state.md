@@ -388,3 +388,12 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Cambios propuestos: precarga temporal `auto` sólo al iniciar reproducción agrupada, espera de `readyState >= HAVE_FUTURE_DATA` (`canplay`) en el playhead alineado, vuelta a `metadata` antes de Play, timeout de 15 s y búsqueda con previsualización durante el arrastre / seek al soltar.
 - Objetivo: evitar que los grupos comiencen antes de que todas las pistas tengan datos y reducir solicitudes Range canceladas por sucesivos eventos `input` del deslizador.
 - Todavía no verificado en CI ni manualmente en teléfono. La reproducción real debe comprobarse con un grupo de 2–4 pistas y saltos largos.
+
+
+## 2026-11-09 — preparación local completa de audio (PR #157, en validación)
+
+- Se añadió `src/material-audio-cache.js` y su etiqueta de carga antes de `materials-view.js`. La función guarda audios completos en OPFS mediante streaming y no marca una copia como preparada hasta cerrar el archivo y escribir el registro JSON. HTTP parcial (206), longitud incompleta y errores de escritura se rechazan.
+- El panel del reproductor permite preparar una pista o todas las pistas del grupo seleccionado, con progreso; también permite quitar las copias locales cuando las pistas están pausadas. La descarga del grupo es secuencial.
+- `ensureAudioUrl` y el resolver de marcadores priorizan las copias locales preparadas. Se conservan el reproductor y el playhead usados por grupos, marcadores, velocidad y metrónomo; no se introdujo un reproductor paralelo. Las pistas no preparadas siguen con streaming.
+- CI y validación de dispositivo real pendientes para este commit. Aún no se ha verificado de oído con pistas reales ni en Android físico. Cada dispositivo debe preparar sus propias copias; borrar los datos del sitio borra OPFS.
+- No se cambió el esquema, RLS, Storage ni el servidor Python de audio.
