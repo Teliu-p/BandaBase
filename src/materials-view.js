@@ -1503,8 +1503,10 @@ function bindMaterialViewEvents(root = document) {
           }
 
           showNotice(
-            preparedCount + (preparedCount === 1 ? " audio quedó" : " audios quedaron") +
-            " preparado(s) completo(s) en este dispositivo. Podés reproducirlos sin depender de la conexión durante la reproducción.",
+            preparedCount + (preparedCount === 1
+              ? " audio quedó completamente preparado"
+              : " audios quedaron completamente preparados") +
+            " en este dispositivo. Podés reproducirlos sin depender de la conexión.",
             "success"
           );
         } catch (error) {
