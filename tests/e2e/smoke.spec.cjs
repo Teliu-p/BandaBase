@@ -1843,3 +1843,73 @@ test("Materials audio preparation stores a complete local copy and rejects trunc
   expect(result.cleared).toBe(true);
   expect(runtimeErrors, "Audio cache preparation should not cause runtime errors").toEqual([]);
 });
+
+
+test("the existing Materials audio control switches to a prepared local source", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+  const result = await page.evaluate(async () => {
+    const attachment = {
+      id: "offline-player-integration-track",
+      kind: "file",
+      name: "Pista de prueba.mp3",
+      mime_type: "audio/mpeg",
+      storage_path: "local:offline-player-integration-track"
+    };
+    const savedMaterials = currentMaterials;
+    const originalResolver = getAttachmentAccessUrl;
+    const originalFetch = window.fetch;
+    currentMaterials = [{
+      id: "offline-player-integration-material",
+      attachments: [attachment]
+    }];
+
+    getAttachmentAccessUrl = async () => "https://audio-cache.test/player-track";
+    window.fetch = async () => new Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: {
+        "Content-Length": "4",
+        "Content-Type": "audio/mpeg"
+      }
+    });
+
+    const root = document.createElement("div");
+    root.innerHTML = renderMaterialViewBlock({
+      block_type: "attachment",
+      attachment
+    });
+    document.body.appendChild(root);
+    bindMaterialViewEvents(root);
+    const wrapper = root.querySelector("[data-material-inline-audio]");
+    const controls = wrapper.__materialAudioControls;
+
+    try {
+      await prepareMaterialAudioAttachment(attachment);
+      const loaded = await controls.ensureAudioUrl();
+      const result = {
+        loaded,
+        preparedSource: controls.player.dataset.materialAudioPrepared === "true",
+        blobSource: controls.player.src.startsWith("blob:"),
+        samePlayer: controls.player === wrapper.querySelector("audio[data-material-audio]"),
+        hasExistingSpeedControl: Boolean(wrapper.querySelector("[data-material-audio-speed]")),
+        hasExistingSeekControl: Boolean(wrapper.querySelector("[data-material-audio-seek]"))
+      };
+      controls.releasePreparedAudioSource();
+      await clearMaterialAudioPrepared(attachment);
+      return result;
+    } finally {
+      try { await clearMaterialAudioPrepared(attachment); } catch {}
+      root.remove();
+      currentMaterials = savedMaterials;
+      getAttachmentAccessUrl = originalResolver;
+      window.fetch = originalFetch;
+    }
+  });
+
+  expect(result.loaded).toBe(true);
+  expect(result.preparedSource).toBe(true);
+  expect(result.blobSource).toBe(true);
+  expect(result.samePlayer).toBe(true);
+  expect(result.hasExistingSpeedControl).toBe(true);
+  expect(result.hasExistingSeekControl).toBe(true);
+  expect(runtimeErrors, "Switching to the prepared source should not break the normal player").toEqual([]);
+});
