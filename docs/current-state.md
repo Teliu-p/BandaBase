@@ -397,3 +397,13 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - `ensureAudioUrl` y el resolver de marcadores priorizan las copias locales preparadas. Se conservan el reproductor y el playhead usados por grupos, marcadores, velocidad y metrónomo; no se introdujo un reproductor paralelo. Las pistas no preparadas siguen con streaming.
 - CI y validación de dispositivo real pendientes para este commit. Aún no se ha verificado de oído con pistas reales ni en Android físico. Cada cuenta autenticada/dispositivo debe preparar sus propias copias; el registro OPFS comprueba el ID de la cuenta. Borrar los datos del sitio borra OPFS.
 - No se cambió el esquema, RLS, Storage ni el servidor Python de audio.
+
+
+## 26. Cuota preventiva de Storage (rama de trabajo, 2026-11-10)
+
+- Rama: `feat/storage-quota-guard-20261110`, desde main `cbefb667aff1e303358aa61ed091eb9937fcdaeb`.
+- Proyecto remoto inspeccionado en solo lectura: un proyecto en la organización, estado `ACTIVE_HEALTHY`; un bucket privado `materials` con límite individual de archivo 50 MiB; una fila en `storage.objects` con metadata size 0 bytes en la consulta. Políticas RLS actuales sin cambios.
+- Se propone tope acumulado de proyecto de 700.000.000 bytes en todos los buckets. Materiales no-audio, Comentarios y Propuestas se contabilizan; audio de Materiales guardado como `local:` queda fuera.
+- El guard usa `metadata.size` medido por Storage al completar. `bandabase_upload_size` del cliente es solo una pista para el rechazo previo. Advisory xact lock serializa chequeos concurrentes.
+- Pruebas aisladas cubren preflight, inserts, reemplazos, límite exacto, eliminación, tamaños ausentes, RPC solo para integrantes activos y dos subidas simultáneas. No se aplica migración a producción desde la PR.
+- Requiere CI verde, revisión de SQL y prueba manual autenticada en preview antes de integrar y aplicar la migración. No bloquea service_role ni proyectos adicionales creados fuera de BandaBase.

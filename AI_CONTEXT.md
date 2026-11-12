@@ -257,3 +257,12 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 - Se investiga el buffering de audios locales al saltar de posición y durante grupos. El coordinador actual esperaba sólo metadata antes de iniciar todos los reproductores; el deslizador hacía seek en cada evento `input`.
 - La rama propone precarga temporal bajo demanda (`preload=auto` mientras se prepara un grupo, vuelve a `metadata` antes de Play), espera de `canplay` en el playhead de todas las pistas y commit de seek al soltar el deslizador. No se modifica servidor, tickets, Auth, RLS, Storage, datos ni migraciones.
 - Pendiente: CI y prueba real en móvil; comparar grupos de 2–4 pistas, saltos largos, pausa/reanudación y uso individual. No asumir que la precarga corrige el ancho de banda limitado del host.
+
+
+## Cuota preventiva de Supabase Storage (2026-11-10, rama de trabajo)
+
+- Main inspeccionado: `cbefb667aff1e303358aa61ed091eb9937fcdaeb`; proyecto `evuwcikuxptrgzdzejov` consultado solo en lectura, un proyecto y bucket `materials`.
+- Rama `feat/storage-quota-guard-20261110` propone límite acumulado de 700.000.000 bytes en todos los buckets del proyecto. Materiales no-audio, Comentarios y Propuestas llevan precheck y tamaño hint `user_metadata.bandabase_upload_size`; Storage RLS prioriza `metadata.size` real al confirmar y serializa con advisory xact lock. Audio de Materiales `local:` continúa fuera del bucket.
+- La UI se muestra en Administración. RPC de lectura requiere integrante activo. No aplicar migración remota ni modificar producción hasta CI y prueba manual.
+- Las políticas de cuota son RESTRICTIVE para no reemplazar permisos existentes. No dar permisos directos de escritura en `storage.objects`; operar archivos solo por Storage API.
+- La cuota no protege service_role, Studio/Dashboard ni proyectos extra creados manualmente en la organización.
