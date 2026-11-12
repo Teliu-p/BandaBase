@@ -223,6 +223,7 @@ async function loadAdminPanel(propagateErrors = false) {
 
   renderAdminHistory();
   renderAdminTrash();
+  await renderAdminStorageQuota();
 
   if (bandabaseIsOwnerRole()) {
     renderAdminMemberRoles();

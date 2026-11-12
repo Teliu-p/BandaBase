@@ -229,3 +229,13 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - La preparación de un grupo se ejecuta de manera secuencial para no saturar la ruta de subida/Funnel del host. Reproducir pistas no preparadas conserva el modo de streaming anterior.
 - La copia es por usuario autenticado, origen y dispositivo; el registro valida el ID del usuario actual, evitando reutilizar accidentalmente la copia de otra cuenta en el mismo navegador. El navegador puede borrar OPFS cuando se limpian los datos del sitio o por presión de almacenamiento si no concede persistencia. `navigator.storage.estimate()` ayuda a detectar falta de espacio; `persist()` se solicita como best-effort. No hay cambios en Supabase, migraciones, RLS, Storage ni en el servidor Python.
 - La retirada de una copia pausa y libera las fuentes blob preparadas antes de revocar sus URLs y quitar el archivo/registro OPFS. Se rechaza retirar una pista mientras cualquiera del grupo seleccionado siga reproduciéndose.
+
+
+## 2026-11-10 — cuota preventiva de Supabase Storage (PR en revisión)
+
+- `src/storage-quota.js` consulta los bytes del proyecto mediante `public.get_storage_quota_status` y comprueba espacio antes de subir. Administración muestra bytes usados, disponibles, archivos y umbrales.
+- Materiales no-audio, Comentarios y Propuestas usan el bucket privado `materials`. Audio de Materiales con `storage_path = local:...` sigue en la biblioteca local y no consume esta cuota.
+- La migración `20261110045910_enforce_storage_quota.sql` agrega políticas RESTRICTIVE INSERT/UPDATE, combinadas con los permisos de banda/propiedad ya existentes. Usa advisory transaction lock para serializar subidas simultáneas. El tamaño enviado por el cliente solo ayuda al rechazo previo; al confirmar se prioriza `metadata.size` medido por Storage.
+- Límite inicial: 700.000.000 bytes (700 MB decimales), advertencia 70 %, crítico 85 %. Abarca todos los buckets del proyecto. No protege operaciones privilegiadas con service_role ni nuevos proyectos agregados manualmente a la organización.
+- `storage.objects` se consulta en solo lectura; nunca se modifican sus filas directamente. Las operaciones siguen pasando por Storage API.
+- No aplicar migración remota desde CI/PR. Primero correr pruebas PostgreSQL aisladas, revisar CI/asesores y probar Materiales, Comentarios y Propuestas en preview.

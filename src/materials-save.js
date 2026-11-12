@@ -592,6 +592,27 @@ async function saveMaterialDraft() {
       "Subiendo archivo " + processedAttachmentCount + " de " + pendingAttachmentCount + "…"
     );
 
+    try {
+      await assertStorageQuotaCanUpload(file.size);
+    } catch (quotaError) {
+      const cleanupErrors = await cleanupFailedMaterialSave({
+        materialId,
+        wasNew,
+        originalMaterial,
+        createdAttachmentIds,
+        uploadedStoragePaths,
+        localAudioAttachmentIds
+      });
+      showNotice(
+        getMaterialSaveFailureNotice(
+          quotaError.message || "No hay espacio disponible para subir el archivo.",
+          cleanupErrors
+        ),
+        "error"
+      );
+      return;
+    }
+
     const {
       error: uploadError
     } = await supabaseClient
@@ -602,7 +623,10 @@ async function saveMaterialDraft() {
         file,
         {
           upsert: false,
-          contentType: mimeType || undefined
+          contentType: mimeType || undefined,
+          metadata: {
+            bandabase_upload_size: String(file.size)
+          }
         }
       );
 
@@ -618,7 +642,8 @@ async function saveMaterialDraft() {
 
       showNotice(
         getMaterialSaveFailureNotice(
-          "No se pudo subir el archivo " + file.name + ": " + uploadError.message,
+          getStorageQuotaUploadErrorMessage(uploadError) ||
+            ("No se pudo subir el archivo " + file.name + ": " + uploadError.message),
           cleanupErrors
         ),
         "error"

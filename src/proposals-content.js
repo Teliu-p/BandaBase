@@ -635,6 +635,13 @@ async function saveProposalComposerContent(
         continue;
       }
 
+      try {
+        await assertStorageQuotaCanUpload(file.size);
+      } catch (quotaError) {
+        errors.push(quotaError.message || "No hay espacio disponible para subir " + file.name + ".");
+        continue;
+      }
+
       const storagePath =
         currentBand.id +
         "/proposals/" +
@@ -660,16 +667,20 @@ async function saveProposalComposerContent(
                 false,
               contentType:
                 file.type ||
-                undefined
+                undefined,
+              metadata: {
+                bandabase_upload_size: String(file.size)
+              }
             }
           );
 
       if (uploadResult.error) {
         errors.push(
-          "No se pudo subir " +
-          file.name +
-          ": " +
-          uploadResult.error.message
+          getStorageQuotaUploadErrorMessage(uploadResult.error) ||
+            ("No se pudo subir " +
+            file.name +
+            ": " +
+            uploadResult.error.message)
         );
         continue;
       }
