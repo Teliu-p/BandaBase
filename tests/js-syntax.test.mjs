@@ -3735,7 +3735,7 @@ for (const [name, source] of [
 }
 
 const storageQuotaSql = readFileSync(
-  join(root, "supabase/migrations/20261110045910_enforce_storage_quota.sql"),
+  join(root, "supabase/migrations/20261112204157_enforce_storage_quota.sql"),
   "utf8"
 );
 assert.match(storageQuotaSql, /AS RESTRICTIVE[\s\S]*FOR INSERT/);

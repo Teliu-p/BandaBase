@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 const root = resolve(".");
 const files = [
   "tests/db/storage_quota_fixture.sql",
-  "supabase/migrations/20261110045910_enforce_storage_quota.sql",
+  "supabase/migrations/20261112204157_enforce_storage_quota.sql",
   "tests/db/storage_quota_behavior.sql"
 ];
 

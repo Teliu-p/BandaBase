@@ -263,6 +263,6 @@ Esta actualización reemplaza los estados anteriores que indicaban que Funnel se
 
 - Main inspeccionado: `cbefb667aff1e303358aa61ed091eb9937fcdaeb`; proyecto `evuwcikuxptrgzdzejov` consultado solo en lectura, un proyecto y bucket `materials`.
 - Rama `feat/storage-quota-guard-20261110` propone límite acumulado de 700.000.000 bytes en todos los buckets del proyecto. Materiales no-audio, Comentarios y Propuestas llevan precheck y tamaño hint `user_metadata.bandabase_upload_size`; Storage RLS prioriza `metadata.size` real al confirmar y serializa con advisory xact lock. Audio de Materiales `local:` continúa fuera del bucket.
-- La UI se muestra en Administración. RPC de lectura requiere integrante activo. No aplicar migración remota ni modificar producción hasta CI y prueba manual.
+- La UI se muestra en Administración. La migración remota quedó aplicada y registrada como `20261112204157`; la RPC de lectura se verificó bajo el rol `authenticated` y exige integrante activo. No se modificaron objetos existentes.
 - Las políticas de cuota son RESTRICTIVE para no reemplazar permisos existentes. No dar permisos directos de escritura en `storage.objects`; operar archivos solo por Storage API.
 - La cuota no protege service_role, Studio/Dashboard ni proyectos extra creados manualmente en la organización.
