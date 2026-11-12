@@ -3553,12 +3553,22 @@ assert.match(
 );
 assert.match(
   groupedAudioSource,
-  /async function toggleMaterialAudioGroupPlayback[\s\S]*?ensureAudioUrl\(\)[\s\S]*?waitForMaterialAudioMetadata[\s\S]*?seekMaterialAudioPlayerToTime[\s\S]*?players\.map\(player => player\.play\(\)\)/,
-  "La reproducción de grupo debe cargar pistas, alinearlas al mismo punto y lanzarlas juntas."
+  /async function toggleMaterialAudioGroupPlayback[\s\S]*?ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)[\s\S]*?waitForMaterialAudioMetadata[\s\S]*?seekMaterialAudioPlayerToTime[\s\S]*?waitForMaterialAudioCanPlay[\s\S]*?buffered\.some\(ready => !ready\)[\s\S]*?players\.forEach\(player => \{\s*player\.preload = "metadata";\s*\}\);[\s\S]*?players\.map\(player => player\.play\(\)\)/,
+  "La reproducción de grupo debe precargar cada pista, alinearla, esperar datos en el playhead y lanzarlas juntas."
 );
 assert.match(
   groupedAudioSource,
-  /players\.forEach\(player => \{\s*if \(!player\.paused && !player\.ended\) player\.pause\(\);\s*\}\);[\s\S]*?controls\.map\(control => control\.ensureAudioUrl\(\)\)/,
+  /seekInput\.addEventListener\("input"[\s\S]*?seekPreviewSeconds\s*=[\s\S]*?seekInput\.addEventListener\("change"[\s\S]*?player\.currentTime\s*=/,
+  "Mover el control de búsqueda debe previsualizar la posición y solicitar un único salto al soltarlo."
+);
+assert.match(
+  groupedAudioSource,
+  /if \(allPlaying\)[\s\S]*?player\.preload = "metadata"/,
+  "Al pausar el grupo debe dejar de solicitar precarga automática."
+);
+assert.match(
+  groupedAudioSource,
+  /players\.forEach\(player => \{\s*if \(!player\.paused && !player\.ended\) player\.pause\(\);\s*\}\);[\s\S]*?controls\.map\(control =>[\s\S]*?control\.ensureAudioUrl\(\{\s*preload:\s*"auto"\s*\}\)/,
   "Una pista que ya sonaba debe pausarse mientras se preparan las demás para que el grupo comience alineado."
 );
 assert.match(
@@ -3636,3 +3646,45 @@ await createMaterialForTypeTest(materialTypeTestClient, {
 });
 assert.equal(materialInsertCalls.at(-1).type, "Texto");
 
+
+
+const materialAudioCacheSource = readFileSync(
+  join(srcDir, "material-audio-cache.js"),
+  "utf8"
+);
+const materialAudioCacheHtml = readFileSync(indexPath, "utf8");
+assertScriptBefore(
+  materialAudioCacheHtml,
+  "src/material-audio-cache.js",
+  "src/materials-view.js"
+);
+assert.match(
+  materialAudioCacheSource,
+  /response\.status !== 200/,
+  "La preparación debe rechazar respuestas parciales HTTP y conservar solo archivos completos."
+);
+assert.match(
+  materialAudioCacheSource,
+  /loadedBytes !== totalBytes/,
+  "La preparación debe comparar los bytes descargados con Content-Length cuando está disponible."
+);
+assert.match(
+  materialAudioCacheSource,
+  /metadataHandle\.createWritable/,
+  "El registro de finalización debe escribirse después de cerrar el archivo de audio."
+);
+assert.match(
+  materialsViewSource,
+  /getMaterialAudioPreparedUrl\(attachment\)[\s\S]*?player\.src = preparedUrl/,
+  "El reproductor normal de Materiales debe usar la copia local preparada."
+);
+assert.match(
+  materialsViewSource,
+  /async function ensureMaterialAudioSourceForMarker[\s\S]*?getMaterialAudioPreparedUrl\(attachment\)/,
+  "Los marcadores deben resolver primero la copia local preparada."
+);
+assert.match(
+  materialsViewSource,
+  /prepareMaterialAudioAttachment\(attachment, progress =>/,
+  "El control de preparación debe descargar el audio completo e informar el progreso."
+);

@@ -211,3 +211,21 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - El servidor entregado por separado como versión 0.5 usa HTTP/1.1 con longitudes explícitas, conexiones persistentes, cola de aceptación ampliada para solicitudes concurrentes, `Range`/`If-Range` con validadores `ETag` y `Last-Modified`, y caché privada de 60 segundos para respuestas de audio. Los rangos múltiples o malformados se ignoran y reciben el recurso completo en vez de fallar con 416; los rangos válidos no satisfechos sí devuelven 416.
 - Cada transferencia registra en la consola estado HTTP, rango solicitado, bytes enviados/esperados, duración, velocidad observada y resultado (`complete`, `client-disconnected`, `short-read` o `stream-io-error`), sin imprimir el ticket secreto de la URL.
 - El servidor Python no forma parte del despliegue de Pages: debe instalarse manualmente en el equipo anfitrión y reiniciarse. La ruta de audio desde una red móvil real sigue pendiente de verificación física; las pruebas locales no demuestran el ancho de banda de subida del host ni la calidad de Tailscale Funnel.
+
+
+## 2026-11-09 — precarga coordinada de audio agrupado
+
+- Los reproductores inline de Materiales conservan `preload="none"` al renderizar y obtienen la URL autenticada bajo demanda. Abrir Materiales no debe iniciar descargas de audio.
+- Cuando el usuario inicia explícitamente un grupo, cada reproductor pasa temporalmente a `preload="auto"`; después de alinear su `currentTime`, el coordinador espera `canplay` en esa posición para todas las pistas. Al completar el buffer inicial vuelve a `metadata` justo antes de lanzar `play()` en conjunto. La espera tiene un límite de 15 segundos y falla explícitamente si alguna pista no consigue datos suficientes.
+- El control de búsqueda de posición previsualiza el tiempo mientras se arrastra y aplica `currentTime` al evento `change`, evitando emitir una sucesión de seeks/Range requests durante cada movimiento del dedo. Un blur cancela la vista previa no confirmada.
+- La precarga sólo se activa al pulsar reproducción de grupo; no se hidratan reproductores ocultos ni se descargan audios al expandir una tarjeta. No modifica tickets, permisos, RLS, Storage, archivos locales ni el servidor.
+
+
+## Preparación completa de audio para reproducción (PR #157)
+
+- `src/material-audio-cache.js` ofrece el almacenamiento OPFS por origen para los audios de Materiales. El archivo binario se escribe en streaming y el registro JSON de finalización solo se crea después de cerrar y verificar el archivo.
+- La preparación usa la URL autenticada obtenida por `getAttachmentAccessUrl("material_attachments", attachment)`, solicita HTTP GET completo (exige 200; no admite 206/Range como copia íntegra) y compara los bytes recibidos con `Content-Length` cuando está disponible. Los fallos eliminan los archivos parciales y no crean registro de preparado.
+- `materials-view.js` mantiene los mismos elementos `audio`: al estar preparada una pista, `ensureAudioUrl` cambia su fuente a un Object URL de la copia OPFS. El resolver de marcadores también prioriza esa copia para reproductores visibles y temporales. Por ello los grupos, marcadores, control de velocidad y sincronización del metrónomo continúan leyendo el mismo playhead/eventos y no necesitan una ruta paralela.
+- La preparación de un grupo se ejecuta de manera secuencial para no saturar la ruta de subida/Funnel del host. Reproducir pistas no preparadas conserva el modo de streaming anterior.
+- La copia es por usuario autenticado, origen y dispositivo; el registro valida el ID del usuario actual, evitando reutilizar accidentalmente la copia de otra cuenta en el mismo navegador. El navegador puede borrar OPFS cuando se limpian los datos del sitio o por presión de almacenamiento si no concede persistencia. `navigator.storage.estimate()` ayuda a detectar falta de espacio; `persist()` se solicita como best-effort. No hay cambios en Supabase, migraciones, RLS, Storage ni en el servidor Python.
+- La retirada de una copia pausa y libera las fuentes blob preparadas antes de revocar sus URLs y quitar el archivo/registro OPFS. Se rechaza retirar una pista mientras cualquiera del grupo seleccionado siga reproduciéndose.

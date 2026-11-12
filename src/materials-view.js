@@ -547,6 +547,44 @@ function waitForMaterialAudioMetadata(player) {
 }
 
 
+function waitForMaterialAudioCanPlay(player, targetSeconds = Number(player?.currentTime) || 0, timeoutMs = 15000) {
+  if (!player) return Promise.resolve(false);
+  const isReadyAtTarget = () =>
+    !player.seeking &&
+    player.readyState >= 3 &&
+    Math.abs((Number(player.currentTime) || 0) - targetSeconds) <= 0.5;
+
+  if (isReadyAtTarget()) return Promise.resolve(true);
+
+  return new Promise(resolve => {
+    let settled = false;
+    let timeoutId = null;
+    const cleanup = () => {
+      player.removeEventListener("canplay", checkReady);
+      player.removeEventListener("seeked", checkReady);
+      player.removeEventListener("error", onError);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+    const finish = ready => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(ready);
+    };
+    const checkReady = () => {
+      if (isReadyAtTarget()) finish(true);
+    };
+    const onError = () => finish(false);
+
+    player.addEventListener("canplay", checkReady);
+    player.addEventListener("seeked", checkReady);
+    player.addEventListener("error", onError);
+    timeoutId = window.setTimeout(() => finish(isReadyAtTarget()), timeoutMs);
+    checkReady();
+  });
+}
+
+
 function disposeMaterialAudioSeekEnginePool() {
   for (const player of materialAudioSeekEnginePool.values()) {
     try {
@@ -614,6 +652,32 @@ async function ensureMaterialAudioSourceForMarker(player, attachment) {
   const storagePath = attachment.storage_path || player.dataset.materialAudio;
   if (!storagePath) return false;
 
+  const cachedUrl = await getMaterialAudioPreparedUrl(attachment);
+  if (cachedUrl) {
+    const alreadyUsingCache =
+      player.dataset.materialAudioPrepared === "true" &&
+      player.src === cachedUrl;
+    if (alreadyUsingCache) return true;
+
+    // Never replace the source underneath audio that is already playing.
+    // The cached copy will be used the next time this player is loaded.
+    if (!player.paused && !player.ended && player.src) return true;
+
+    player.pause();
+    player.src = cachedUrl;
+    player.dataset.materialAudioPrepared = "true";
+    delete player.dataset.materialAudioUrlExpiresAt;
+    player.preload = "metadata";
+    player.load();
+    return true;
+  }
+
+  if (player.dataset.materialAudioPrepared === "true" && player.paused) {
+    player.removeAttribute("src");
+    delete player.dataset.materialAudioPrepared;
+    player.load();
+  }
+
   const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
   if (player.src && expiresAt > Date.now() + 15000) return true;
 
@@ -623,6 +687,7 @@ async function ensureMaterialAudioSourceForMarker(player, attachment) {
       { ...attachment, storage_path: storagePath }
     );
     player.src = accessUrl;
+    delete player.dataset.materialAudioPrepared;
     player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
     player.preload = "metadata";
     player.load();
@@ -770,6 +835,7 @@ function updateMaterialAudioGroupSelectionUi(root = document) {
       badge.hidden = !selected;
       badge.textContent = selected ? "Grupo " + count : "";
     }
+    wrapper.__materialAudioControls?.updateCacheControls?.();
   });
 }
 
@@ -805,7 +871,10 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
 
   try {
     if (allPlaying) {
-      players.forEach(player => player.pause());
+      players.forEach(player => {
+        player.pause();
+        player.preload = "metadata";
+      });
       return true;
     }
 
@@ -820,7 +889,9 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       if (!selectedPlayerSet.has(player) && !player.paused && !player.ended) player.pause();
     });
 
-    const loaded = await Promise.all(controls.map(control => control.ensureAudioUrl()));
+    const loaded = await Promise.all(controls.map(control =>
+      control.ensureAudioUrl({ preload: "auto" })
+    ));
     if (loaded.some(value => !value)) {
       throw new Error("No se pudieron cargar todas las pistas del grupo.");
     }
@@ -861,11 +932,25 @@ async function toggleMaterialAudioGroupPlayback(clickedWrapper) {
       throw new Error("No se pudieron alinear todas las pistas en la misma posición.");
     }
 
-    // Invoke play() in the same task, after every player is loaded and aligned.
+    // Prime every selected stream at the shared playhead before starting the group.
+    const buffered = await Promise.all(players.map(player =>
+      waitForMaterialAudioCanPlay(player, Number(player.currentTime) || startSeconds)
+    ));
+    if (buffered.some(ready => !ready)) {
+      throw new Error("La conexión no logró precargar todas las pistas del grupo. Probá de nuevo o reproducí menos pistas juntas.");
+    }
+
+    // Stop explicit preloading after every selected stream has an initial buffer.
+    players.forEach(player => {
+      player.preload = "metadata";
+    });
+
+    // Start only after every selected track has data available at the same position.
     await Promise.all(players.map(player => player.play()));
   } catch (error) {
     players.forEach(player => {
       if (!player.paused) player.pause();
+      player.preload = "metadata";
     });
     showNotice(
       error?.message || "No se pudieron iniciar las pistas al mismo tiempo.",
@@ -956,6 +1041,9 @@ function renderMaterialViewBlock(block) {
             '</span>' +
           '</label>' +
           '<span class="material-inline-audio-pitch-note">La afinación se mantiene.</span>' +
+          '<button type="button" class="btn btn-subtle" data-material-audio-prepare style="width:100%;">Preparar para reproducir</button>' +
+          '<button type="button" class="btn btn-subtle" data-material-audio-clear-cache hidden style="width:100%;">Quitar copia preparada</button>' +
+          '<span class="material-inline-audio-cache-status" data-material-audio-cache-status aria-live="polite">La copia se guarda en este dispositivo.</span>' +
         '</span>' +
         '<audio class="material-audio-engine" preload="none" data-material-audio="' +
           escapeHtml(attachment.storage_path || "") +
@@ -1129,10 +1217,15 @@ function bindMaterialViewEvents(root = document) {
     const seekInput = wrapper.querySelector("[data-material-audio-seek]");
     const speedSelect = wrapper.querySelector("[data-material-audio-speed]");
     const speedInput = wrapper.querySelector("[data-material-audio-speed-custom]");
+    const prepareButton = wrapper.querySelector("[data-material-audio-prepare]");
+    const clearCacheButton = wrapper.querySelector("[data-material-audio-clear-cache]");
+    const cacheStatus = wrapper.querySelector("[data-material-audio-cache-status]");
 
     if (!player || !playButton || !detailsButton || !panel || !timeLabel || !seekInput || !speedSelect || !speedInput) return;
 
     const attachmentId = String(wrapper.dataset.materialAudioId || "");
+    let seekPreviewSeconds = null;
+    let cacheBusy = false;
     setMaterialAudioPlaybackRate(
       player,
       materialAudioPlaybackRates.get(attachmentId) ?? 100
@@ -1166,7 +1259,8 @@ function bindMaterialViewEvents(root = document) {
         ? player.duration
         : null;
       const currentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
-      timeLabel.textContent = formatMaterialAudioTime(currentTime) + " / " +
+      const displayedTime = Number.isFinite(seekPreviewSeconds) ? seekPreviewSeconds : currentTime;
+      timeLabel.textContent = formatMaterialAudioTime(displayedTime) + " / " +
         (duration ? formatMaterialAudioTime(duration) : "--:--");
 
       seekInput.disabled = !duration;
@@ -1203,30 +1297,14 @@ function bindMaterialViewEvents(root = document) {
       return true;
     }
 
-    async function ensureAudioUrl() {
+    async function ensureAudioUrl(options = {}) {
+      const requestedPreload = options?.preload === "auto" ? "auto" : "metadata";
+      if (requestedPreload === "auto") player.preload = "auto";
+
       const storagePath = player.dataset.materialAudio;
       if (!storagePath) {
         showNotice("No se encontró la ruta del audio guardado.", "error");
         return false;
-      }
-
-      const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
-      if (player.src && expiresAt > Date.now() + 15000) {
-        if (player.dataset.materialAudioPendingSeek !== undefined) {
-          const metadataReady = await waitForMaterialAudioMetadata(player);
-          if (!metadataReady) {
-            showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
-            return false;
-          }
-
-          // Read the current pending value after awaiting metadata: the user may
-          // have chosen a different marker while the audio was becoming ready.
-          const latestPendingSeek = player.dataset.materialAudioPendingSeek;
-          if (latestPendingSeek !== undefined) {
-            seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
-          }
-        }
-        return true;
       }
 
       try {
@@ -1236,11 +1314,69 @@ function bindMaterialViewEvents(root = document) {
           throw new Error("No se encontró el adjunto de audio.");
         }
 
+        const preparedUrl = await getMaterialAudioPreparedUrl(attachment);
+        if (preparedUrl) {
+          const alreadyUsingPreparedCopy =
+            player.dataset.materialAudioPrepared === "true" &&
+            player.src === preparedUrl;
+
+          if (!alreadyUsingPreparedCopy) {
+            // Do not switch an active stream mid-song. Group playback pauses
+            // its members before calling this function; individual playback
+            // reaches here after the user has paused or ended the prior play.
+            if (!player.paused && !player.ended && player.src) return true;
+            player.pause();
+            player.src = preparedUrl;
+            player.dataset.materialAudioPrepared = "true";
+            delete player.dataset.materialAudioUrlExpiresAt;
+            player.preload = "metadata";
+            player.load();
+          }
+
+          if (player.dataset.materialAudioPendingSeek !== undefined) {
+            const metadataReady = await waitForMaterialAudioMetadata(player);
+            if (!metadataReady) {
+              showNotice("No se pudo ubicar el marcador en este audio preparado. Probá de nuevo.", "error");
+              return false;
+            }
+            const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+            if (latestPendingSeek !== undefined) {
+              seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+            }
+          }
+          updateAudioUi();
+          return true;
+        }
+
+        if (player.dataset.materialAudioPrepared === "true" && player.paused) {
+          player.removeAttribute("src");
+          delete player.dataset.materialAudioPrepared;
+          player.load();
+        }
+
+        const expiresAt = Number(player.dataset.materialAudioUrlExpiresAt || 0);
+        if (player.src && player.dataset.materialAudioPrepared !== "true" && expiresAt > Date.now() + 15000) {
+          if (player.dataset.materialAudioPendingSeek !== undefined) {
+            const metadataReady = await waitForMaterialAudioMetadata(player);
+            if (!metadataReady) {
+              showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
+              return false;
+            }
+            const latestPendingSeek = player.dataset.materialAudioPendingSeek;
+            if (latestPendingSeek !== undefined) {
+              seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
+            }
+          }
+          return true;
+        }
+
         const audioUrl = await getAttachmentAccessUrl("material_attachments", attachment);
         player.src = audioUrl;
+        delete player.dataset.materialAudioPrepared;
         player.dataset.materialAudioUrlExpiresAt = String(Date.now() + 55 * 60 * 1000);
-        // Obtener duración al abrir los detalles, sin precargar el audio completo.
-        player.preload = "metadata";
+        // Metadata stays lazy for ordinary streaming; full offline copies are
+        // selected above and never depend on this streaming preload hint.
+        player.preload = requestedPreload;
         player.load();
         if (player.dataset.materialAudioPendingSeek !== undefined) {
           const metadataReady = await waitForMaterialAudioMetadata(player);
@@ -1248,7 +1384,6 @@ function bindMaterialViewEvents(root = document) {
             showNotice("No se pudo ubicar el marcador en este audio. Probá de nuevo.", "error");
             return false;
           }
-
           const latestPendingSeek = player.dataset.materialAudioPendingSeek;
           if (latestPendingSeek !== undefined) {
             seekMaterialAudioPlayerToTime(player, Number(latestPendingSeek));
@@ -1263,13 +1398,189 @@ function bindMaterialViewEvents(root = document) {
       }
     }
 
+    async function getMaterialAudioCacheTargets() {
+      const selectedIds = [...materialAudioGroupSelectedIds];
+      const ids = selectedIds.includes(attachmentId) && selectedIds.length > 1
+        ? selectedIds
+        : [attachmentId];
+      const attachments = getMaterialAudioAttachmentsForCurrentSong();
+      const targets = ids.map(id =>
+        attachments.find(item => String(item.id) === String(id))
+      );
+      if (targets.some(item => !item)) {
+        throw new Error("Abrí los materiales que contienen todas las pistas seleccionadas para preparar el grupo completo.");
+      }
+      return targets;
+    }
+
+    async function updateCacheControls() {
+      if (!prepareButton || !clearCacheButton || !cacheStatus || cacheBusy) return;
+      if (!isMaterialAudioOfflineCacheAvailable()) {
+        prepareButton.disabled = true;
+        prepareButton.hidden = false;
+        prepareButton.textContent = "Preparación no disponible";
+        clearCacheButton.hidden = true;
+        cacheStatus.textContent = "Este navegador no admite copias locales completas.";
+        return;
+      }
+
+      try {
+        const targets = await getMaterialAudioCacheTargets();
+        const statuses = await Promise.all(targets.map(isMaterialAudioPrepared));
+        const allPrepared = statuses.length > 0 && statuses.every(Boolean);
+        const groupMode = targets.length > 1;
+        prepareButton.hidden = allPrepared;
+        clearCacheButton.hidden = !allPrepared;
+        prepareButton.disabled = false;
+        prepareButton.textContent = groupMode
+          ? "Preparar grupo (" + targets.length + ")"
+          : "Preparar para reproducir";
+        clearCacheButton.textContent = groupMode
+          ? "Quitar copias (" + targets.length + ")"
+          : "Quitar copia preparada";
+        cacheStatus.textContent = allPrepared
+          ? "Audio completo guardado en este dispositivo."
+          : groupMode
+            ? "Se prepararán todas las pistas seleccionadas."
+            : "Se descargará el archivo completo antes de reproducir.";
+      } catch (error) {
+        prepareButton.disabled = true;
+        clearCacheButton.hidden = true;
+        cacheStatus.textContent = error?.message || "No se pudo verificar la preparación.";
+      }
+    }
+
+    function releasePreparedAudioSource() {
+      if (player.dataset.materialAudioPrepared !== "true") return false;
+      player.pause();
+      player.removeAttribute("src");
+      delete player.dataset.materialAudioPrepared;
+      delete player.dataset.materialAudioUrlExpiresAt;
+      player.load();
+      return true;
+    }
+
     wrapper.__materialAudioControls = {
       wrapper,
       player,
       ensureAudioUrl,
       updateAudioUi,
+      updateCacheControls,
+      releasePreparedAudioSource,
       applySpeedPercentage
     };
+
+    if (prepareButton) {
+      prepareButton.addEventListener("click", async () => {
+        if (cacheBusy) return;
+        cacheBusy = true;
+        prepareButton.disabled = true;
+        if (clearCacheButton) clearCacheButton.disabled = true;
+
+        let preparedCount = 0;
+        let targets = [];
+        try {
+          targets = await getMaterialAudioCacheTargets();
+          for (let index = 0; index < targets.length; index += 1) {
+            const attachment = targets[index];
+            if (await isMaterialAudioPrepared(attachment)) {
+              preparedCount += 1;
+              continue;
+            }
+
+            if (cacheStatus) {
+              cacheStatus.textContent = "Preparando " + (index + 1) + "/" + targets.length + "…";
+            }
+            await prepareMaterialAudioAttachment(attachment, progress => {
+              if (!cacheStatus) return;
+              const percent = Number.isFinite(progress.percent)
+                ? " · " + Math.round(progress.percent) + "%"
+                : " · " + (progress.loadedBytes / (1024 * 1024)).toFixed(1) + " MB";
+              cacheStatus.textContent =
+                "Preparando " + (index + 1) + "/" + targets.length + percent;
+            });
+            preparedCount += 1;
+          }
+
+          showNotice(
+            preparedCount + (preparedCount === 1
+              ? " audio quedó completamente preparado"
+              : " audios quedaron completamente preparados") +
+            " en este dispositivo. Podés reproducirlos sin depender de la conexión.",
+            "success"
+          );
+        } catch (error) {
+          showNotice(
+            (preparedCount ? preparedCount + " de " + (targets.length || 1) + " audios quedaron preparados. " : "") +
+            (error?.message || "No se pudo completar la preparación."),
+            "error"
+          );
+        } finally {
+          cacheBusy = false;
+          prepareButton.disabled = false;
+          if (clearCacheButton) clearCacheButton.disabled = false;
+          await updateCacheControls();
+        }
+      });
+    }
+
+    if (clearCacheButton) {
+      clearCacheButton.addEventListener("click", async () => {
+        if (cacheBusy) return;
+        let targets;
+        try {
+          targets = await getMaterialAudioCacheTargets();
+          const targetIds = new Set(targets.map(item => String(item.id)));
+          const targetPlayers = [];
+
+          document.querySelectorAll("[data-material-inline-audio]").forEach(itemWrapper => {
+            const id = String(itemWrapper.dataset.materialAudioId || "");
+            const control = itemWrapper.__materialAudioControls;
+            if (targetIds.has(id) && control?.player) targetPlayers.push(control.player);
+          });
+          targets.forEach(item => {
+            const pooledPlayer = materialAudioSeekEnginePool.get(String(item.id));
+            if (pooledPlayer) targetPlayers.push(pooledPlayer);
+          });
+
+          if (targetPlayers.some(targetPlayer => !targetPlayer.paused && !targetPlayer.ended)) {
+            showNotice("Pausá las pistas del grupo antes de quitar sus copias preparadas.", "error");
+            return;
+          }
+
+          cacheBusy = true;
+          clearCacheButton.disabled = true;
+          if (prepareButton) prepareButton.disabled = true;
+
+          targetPlayers.forEach(targetPlayer => {
+            if (targetPlayer.dataset.materialAudioPrepared === "true") {
+              targetPlayer.pause();
+              targetPlayer.removeAttribute("src");
+              delete targetPlayer.dataset.materialAudioPrepared;
+              delete targetPlayer.dataset.materialAudioUrlExpiresAt;
+              targetPlayer.load();
+            }
+          });
+          for (const attachment of targets) {
+            await clearMaterialAudioPrepared(attachment);
+          }
+
+          showNotice(
+            targets.length === 1
+              ? "Se quitó la copia preparada de este dispositivo."
+              : "Se quitaron las copias preparadas del grupo de este dispositivo.",
+            "success"
+          );
+        } catch (error) {
+          showNotice(error?.message || "No se pudieron quitar las copias preparadas.", "error");
+        } finally {
+          cacheBusy = false;
+          clearCacheButton.disabled = false;
+          if (prepareButton) prepareButton.disabled = false;
+          await updateCacheControls();
+        }
+      });
+    }
 
     wrapper.addEventListener("contextmenu", event => {
       event.preventDefault();
@@ -1310,9 +1621,24 @@ function bindMaterialViewEvents(root = document) {
     seekInput.addEventListener("input", () => {
       const duration = Number.isFinite(player.duration) ? player.duration : 0;
       if (duration > 0) {
-        player.currentTime = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
+        seekPreviewSeconds = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
         updateAudioUi();
       }
+    });
+
+    seekInput.addEventListener("change", () => {
+      const duration = Number.isFinite(player.duration) ? player.duration : 0;
+      if (duration > 0) {
+        const targetSeconds = Math.max(0, Math.min(1000, Number(seekInput.value))) / 1000 * duration;
+        seekPreviewSeconds = null;
+        player.currentTime = targetSeconds;
+        updateAudioUi();
+      }
+    });
+
+    seekInput.addEventListener("blur", () => {
+      seekPreviewSeconds = null;
+      updateAudioUi();
     });
 
     speedSelect.addEventListener("change", () => {
@@ -1381,7 +1707,7 @@ function bindMaterialViewEvents(root = document) {
       closeMaterialAudioPopovers(panel);
       const bounds = detailsButton.getBoundingClientRect();
       const panelWidth = Math.min(280, Math.max(190, window.innerWidth - 24));
-      const estimatedHeight = 150;
+      const estimatedHeight = 230;
       const left = Math.max(12, Math.min(bounds.left, window.innerWidth - panelWidth - 12));
       let top = bounds.bottom + 6;
       if (top + estimatedHeight > window.innerHeight - 12) {
@@ -1405,6 +1731,7 @@ function bindMaterialViewEvents(root = document) {
     });
 
     updateAudioUi();
+    updateCacheControls();
   });
 
   root.querySelectorAll("[data-material-audio-marker]").forEach(button => {

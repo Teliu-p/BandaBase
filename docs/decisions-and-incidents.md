@@ -326,3 +326,23 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - La migración se aplicó mediante Supabase y la versión generada `20261108055107` se alineó con el prefijo del archivo. La prueba SQL en PostgreSQL descartable conserva enteros/NULLs, escribe valores con dos decimales, y confirma que `400.01` sigue rechazado. En producción, una escritura temporal de `123.45`/`121.75` se leyó correctamente y se revirtió con `ROLLBACK`.
 - CI #42452516755 pasó en `test` y `database-policy`: 26 smoke tests Chromium, ESLint, sintaxis y regresión DB. El test móvil usa 360×800, verifica que los controles quedan dentro de viewport y que `123.45` fluye de la ficha al metrónomo.
 - No se hizo una prueba en un teléfono físico ni se reprodujo desde otra red. El test de viewport no debe presentarse como validación real Android/iOS. El cambio tampoco altera el modelo de sincronización: BPM sigue siendo constante y no existe detección de tempo por forma de onda.
+
+
+## 2026-11-09 — pausas al saltar de posición y reproducción en grupo
+
+- El reproductor inline sólo solicita URL/metadata bajo demanda. El grupo esperaba metadata, alineaba todas las pistas y ejecutaba `play()` inmediatamente, sin comprobar que hubiese datos disponibles en el nuevo playhead.
+- El deslizador aplicaba `currentTime` en cada evento `input`, lo que puede cancelar y reemplazar solicitudes Range durante el arrastre en pantallas táctiles.
+- Cambio propuesto: el arrastre sólo actualiza una vista previa; el evento `change` confirma un seek. Para grupos, `preload="auto"` se activa únicamente tras el clic explícito de reproducción, se espera `canplay` en la posición común y luego se revierte a `metadata` antes de iniciar todas las pistas. Timeout de espera: 15 s.
+- Los logs de servidor muestran interrupciones client-disconnected y respuestas parciales lentas; un cierre de Range tras un seek puede ser normal. La precarga no aumenta la velocidad de subida del host ni elimina el coste de transmitir pistas distintas en paralelo: su objetivo es evitar empezar a reproducir sin buffer y aprovechar la descarga anticipada durante la reproducción.
+- La CI y la prueba física siguen pendientes al registrar esta decisión.
+
+
+### 2026-11-09 — preparar audios completos antes del ensayo
+
+- El usuario acepta una acción explícita para preparar las pistas y solicita conservar la sincronización del metrónomo, marcadores temporales, grupos y controles existentes.
+- Decisión de arquitectura: no reemplazar el reproductor ni introducir un motor nuevo. Descargar el archivo completo por la ruta autenticada local y guardarlo en OPFS del navegador; una vez verificado, el mismo elemento `audio` reproduce una URL blob local. Así los listeners de play/pause/timeupdate/seeked, la velocidad, los grupos y el metrónomo siguen observando el mismo playhead.
+- La preparación del grupo es secuencial para evitar solicitudes concurrentes pesadas al host/Funnel. Solo un HTTP 200 completo puede convertirse en copia preparada; 206/Range, tamaño recibido distinto de Content-Length, cuota agotada y errores de escritura no generan un registro de finalización.
+- Los marcadores deben priorizar la copia preparada, incluso para motores temporales de materiales plegados. La eliminación pausa/libera primero los reproductores locales y luego elimina el binario/metadata y revoca el Object URL.
+- Las copias son por usuario autenticado/dispositivo/browser origin; el registro de finalización comprueba el ID de la cuenta activa para no reutilizar una copia de otra cuenta en el mismo navegador. Se solicita `navigator.storage.persist()` sin asumir que el navegador la concede; limpiar datos del sitio elimina las copias. La reproducción no preparada conserva streaming existente.
+- PR #157 queda en validación. No afirmar que la reproducción real está resuelta hasta que CI pase y se realice prueba audible con varios stems, marcadores, pausa/reanudación, velocidad y metrónomo; repetir en Android físico.
+- No se modifican Supabase, RLS, Storage, migraciones ni el servidor de audio Python.

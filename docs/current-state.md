@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-11-07, Argentina.  
-**HEAD de `main` verificado:** `5d003055e5067cb3bfdb53c8c54bcdd9b073eaf9`. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
+**Última actualización:** 2026-11-09, Argentina.  
+**HEAD de `main` verificado al iniciar este cambio:** `2fd706581c40ada7a724ed674167c8e18e7268a0` (PR #156 integrada). Esta rama parte de ese commit; no cambia Supabase ni el servidor local. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
 **Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
 **Estado reciente:** 62 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.  
 **Informe de auditoría base:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md), complementado por la actualización del 2026-11-07.
@@ -380,3 +380,20 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Servidor Python 0.5 entregado como archivo separado para `C:\\BandaBaseAudio\\bandabase_audio_server.py`. Añade keep-alive HTTP/1.1, caché privada breve para audio, validadores de recursos, comportamiento más tolerante para `Range`, soporte de `If-Range` y diagnóstico de transferencias incompletas/desconectadas. Conserva binding a `127.0.0.1`, tickets HMAC, validación JWT/RLS, límites de tamaño y rutas de upload/delete existentes.
 - Prueba local aislada del servidor: pasó `py_compile` y pruebas HTTP para GET completo, rangos abiertos/sufijo, HEAD con Range, fallback de rangos múltiples/malformados, 416, If-Range con ETag, 304, keep-alive, 24 solicitudes Range concurrentes y OPTIONS. No se consultó ni modificó Supabase.
 - Pendiente: integrar CI del cambio cliente y realizar prueba física desde Android con datos móviles y Wi‑Fi. La prueba local no mide la velocidad de subida del host ni confirma que un corte de Funnel se recupere sin intervención. No declarar resuelto el síntoma de audio entrecortado hasta esa validación.
+
+
+## 2026-11-09 — precarga de reproducción agrupada (rama en validación)
+
+- Rama `fix/material-audio-group-prebuffer-20261109`, basada en `2fd706581c40ada7a724ed674167c8e18e7268a0`.
+- Cambios propuestos: precarga temporal `auto` sólo al iniciar reproducción agrupada, espera de `readyState >= HAVE_FUTURE_DATA` (`canplay`) en el playhead alineado, vuelta a `metadata` antes de Play, timeout de 15 s y búsqueda con previsualización durante el arrastre / seek al soltar.
+- Objetivo: evitar que los grupos comiencen antes de que todas las pistas tengan datos y reducir solicitudes Range canceladas por sucesivos eventos `input` del deslizador.
+- Todavía no verificado en CI ni manualmente en teléfono. La reproducción real debe comprobarse con un grupo de 2–4 pistas y saltos largos.
+
+
+## 2026-11-09 — preparación local completa de audio (PR #157, en validación)
+
+- Se añadió `src/material-audio-cache.js` y su etiqueta de carga antes de `materials-view.js`. La función guarda audios completos en OPFS mediante streaming y no marca una copia como preparada hasta cerrar el archivo y escribir el registro JSON. HTTP parcial (206), longitud incompleta y errores de escritura se rechazan.
+- El panel del reproductor permite preparar una pista o todas las pistas del grupo seleccionado, con progreso; también permite quitar las copias locales cuando las pistas están pausadas. La descarga del grupo es secuencial.
+- `ensureAudioUrl` y el resolver de marcadores priorizan las copias locales preparadas. Se conservan el reproductor y el playhead usados por grupos, marcadores, velocidad y metrónomo; no se introdujo un reproductor paralelo. Las pistas no preparadas siguen con streaming.
+- CI y validación de dispositivo real pendientes para este commit. Aún no se ha verificado de oído con pistas reales ni en Android físico. Cada cuenta autenticada/dispositivo debe preparar sus propias copias; el registro OPFS comprueba el ID de la cuenta. Borrar los datos del sitio borra OPFS.
+- No se cambió el esquema, RLS, Storage ni el servidor Python de audio.

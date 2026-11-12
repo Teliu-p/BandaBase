@@ -1688,10 +1688,13 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     }));
 
     const playCalls = [];
+    const preloadOptions = [];
     const fakePlayers = wrappers.map((wrapper, index) => ({
       paused: index !== 0,
       ended: false,
-      readyState: 1,
+      readyState: 3,
+      seeking: false,
+      preload: "none",
       duration: 120,
       currentTime: index === 0 ? 7.1234 : 0.2,
       playbackRate: index === 0 ? 1.25 : 1,
@@ -1714,8 +1717,10 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
       wrapper.__materialAudioControls = {
         wrapper,
         player: fakePlayers[index],
-        ensureAudioUrl: async () => {
+        ensureAudioUrl: async options => {
           pausedWhileLoading.push(fakePlayers[index].paused);
+          preloadOptions.push(options?.preload || null);
+          fakePlayers[index].preload = options?.preload || "metadata";
           return true;
         },
         updateAudioUi() {}
@@ -1726,11 +1731,12 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
     const syncedPlayers = fakePlayers.map(player => ({
       time: player.currentTime,
       rate: player.playbackRate,
-      paused: player.paused
+      paused: player.paused,
+      preload: player.preload
     }));
 
     root.remove();
-    return { selected, badges, playCalls, syncedPlayers, pausedWhileLoading };
+    return { selected, badges, playCalls, syncedPlayers, pausedWhileLoading, preloadOptions };
   });
 
   expect(result.selected.sort()).toEqual(["audio-group-original", "audio-group-split"]);
@@ -1740,9 +1746,322 @@ test("right-click selects multiple Materiales audio tracks for grouped playback"
   ]);
   expect(result.playCalls).toEqual(["audio-group-original", "audio-group-split"]);
   expect(result.pausedWhileLoading).toEqual([true, true]);
+  expect(result.preloadOptions).toEqual(["auto", "auto"]);
+  expect(result.syncedPlayers.map(player => player.paused)).toEqual([false, false]);
+  expect(result.syncedPlayers.map(player => player.time)).toEqual([7.123, 7.123]);
+  expect(result.syncedPlayers.map(player => player.rate)).toEqual([1.25, 1.25]);
+  expect(result.syncedPlayers.map(player => player.preload)).toEqual(["metadata", "metadata"]);
   expect(result.syncedPlayers).toEqual([
-    { time: 7.123, rate: 1.25, paused: false },
-    { time: 7.123, rate: 1.25, paused: false }
+    { time: 7.123, rate: 1.25, paused: false, preload: "metadata" },
+    { time: 7.123, rate: 1.25, paused: false, preload: "metadata" }
   ]);
   expect(runtimeErrors, "JavaScript errors while selecting and starting audio tracks").toEqual([]);
+});
+
+
+test("Materials audio preparation stores a complete local copy and rejects truncated downloads", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+
+  const result = await page.evaluate(async () => {
+    const attachment = {
+      id: "offline-cache-regression-track",
+      kind: "file",
+      name: "Ensayo.mp3",
+      mime_type: "audio/mpeg",
+      storage_path: "local:offline-cache-regression-track"
+    };
+    const originalResolver = getAttachmentAccessUrl;
+    const originalFetch = window.fetch;
+    let responseBytes = new Uint8Array([1, 2, 3, 4]);
+    let declaredLength = 8;
+    let partialRejected = false;
+    let partialError = "";
+    const progress = [];
+
+    getAttachmentAccessUrl = async () => "https://audio-cache.test/track";
+    window.fetch = async () => new Response(responseBytes, {
+      status: 200,
+      headers: {
+        "Content-Length": String(declaredLength),
+        "Content-Type": "audio/mpeg"
+      }
+    });
+
+    try {
+      const available = isMaterialAudioOfflineCacheAvailable();
+      if (!available) {
+        return { available, reason: "OPFS unavailable in this browser" };
+      }
+
+      try {
+        await prepareMaterialAudioAttachment(attachment);
+      } catch (error) {
+        partialRejected = true;
+        partialError = error.message;
+      }
+      const partialWasNotCached = !(await isMaterialAudioPrepared(attachment));
+
+      responseBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      declaredLength = 8;
+      const prepared = await prepareMaterialAudioAttachment(attachment, value => progress.push(value));
+      const cached = await isMaterialAudioPrepared(attachment);
+      const objectUrl = await getMaterialAudioPreparedUrl(attachment);
+      const localResponse = objectUrl ? await originalFetch(objectUrl) : null;
+      const storedBytes = localResponse ? Array.from(new Uint8Array(await localResponse.arrayBuffer())) : [];
+      await clearMaterialAudioPrepared(attachment);
+      const cleared = !(await isMaterialAudioPrepared(attachment));
+
+      return {
+        available,
+        partialRejected,
+        partialError,
+        partialWasNotCached,
+        prepared,
+        cached,
+        hasBlobUrl: Boolean(objectUrl?.startsWith("blob:")),
+        storedBytes,
+        expectedBytes: Array.from(responseBytes),
+        progressReached100: progress.some(value => value.percent === 100),
+        cleared
+      };
+    } finally {
+      try { await clearMaterialAudioPrepared(attachment); } catch {}
+      getAttachmentAccessUrl = originalResolver;
+      window.fetch = originalFetch;
+    }
+  });
+
+  expect(result.available).toBe(true);
+  expect(result.partialRejected).toBe(true);
+  expect(result.partialError).toContain("descarga quedó incompleta");
+  expect(result.partialWasNotCached).toBe(true);
+  expect(result.prepared.alreadyPrepared).toBe(false);
+  expect(result.cached).toBe(true);
+  expect(result.hasBlobUrl).toBe(true);
+  expect(result.storedBytes).toEqual(result.expectedBytes);
+  expect(result.progressReached100).toBe(true);
+  expect(result.cleared).toBe(true);
+  expect(runtimeErrors, "Audio cache preparation should not cause runtime errors").toEqual([]);
+});
+
+
+test("the existing Materials audio control switches to a prepared local source", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+  const result = await page.evaluate(async () => {
+    const attachment = {
+      id: "offline-player-integration-track",
+      kind: "file",
+      name: "Pista de prueba.mp3",
+      mime_type: "audio/mpeg",
+      storage_path: "local:offline-player-integration-track"
+    };
+    const savedMaterials = currentMaterials;
+    const originalResolver = getAttachmentAccessUrl;
+    const originalFetch = window.fetch;
+    currentMaterials = [{
+      id: "offline-player-integration-material",
+      attachments: [attachment]
+    }];
+
+    getAttachmentAccessUrl = async () => "https://audio-cache.test/player-track";
+    window.fetch = async () => new Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: {
+        "Content-Length": "4",
+        "Content-Type": "audio/mpeg"
+      }
+    });
+
+    const root = document.createElement("div");
+    root.innerHTML = renderMaterialViewBlock({
+      block_type: "attachment",
+      attachment
+    });
+    document.body.appendChild(root);
+    bindMaterialViewEvents(root);
+    const wrapper = root.querySelector("[data-material-inline-audio]");
+    const controls = wrapper.__materialAudioControls;
+
+    try {
+      await prepareMaterialAudioAttachment(attachment);
+      const loaded = await controls.ensureAudioUrl();
+      const result = {
+        loaded,
+        preparedSource: controls.player.dataset.materialAudioPrepared === "true",
+        blobSource: controls.player.src.startsWith("blob:"),
+        samePlayer: controls.player === wrapper.querySelector("audio[data-material-audio]"),
+        hasExistingSpeedControl: Boolean(wrapper.querySelector("[data-material-audio-speed]")),
+        hasExistingSeekControl: Boolean(wrapper.querySelector("[data-material-audio-seek]"))
+      };
+      controls.releasePreparedAudioSource();
+      await clearMaterialAudioPrepared(attachment);
+      return result;
+    } finally {
+      try { await clearMaterialAudioPrepared(attachment); } catch {}
+      root.remove();
+      currentMaterials = savedMaterials;
+      getAttachmentAccessUrl = originalResolver;
+      window.fetch = originalFetch;
+    }
+  });
+
+  expect(result.loaded).toBe(true);
+  expect(result.preparedSource).toBe(true);
+  expect(result.blobSource).toBe(true);
+  expect(result.samePlayer).toBe(true);
+  expect(result.hasExistingSpeedControl).toBe(true);
+  expect(result.hasExistingSeekControl).toBe(true);
+  expect(runtimeErrors, "Switching to the prepared source should not break the normal player").toEqual([]);
+});
+
+
+test("prepared local tracks retain shared markers, group alignment and metronome handoff", async ({ page }) => {
+  const { runtimeErrors } = await openApp(page);
+  const result = await page.evaluate(async () => {
+    const makeSilentWav = () => {
+      const sampleRate = 8000;
+      const sampleCount = sampleRate * 2;
+      const dataBytes = sampleCount * 2;
+      const bytes = new Uint8Array(44 + dataBytes);
+      const view = new DataView(bytes.buffer);
+      const writeText = (offset, value) => {
+        for (let index = 0; index < value.length; index += 1) {
+          bytes[offset + index] = value.charCodeAt(index);
+        }
+      };
+      writeText(0, "RIFF");
+      view.setUint32(4, 36 + dataBytes, true);
+      writeText(8, "WAVE");
+      writeText(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeText(36, "data");
+      view.setUint32(40, dataBytes, true);
+      return bytes;
+    };
+
+    const savedMaterials = currentMaterials;
+    const originalResolver = getAttachmentAccessUrl;
+    const originalFetch = window.fetch;
+    const originalPlay = HTMLMediaElement.prototype.play;
+    const originalSync = window.bandabaseSyncMetronomeWithAudio;
+    const wavBytes = makeSilentWav();
+    const attachments = [
+      {
+        id: "offline-group-original",
+        kind: "file",
+        name: "Original.wav",
+        mime_type: "audio/wav",
+        storage_path: "local:offline-group-original"
+      },
+      {
+        id: "offline-group-split",
+        kind: "file",
+        name: "Guitarra.wav",
+        mime_type: "audio/wav",
+        storage_path: "local:offline-group-split"
+      }
+    ];
+    currentMaterials = [{
+      id: "offline-group-material",
+      attachments
+    }];
+
+    getAttachmentAccessUrl = async (_table, attachment) =>
+      "https://audio-cache.test/" + attachment.id;
+    window.fetch = async () => new Response(wavBytes.slice(), {
+      status: 200,
+      headers: {
+        "Content-Length": String(wavBytes.length),
+        "Content-Type": "audio/wav"
+      }
+    });
+
+    const root = document.createElement("div");
+    root.innerHTML = attachments.map(attachment =>
+      renderMaterialViewBlock({ block_type: "attachment", attachment })
+    ).join("");
+    document.body.appendChild(root);
+    bindMaterialViewEvents(root);
+
+    const wrappers = Array.from(root.querySelectorAll("[data-material-inline-audio]"));
+    const players = wrappers.map(wrapper => wrapper.querySelector("audio[data-material-audio]"));
+    const playCalls = [];
+    const metronomeSyncCalls = [];
+    HTMLMediaElement.prototype.play = function() {
+      playCalls.push(this.closest("[data-material-inline-audio]")?.dataset.materialAudioId || "temporary");
+      return Promise.resolve();
+    };
+    window.bandabaseSyncMetronomeWithAudio = (...args) => metronomeSyncCalls.push(args);
+
+    try {
+      for (const attachment of attachments) {
+        await prepareMaterialAudioAttachment(attachment);
+      }
+      const sourceResults = await Promise.all(
+        wrappers.map(wrapper => wrapper.__materialAudioControls.ensureAudioUrl())
+      );
+      const metadataResults = await Promise.all(players.map(waitForMaterialAudioMetadata));
+      const blobMimeType = players[0].src.startsWith("blob:")
+        ? (await originalFetch(players[0].src)).headers.get("content-type")
+        : null;
+      const beforeMarker = players.map(player => player.currentTime);
+
+      await selectMaterialAudioMarker(1);
+      const afterMarker = players.map(player => player.currentTime);
+
+      wrappers.forEach(wrapper => wrapper.dispatchEvent(new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true
+      })));
+      await toggleMaterialAudioGroupPlayback(wrappers[0]);
+
+      return {
+        sourceResults,
+        metadataResults,
+        allLocal: players.every(player => player.dataset.materialAudioPrepared === "true" && player.src.startsWith("blob:")),
+        blobMimeType,
+        beforeMarker,
+        afterMarker,
+        groupTimes: players.map(player => player.currentTime),
+        groupRates: players.map(player => player.playbackRate),
+        playCalls,
+        metronomeSyncCalls: metronomeSyncCalls.length
+      };
+    } finally {
+      players.forEach(player => {
+        try {
+          player.pause();
+          player.removeAttribute("src");
+          player.load();
+        } catch {}
+      });
+      for (const attachment of attachments) {
+        try { await clearMaterialAudioPrepared(attachment); } catch {}
+      }
+      root.remove();
+      currentMaterials = savedMaterials;
+      getAttachmentAccessUrl = originalResolver;
+      window.fetch = originalFetch;
+      HTMLMediaElement.prototype.play = originalPlay;
+      window.bandabaseSyncMetronomeWithAudio = originalSync;
+    }
+  });
+
+  expect(result.sourceResults).toEqual([true, true]);
+  expect(result.metadataResults).toEqual([true, true]);
+  expect(result.allLocal).toBe(true);
+  expect(result.blobMimeType).toBe("audio/wav");
+  expect(result.beforeMarker.every(value => value === 0)).toBe(true);
+  expect(result.afterMarker).toEqual([1, 1]);
+  expect(result.groupTimes).toEqual([1, 1]);
+  expect(result.groupRates).toEqual([1, 1]);
+  expect(result.playCalls).toEqual(["offline-group-original", "offline-group-split"]);
+  expect(result.metronomeSyncCalls).toBe(1);
+  expect(runtimeErrors, "Prepared group playback should retain marker/metronome wiring without runtime errors").toEqual([]);
 });

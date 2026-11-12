@@ -3850,6 +3850,12 @@
   font-size: 11px;
 }
 
+.material-inline-audio-cache-status {
+  color: var(--bb-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .material-audio-engine {
   display: none !important;
 }
