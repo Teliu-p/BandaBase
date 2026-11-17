@@ -407,7 +407,7 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - No se cambió el esquema, RLS, Storage ni el servidor Python de audio.
 
 
-## 26. Cuota preventiva de Storage (PR #159 integrada; migración aplicada el 2026-11-12)
+## 26. Cuota preventiva de Storage (fotografía inicial de rama del 2026-11-10; PR #159 integrada el 2026-11-12)
 
 - Rama: `feat/storage-quota-guard-20261110`, desde main `cbefb667aff1e303358aa61ed091eb9937fcdaeb`.
 - Proyecto remoto inspeccionado en solo lectura: un proyecto en la organización, estado `ACTIVE_HEALTHY`; un bucket privado `materials` con límite individual de archivo 50 MiB; una fila en `storage.objects` con metadata size 0 bytes en la consulta. Políticas RLS actuales sin cambios.
