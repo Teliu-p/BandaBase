@@ -3,7 +3,7 @@
 **Última actualización del contexto:** 2026-11-17 (Argentina).  
 **Repositorio canónico:** https://github.com/Teliu-p/BandaBase  
 **Rama integrada de referencia al actualizar este índice:** `main`  
-**HEAD verificado:** `85a8a33042e0731dc1fc8eff0d85372090e021c2`  
+**Último HEAD de `main` leído antes de esta actualización documental:** `85a8a33042e0731dc1fc8eff0d85372090e021c2`  
 **Aplicación:** https://teliu-p.github.io/BandaBase/
 
 ## Regla principal
