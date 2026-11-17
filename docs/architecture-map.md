@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Última revisión del mapa:** 2026-11-17. El inventario base de módulos se levantó inicialmente sobre PR #136 (2026-11-03), pero las secciones posteriores documentan evoluciones hasta PR #157 y #159. HEAD integrado verificado al actualizar: `85a8a33042e0731dc1fc8eff0d85372090e021c2`. Este mapa explica los acoplamientos conocidos; no reemplaza revisar el código y `index.html` del SHA de trabajo. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase.
+**Última actualización documental del mapa:** 2026-11-17. El inventario base de módulos se levantó inicialmente sobre PR #136 (2026-11-03), pero las secciones posteriores documentan evoluciones hasta PR #157 y #159. HEAD integrado verificado al actualizar: `85a8a33042e0731dc1fc8eff0d85372090e021c2`. Este mapa explica los acoplamientos conocidos; no reemplaza revisar el código y `index.html` del SHA de trabajo. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase.
 
 ## 1. Arquitectura a alto nivel
 
