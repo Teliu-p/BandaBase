@@ -1,11 +1,19 @@
 # Estado técnico actual de BandaBase
 
-**Última actualización:** 2026-11-09, Argentina.  
-**HEAD de `main` verificado al iniciar este cambio:** `2fd706581c40ada7a724ed674167c8e18e7268a0` (PR #156 integrada). Esta rama parte de ese commit; no cambia Supabase ni el servidor local. PR #149, #150 y #151 fusionadas. Tests [#42417389301](https://github.com/Teliu-p/BandaBase/actions/runs/42417389301) y Pages [#42417389142](https://github.com/Teliu-p/BandaBase/actions/runs/42417389142) pasaron para el mismo HEAD.  
-**Supabase:** `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, ACTIVE_HEALTHY.  
-**Estado reciente:** 62 migraciones remotas distintas, 28 tablas públicas con RLS, 74 políticas y 20 tablas en Realtime. El historial de #149 quedó alineado a `20261106210000`; véase la actualización 22.  
-**Informe de auditoría base:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md), complementado por la actualización del 2026-11-07.
+**Fotografía vigente actualizada:** 2026-11-17 (Argentina).  
+**HEAD real de `main` verificado:** `85a8a33042e0731dc1fc8eff0d85372090e021c2` — [commit](https://github.com/Teliu-p/BandaBase/commit/85a8a33042e0731dc1fc8eff0d85372090e021c2), del 2026-11-12.  
+**Integraciones posteriores a la fotografía anterior:** PR #157 (preparación OPFS), #159 (cuota Storage) y #161 (alineación del nombre de migración), todas fusionadas.  
+**CI y Pages del HEAD actual:** Tests [#43303988557](https://github.com/Teliu-p/BandaBase/actions/runs/43303988557) y Pages [#43303988828](https://github.com/Teliu-p/BandaBase/actions/runs/43303988828) finalizaron exitosamente. Volver a comprobar ante cualquier commit posterior.  
+**Supabase:** proyecto `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, último estado observado `ACTIVE_HEALTHY`. La verificación más reciente aquí documentada es selectiva y del 2026-11-12; no equivale a una auditoría completa realizada el 2026-11-17.  
+**Migración de cuota:** versión remota `20261112204157`, mismo prefijo que `supabase/migrations/20261112204157_enforce_storage_quota.sql`. Tope app de 700.000.000 bytes (700 MB decimales), aviso 70 % y crítico 85 %.  
+**Storage verificado el 2026-11-12:** bucket `materials` privado y límite individual 50 MiB. La lectura de `storage.objects` encontró un objeto cuyo tamaño sumaba 0 bytes; no reutilizar ese número como consumo actual sin una consulta nueva. La RPC de cuota se probó con rol `authenticated` y requiere miembro activo.  
+**Audio:** PR #157 está integrada; “Preparar para reproducir” almacena una copia OPFS por cuenta/navegador/dispositivo y reutiliza el reproductor normal. La prueba audible con audios reales en PC y Android sigue pendiente. El servidor Python local v0.5 se instala/actualiza por separado de Pages.  
+**PR abiertas antiguas encontradas en la búsqueda del 2026-11-17:** #148 (diagnóstico temporal de caret, necesidad funcional superada por #150) y #98 (borrador de permisos UPDATE, desactualizado por el estado posterior de PR #149). Verificar estado/diff antes de cualquier acción; no fusionarlas por inercia.  
+**Informe de auditoría base:** [technical-audit-2026-11-05.md](technical-audit-2026-11-05.md), complementado por verificaciones selectivas posteriores.
 
+> Esta cabecera es la fotografía vigente. Las secciones cronológicas de abajo conservan el estado y la incertidumbre que había en la fecha indicada; no leer un encabezado histórico como si siguiera describiendo main hoy. Las entradas posteriores y las verificaciones actuales lo superseden. Al cerrar cada cambio, actualizar esta fotografía y agregar solo el detalle necesario.
+
+---
 ## 0. Fotografía integral del 2026-11-05
 
 - 28 tablas públicas observadas; todas con RLS habilitada. 20 tablas publicadas en Realtime.
@@ -390,7 +398,7 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - Todavía no verificado en CI ni manualmente en teléfono. La reproducción real debe comprobarse con un grupo de 2–4 pistas y saltos largos.
 
 
-## 2026-11-09 — preparación local completa de audio (PR #157, en validación)
+## 2026-11-09 — preparación local completa de audio (PR #157, fotografía previa a su merge del 2026-11-12)
 
 - Se añadió `src/material-audio-cache.js` y su etiqueta de carga antes de `materials-view.js`. La función guarda audios completos en OPFS mediante streaming y no marca una copia como preparada hasta cerrar el archivo y escribir el registro JSON. HTTP parcial (206), longitud incompleta y errores de escritura se rechazan.
 - El panel del reproductor permite preparar una pista o todas las pistas del grupo seleccionado, con progreso; también permite quitar las copias locales cuando las pistas están pausadas. La descarga del grupo es secuencial.
@@ -399,7 +407,7 @@ La inspección de Supabase encontró la publicación `supabase_realtime` sin tab
 - No se cambió el esquema, RLS, Storage ni el servidor Python de audio.
 
 
-## 26. Cuota preventiva de Storage (rama de trabajo, 2026-11-10)
+## 26. Cuota preventiva de Storage (PR #159 integrada; migración aplicada el 2026-11-12)
 
 - Rama: `feat/storage-quota-guard-20261110`, desde main `cbefb667aff1e303358aa61ed091eb9937fcdaeb`.
 - Proyecto remoto inspeccionado en solo lectura: un proyecto en la organización, estado `ACTIVE_HEALTHY`; un bucket privado `materials` con límite individual de archivo 50 MiB; una fila en `storage.objects` con metadata size 0 bytes en la consulta. Políticas RLS actuales sin cambios.
