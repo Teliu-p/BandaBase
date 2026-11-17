@@ -346,3 +346,32 @@ Registrar fecha, síntoma visible, causa raíz confirmada (o marcarla como hipó
 - Las copias son por usuario autenticado/dispositivo/browser origin; el registro de finalización comprueba el ID de la cuenta activa para no reutilizar una copia de otra cuenta en el mismo navegador. Se solicita `navigator.storage.persist()` sin asumir que el navegador la concede; limpiar datos del sitio elimina las copias. La reproducción no preparada conserva streaming existente.
 - PR #157 queda en validación. No afirmar que la reproducción real está resuelta hasta que CI pase y se realice prueba audible con varios stems, marcadores, pausa/reanudación, velocidad y metrónomo; repetir en Android físico.
 - No se modifican Supabase, RLS, Storage, migraciones ni el servidor de audio Python.
+
+## 2026-11-12 — preparación íntegra de audio para reproducción (PR #157 integrada)
+
+- PR [#157](https://github.com/Teliu-p/BandaBase/pull/157) se integró en `main` mediante `f32dce863d09b2b8a15598c7b67cf8a6838e4be7`.
+- La preparación guarda el archivo completo en OPFS por cuenta autenticada, origen, navegador y dispositivo. La descarga es secuencial para un grupo y solo se marca preparada después de validar la respuesta completa, el tamaño cuando existe `Content-Length`, cerrar el archivo y escribir el registro.
+- El reproductor de Materiales reutiliza su elemento `audio` y cambia a una URL blob cuando la copia local está lista; las pistas no preparadas siguen con streaming. La intención es preservar grupos, marcadores, velocidad y sincronización del metrónomo sin un motor paralelo.
+- CI de la PR y verificaciones de main/Pages pasaron; la suite de Chromium cubre archivo completo/incompleto, OPFS y coordinación con el reproductor. **No sustituye** la prueba audible en dispositivos físicos con los archivos reales del usuario. Esa validación sigue pendiente en PC Windows y Android, incluyendo grupo de stems, marcadores, seek, pausa/reanudación, velocidad y metrónomo.
+- No cambió Supabase, migraciones, RLS, Storage ni el servidor Python. Las copias OPFS no se comparten con otros dispositivos ni cuentas.
+
+## 2026-11-12 — presupuesto de Supabase Storage de 700 MB (PR #159 integrada)
+
+- PR [#159](https://github.com/Teliu-p/BandaBase/pull/159) se integró en `main` mediante `7ccfb3b0e4bd7ebc629fa020cb3414d1b8b6e061`. Define un presupuesto total de proyecto de 700.000.000 bytes, warning al 70 % y crítico al 85 %.
+- Materiales no-audio, Comentarios y Propuestas usan preflight de espacio y controles PostgreSQL/Storage para INSERT/UPDATE con políticas RESTRICTIVE y advisory transaction lock; el permiso RLS previo de banda/propiedad se conserva. El tamaño real informado por Storage al confirmar prevalece sobre la pista enviada por el navegador. Audio Materiales `local:` queda fuera del bucket y de la cuota.
+- La migración se aplicó y quedó registrada en Supabase como `20261112204157`. Se verificó la RPC de estado usando el rol `authenticated` y se comprobó que exige membresía activa. No se borraron ni modificaron objetos existentes.
+- La función de consulta `SECURITY DEFINER` produce un aviso de asesor, documentado e intencional: valida membresía activa, usa `search_path = ''` y desactiva row security dentro de su alcance. No quitar permisos ni modificarla sin analizar el flujo y probarlo.
+- Límites explícitos: el guard de aplicación no impide operaciones privilegiadas `service_role`, subidas manuales vía Dashboard/Studio ni proyectos adicionales. No presentarlo como una cuota inviolable a nivel de organización.
+
+## 2026-11-12 — alinear el nombre de migración con Supabase (PR #161 integrada)
+
+- PR [#161](https://github.com/Teliu-p/BandaBase/pull/161) se integró como `85a8a33042e0731dc1fc8eff0d85372090e021c2`.
+- Renombra el archivo de la migración ya aplicada a `supabase/migrations/20261112204157_enforce_storage_quota.sql`, coincidente con la versión registrada por Supabase. Actualiza pruebas y referencias documentales.
+- No ejecutó SQL ni volvió a aplicar la migración; no cambió datos ni objetos remotos. Su propósito es mantener coherente el historial versionado.
+- CI de main y Pages finalizaron exitosamente para el HEAD resultante: [Tests](https://github.com/Teliu-p/BandaBase/actions/runs/43303988557) · [Pages](https://github.com/Teliu-p/BandaBase/actions/runs/43303988828).
+
+## 2026-11-17 — continuidad externa del contexto del proyecto
+
+- Se establece GitHub como fuente persistente y versionada del contexto de BandaBase. El chat y la memoria del asistente son contextos volátiles y no pueden ser el único registro de requisitos, decisiones, evidencia o pendientes.
+- Se separan seis funciones documentales: índice conciso (`AI_CONTEXT.md`), instrucciones para agentes (`AGENTS.md`), protocolo de trabajo (`docs/ai-work-protocol.md`), handoff actual (`docs/active-work.md`), fotografía técnica (`docs/current-state.md`), mapa de arquitectura, especificación de producto e historial de decisiones/incidentes.
+- La antigua puerta de entrada extensa se conserva como archivo histórico, no como estado vigente. Los nuevos cambios deben sincronizar código, pruebas y documentación en la misma PR.

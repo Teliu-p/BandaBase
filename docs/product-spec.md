@@ -108,3 +108,11 @@ BandaBase organiza el trabajo musical de una banda de iglesia: catálogo, prepar
 - Antes de modificar un formulario, identificar sus campos obligatorios, defaults, normalización, estado global y el guardado posterior.
 - Para datos relacionados, identificar si hay RPC o triggers que aseguran operaciones atómicas o sincronización.
 - Si el código actual contradice estos requisitos, documentar el delta; no asumir que el requerimiento ya está cumplido ni hacer una reescritura total por accidente.
+
+## 12. Presupuesto de almacenamiento y preparación local
+
+- Los adjuntos no-audio de Materiales y los adjuntos de Comentarios/Propuestas usan el bucket privado de Supabase `materials`; el almacenamiento total de la aplicación tiene un presupuesto preventivo de 700.000.000 bytes (700 MB decimales) sumando los buckets del proyecto.
+- Administración informa el consumo y el espacio disponible. Se muestra advertencia al alcanzar el 70 % y estado crítico al 85 %. Los flujos de carga deben anticipar el límite y explicar el rechazo sin eliminar ni alterar archivos existentes.
+- La comprobación de cliente mejora el mensaje antes de subir, pero la defensa efectiva de las subidas autenticadas está en PostgreSQL/Storage. No reemplazar ni debilitar las políticas RLS preexistentes.
+- Los audios de Materiales con clave local `local:` se almacenan en la biblioteca del equipo anfitrión y no consumen la cuota de Supabase. La opción «Preparar para reproducir» crea además una copia completa en OPFS del navegador/dispositivo del integrante. Estas copias son locales a cada cuenta, origen, navegador y dispositivo; no se comparten ni se replican automáticamente entre integrantes.
+- La cuota no representa una protección absoluta contra operaciones privilegiadas con `service_role`, el Dashboard/Studio ni proyectos añadidos fuera de los flujos autenticados de BandaBase. No prometer que cubre esos caminos.
