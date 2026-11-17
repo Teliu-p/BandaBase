@@ -3,7 +3,7 @@
 **Corte:** 2026-11-17 (Argentina).  
 **Repositorio:** [Teliu-p/BandaBase](https://github.com/Teliu-p/BandaBase)  
 **Rama integrada:** `main`  
-**HEAD verificado:** `85a8a33042e0731dc1fc8eff0d85372090e021c2` — [commit](https://github.com/Teliu-p/BandaBase/commit/85a8a33042e0731dc1fc8eff0d85372090e021c2), 2026-11-12 20:48:43 UTC.  
+**HEAD de `main` inspeccionado para este corte (antes de la PR documental #162):** `85a8a33042e0731dc1fc8eff0d85372090e021c2` — [commit](https://github.com/Teliu-p/BandaBase/commit/85a8a33042e0731dc1fc8eff0d85372090e021c2), 2026-11-12 20:48:43 UTC.  
 **Aplicación:** https://teliu-p.github.io/BandaBase/  
 **Supabase project ref:** `evuwcikuxptrgzdzejov`.
 
