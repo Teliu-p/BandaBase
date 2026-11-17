@@ -1,6 +1,6 @@
 # Mapa de arquitectura de BandaBase
 
-**Base funcional de observación:** PR #136 integrada el 2026-11-03 (merge `e96712ee41de5599e36a58b1d1dd72d2919946bd`). Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase. Verificar siempre el HEAD real y el orden de scripts antes de futuros cambios.
+**Última revisión del mapa:** 2026-11-17. El inventario base de módulos se levantó inicialmente sobre PR #136 (2026-11-03), pero las secciones posteriores documentan evoluciones hasta PR #157 y #159. HEAD integrado verificado al actualizar: `85a8a33042e0731dc1fc8eff0d85372090e021c2`. Este mapa explica los acoplamientos conocidos; no reemplaza revisar el código y `index.html` del SHA de trabajo. Los archivos de migración nuevos deben coincidir por prefijo con las versiones aplicadas en Supabase.
 
 ## 1. Arquitectura a alto nivel
 
@@ -231,7 +231,7 @@ Las cuatro RPC usan SECURITY INVOKER y EXECUTE se concede a authenticated, no a 
 - La retirada de una copia pausa y libera las fuentes blob preparadas antes de revocar sus URLs y quitar el archivo/registro OPFS. Se rechaza retirar una pista mientras cualquiera del grupo seleccionado siga reproduciéndose.
 
 
-## 2026-11-10 — cuota preventiva de Supabase Storage (PR en revisión)
+## 2026-11-10 — cuota preventiva de Supabase Storage (PR #159 integrada; migración aplicada 2026-11-12)
 
 - `src/storage-quota.js` consulta los bytes del proyecto mediante `public.get_storage_quota_status` y comprueba espacio antes de subir. Administración muestra bytes usados, disponibles, archivos y umbrales.
 - Materiales no-audio, Comentarios y Propuestas usan el bucket privado `materials`. Audio de Materiales con `storage_path = local:...` sigue en la biblioteca local y no consume esta cuota.
