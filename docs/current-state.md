@@ -1,7 +1,7 @@
 # Estado técnico actual de BandaBase
 
 **Fotografía vigente actualizada:** 2026-11-17 (Argentina).  
-**HEAD real de `main` verificado:** `85a8a33042e0731dc1fc8eff0d85372090e021c2` — [commit](https://github.com/Teliu-p/BandaBase/commit/85a8a33042e0731dc1fc8eff0d85372090e021c2), del 2026-11-12.  
+**HEAD real de `main` verificado al iniciar esta actualización documental:** `85a8a33042e0731dc1fc8eff0d85372090e021c2` — [commit](https://github.com/Teliu-p/BandaBase/commit/85a8a33042e0731dc1fc8eff0d85372090e021c2), del 2026-11-12.  
 **Integraciones posteriores a la fotografía anterior:** PR #157 (preparación OPFS), #159 (cuota Storage) y #161 (alineación del nombre de migración), todas fusionadas.  
 **CI y Pages del HEAD actual:** Tests [#43303988557](https://github.com/Teliu-p/BandaBase/actions/runs/43303988557) y Pages [#43303988828](https://github.com/Teliu-p/BandaBase/actions/runs/43303988828) finalizaron exitosamente. Volver a comprobar ante cualquier commit posterior.  
 **Supabase:** proyecto `evuwcikuxptrgzdzejov`, PostgreSQL 17.11, último estado observado `ACTIVE_HEALTHY`. La verificación más reciente aquí documentada es selectiva y del 2026-11-12; no equivale a una auditoría completa realizada el 2026-11-17.  
